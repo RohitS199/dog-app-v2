@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../src/stores/authStore';
 import { useDogStore } from '../src/stores/dogStore';
 import { useTriageStore } from '../src/stores/triageStore';
+import { useCheckInStore } from '../src/stores/checkInStore';
+import { useHealthStore } from '../src/stores/healthStore';
 import { supabase } from '../src/lib/supabase';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../src/constants/theme';
 
@@ -28,6 +30,8 @@ export default function DeleteAccount() {
   const signOut = useAuthStore((s) => s.signOut);
   const clearDogs = useDogStore((s) => s.clearDogs);
   const clearAll = useTriageStore((s) => s.clearAll);
+  const clearCheckIn = useCheckInStore((s) => s.clearAll);
+  const clearHealth = useHealthStore((s) => s.clearHealth);
   const router = useRouter();
 
   const canDelete = password.length > 0 && confirmText === 'DELETE';
@@ -62,6 +66,8 @@ export default function DeleteAccount() {
       // Clear all local state
       clearDogs();
       clearAll();
+      clearCheckIn();
+      clearHealth();
       await signOut();
 
       // The auth state change will redirect to sign-in

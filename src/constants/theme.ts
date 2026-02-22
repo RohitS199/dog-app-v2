@@ -91,3 +91,67 @@ export const BORDER_RADIUS = {
 
 // Minimum touch target for accessibility (48dp)
 export const MIN_TOUCH_TARGET = 48;
+
+// Alert level configuration for pattern alerts
+export const ALERT_LEVEL_CONFIG = {
+  info: {
+    label: 'Info',
+    color: '#1976D2',
+    backgroundColor: '#E3F2FD',
+    icon: 'information-outline' as const,
+  },
+  watch: {
+    label: 'Watch',
+    color: '#F57C00',
+    backgroundColor: '#FFF3E0',
+    icon: 'eye-outline' as const,
+  },
+  concern: {
+    label: 'Concern',
+    color: '#E65100',
+    backgroundColor: '#FBE9E7',
+    icon: 'alert-outline' as const,
+  },
+  vet_recommended: {
+    label: 'Vet Recommended',
+    color: '#C62828',
+    backgroundColor: '#FFEBEE',
+    icon: 'medical-bag' as const,
+  },
+} as const;
+
+export type AlertLevelKey = keyof typeof ALERT_LEVEL_CONFIG;
+
+// Calendar day status visual configuration
+export const CALENDAR_STATUS_CONFIG = {
+  good: {
+    color: '#388E3C',
+    backgroundColor: '#E8F5E9',
+    shape: 'circle' as const,
+  },
+  fair: {
+    color: '#F57C00',
+    backgroundColor: '#FFF3E0',
+    shape: 'triangle' as const,
+  },
+  poor: {
+    color: '#C62828',
+    backgroundColor: '#FFEBEE',
+    shape: 'diamond' as const,
+  },
+  new: {
+    color: '#1976D2',
+    backgroundColor: 'transparent',
+    shape: 'circle_outlined' as const,
+  },
+  missed: {
+    color: '#9E9E9E',
+    backgroundColor: 'transparent',
+    shape: 'dash' as const,
+  },
+  future: {
+    color: 'transparent',
+    backgroundColor: 'transparent',
+    shape: 'none' as const,
+  },
+} as const;

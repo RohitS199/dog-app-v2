@@ -1,6 +1,6 @@
 # PawCheck — Complete Project Documentation
 
-> Last updated: February 20, 2026
+> Last updated: February 21, 2026
 
 ## Table of Contents
 
@@ -25,7 +25,10 @@
 
 ## 1. Project Overview
 
-PawCheck is a React Native mobile application that provides **educational health guidance** for dogs. Users describe their dog's symptoms, and the app returns an AI-generated urgency classification along with educational information, what to tell the vet, and veterinary source citations.
+PawCheck is a React Native mobile application that provides **educational health guidance** for dogs through two core features:
+
+1. **Daily Health Check-Ins** (v2.6) — 9-question structured health logging with rule-based pattern detection, trend analysis, and proactive alerts
+2. **Symptom Triage** (v1.0) — Free-text symptom input returning AI-generated urgency classification with educational information, vet tips, and source citations
 
 **PawCheck is NOT veterinary medicine.** This distinction is legally load-bearing and permeates every design decision, from the language used in responses to the colors chosen for urgency badges.
 
@@ -35,7 +38,15 @@ PawCheck is a React Native mobile application that provides **educational health
 
 Every feature, every component, every urgency color choice exists in service of this principle.
 
-### How It Works
+### How It Works — Daily Check-Ins (v2.6)
+
+1. User completes a 9-question daily health check-in (appetite, water, energy, stool, vomiting, mobility, mood, additional symptoms, free text)
+2. Check-in is UPSERT'd to `daily_check_ins` table; streak trigger updates `dogs.checkin_streak`
+3. `analyze-patterns` Edge Function runs asynchronously, evaluating 17 rule-based pattern rules
+4. Pattern alerts surface on the Health tab calendar with severity levels (info, watch, concern, vet_recommended)
+5. Calendar shows daily status via shape+color indicators; consistency score tracks 7-day trailing trends
+
+### How It Works — Symptom Triage (v1.0)
 
 1. User signs up (with COPPA 13+ age gate) and accepts Terms of Service
 2. User adds their dog's profile (name, breed, age, weight, optional vet phone)
@@ -64,9 +75,10 @@ Every feature, every component, every urgency color choice exists in service of 
 Mobile App (Expo/React Native)
     |
     ├── Supabase Auth (JWT via expo-secure-store)
-    ├── Supabase Postgres (dogs, audit log, user_acknowledgments)
+    ├── Supabase Postgres (dogs, daily_check_ins, pattern_alerts, audit log, user_acknowledgments)
     └── Supabase Edge Functions
          ├── check-symptoms (v10) — 16-step triage pipeline
+         ├── analyze-patterns (v1) — 8-step rule-based pattern detection
          ├── delete-account (v1) — Account deletion with anonymization
          └── run-stress-test (v3) — 120-prompt test harness
               |
@@ -86,11 +98,13 @@ Mobile App (Expo/React Native)
 
 ### State Management
 
-Three Zustand stores manage all app state:
+Five Zustand stores manage all app state:
 
 - **authStore** — Session, user, loading, terms acceptance
 - **dogStore** — Dog profiles, selected dog, last triage dates
 - **triageStore** — Symptoms, loading, results, cached result, auto-retry, nudge tracking
+- **checkInStore** — Check-in draft (persisted via AsyncStorage), step navigation, submission, day summary
+- **healthStore** — Calendar data, active pattern alerts, date selection
 
 ---
 
@@ -106,9 +120,10 @@ Three Zustand stores manage all app state:
 | Backend | Supabase | JS v2 | Auth, Postgres, Edge Functions |
 | Security | expo-secure-store | - | JWT token persistence |
 | Network | expo-network | - | Offline detection (polling) |
+| Persistence | @react-native-async-storage/async-storage | - | Zustand persist middleware |
 | Animation | react-native-reanimated | v4 | Installed, not yet used |
 | SVG | react-native-svg | - | Installed, not yet used |
-| Testing | Jest + RNTL | v29 | 103 tests across 7 suites |
+| Testing | Jest + RNTL | v29 | 205 tests across 16 suites |
 
 ### Key Dependencies
 
@@ -200,6 +215,61 @@ Eight backend tasks completed across multiple sessions, plus security hardening:
 10. **Delete-account E2E verification** — Tested happy path, wrong password (403), cascade delete, anonymization, audit log SET NULL. All verified.
 11. **Full v10 stress test rerun** — 120 prompts, Tier 1 = 100%, Tier 2 = 90%, overall 95%, 0 safety-critical failures
 
+### v2.6 Phase 1: Daily Check-Ins + Pattern Detection (COMPLETE — Feb 21, 2026)
+
+Major pivot from reactive single-shot triage to proactive daily health logging + rule-based pattern intelligence. Inspired by the Flo period tracking app model. Core problem: 89.5% of triages returned emergency/urgent (alert fatigue from single free-text field giving AI insufficient data).
+
+**Database (6 migrations):**
+- `daily_check_ins` table — 7 metric fields with CHECK constraints, UNIQUE(dog_id, check_in_date), full CRUD RLS
+- `pattern_alerts` table — 17 pattern types, 4 alert levels, SELECT/UPDATE RLS (INSERT/DELETE service role only)
+- `dogs` table additions — `last_checkin_date DATE`, `checkin_streak INTEGER DEFAULT 0`
+- `triage_audit_log` additions — `daily_log_id UUID FK`, `history_context_included BOOLEAN`
+- Streak trigger — SECURITY DEFINER, uses `check_in_date` not `now()`, handles consecutive/gap/same-day
+- Revision history trigger — BEFORE UPDATE, appends old snapshot to `revision_history` JSONB
+
+**Types & Constants:**
+- `src/types/checkIn.ts` — 7 metric enums, DailyCheckIn, CheckInDraft, AdditionalSymptom
+- `src/types/health.ts` — PatternType (17), AlertLevel (4), PatternAlert, CalendarDayStatus (6), ConsistencyScore, DaySummary
+- `src/constants/checkInQuestions.ts` — 7 questions + 11 additional symptoms options
+- `src/constants/theme.ts` additions — ALERT_LEVEL_CONFIG, CALENDAR_STATUS_CONFIG
+- `src/constants/config.ts` additions — CHECK_IN config, ANALYZE_PATTERNS_ENDPOINT
+
+**Pure Functions:**
+- `src/lib/consistencyScore.ts` — 7-day trailing mode per field, maps to 1-5 scale, requires min 5 days
+- `src/lib/daySummary.ts` — Classifies abnormalities per field, 4 tiers (all_normal → vet_recommended)
+- `src/lib/patternRules.ts` — All 17 pattern detection rules as pure functions
+
+**Stores:**
+- `src/stores/checkInStore.ts` — Zustand with persist middleware (AsyncStorage). Draft + currentStep persisted. 3 rehydration guards. UPSERT submission. Parallel post-save (analyze-patterns + fetchDogs).
+- `src/stores/healthStore.ts` — Calendar data, active alerts, dismiss functionality
+
+**Check-In Flow UI (app/check-in.tsx):**
+- Full-screen modal with 9 steps + review + summary
+- Components: CheckInCard, AdditionalSymptomsCard, FreeTextCard, CheckInReview, DaySummaryCard, ProgressDots
+- Emergency detection on free text (500ms debounce)
+- Inline alerts for blood_in_stool, dry_heaving
+
+**Health Tab (app/(tabs)/health.tsx):**
+- Monthly calendar grid with 6 status states (shape+color differentiation for WCAG AA)
+- Day detail bottom sheet with previous day comparison
+- Streak counter, consistency score card, pattern alert cards
+- Components: CalendarGrid, DayDetailSheet, StreakCounter, ConsistencyCard, PatternAlertCard, AlertLevelBadge
+
+**analyze-patterns Edge Function (v1):**
+- 8-step pipeline: auth → validate → fetch logs → density check → rule detection → dedup → auto-resolve → write & return
+- 17 pattern rules (5 single-day, 12 trend). Trend rules require 70% density.
+- Rate limit: 20/hour per user
+- Composite priority: appetite_thirst_increase suppresses standalone appetite_increase
+- Never auto-resolve: blood_in_stool, dry_heaving_emergency
+- Severity escalation: watch → concern at 14+ days
+
+**Navigation & Home Screen:**
+- 4-tab layout: Home, Health, Triage, Settings (was 3 tabs)
+- Home screen: check-in CTA per dog card, streak badges, GettingStartedCard for cold start onboarding
+- Settings/delete-account: clearCheckIn + clearHealth added to sign-out/deletion flows
+
+**Testing:** 102 new tests across 9 new suites (205 total, 16 suites)
+
 ### Milestone 6: Beta Testing (NOT STARTED)
 
 - TestFlight / internal testing build
@@ -224,6 +294,7 @@ All Edge Functions are deployed with `verify_jwt: false` due to an ES256/HS256 J
 | Function | Version | Purpose |
 |----------|---------|---------|
 | `check-symptoms` | v10 | Core triage pipeline (16 steps + foreign body floor) |
+| `analyze-patterns` | v1 | Rule-based pattern detection (17 rules, 20/hr rate limit) |
 | `delete-account` | v1 | Account deletion with anonymization |
 | `run-stress-test` | v3 | 120-prompt automated test harness |
 
@@ -283,6 +354,47 @@ The filter catches language that crosses the line from "educational" to "medical
 - **EMERGENCY_KEYWORDS** (35 patterns): seizure, collapse, choking, vomiting blood, blue gums, hit by car, etc.
 - **EMERGENCY_CLUSTERS** (12 patterns): Bloat symptoms, uncontrolled bleeding, paralysis, foreign body
 - **TOXICITY_PATTERNS** (18 patterns): Chocolate, grapes, xylitol, rat poison, medications, plants, snake bite
+
+### analyze-patterns (v1)
+
+Rule-based pattern detection pipeline. Runs asynchronously after each daily check-in submission. Rate limit: 20/hour per user.
+
+#### Pipeline Steps
+
+| Step | Name | Description |
+|------|------|-------------|
+| 1 | Auth | Verify JWT, get user from token |
+| 2 | Validate | Confirm dog ownership via dogs table |
+| 3 | Fetch logs | Query daily_check_ins for dog, last 14 days, ordered by date DESC |
+| 4 | Density check | Count logged days per window. Trend rules need ≥70% density. Single-day rules always fire. |
+| 5 | Rule detection | Run all 17 pattern rules. Composite rules first (appetite_thirst_increase > standalone appetite_increase). |
+| 6 | Deduplication | Check existing active alerts of same type+dog. Update last_confirmed, don't create duplicates. Severity escalation: watch → concern at 14+ days. |
+| 7 | Auto-resolve | If trigger condition cleared, set resolved_at + is_active = false. Exception: blood_in_stool and dry_heaving_emergency NEVER auto-resolve. |
+| 8 | Write & return | Insert new alerts (service role). Return `{ patterns, summary, density }`. |
+
+#### Pattern Rules (17 total)
+
+**Single-day rules (5)** — always fire regardless of density:
+- `blood_in_stool` — stool_quality = 'blood' → vet_recommended
+- `dry_heaving_emergency` — vomiting = 'dry_heaving' → vet_recommended
+- `sudden_aggression` — mood = 'aggressive' → concern
+- `vomiting_plus_other` — vomiting = 'multiple' + another significant abnormality → concern
+- `multi_symptom_acute` — 3+ significant abnormalities in single day → concern
+
+**Trend rules (12)** — require ≥70% density over trailing window:
+- appetite_decline, appetite_increase, appetite_thirst_increase (composite), energy_decline, excessive_energy, digestive_issues, recurring_vomiting, abnormal_water, mobility_issues, behavioral_change, multi_symptom_trend, persistent_decline
+
+#### Abnormality Classification
+
+| Field | Baseline | Mild | Significant | Flag |
+|-------|----------|------|-------------|------|
+| appetite | normal | less | barely, refusing | more (polyphagia) |
+| water_intake | normal | less, more | much_less, excessive | — |
+| energy_level | normal | low | lethargic, barely_moving | hyperactive |
+| stool_quality | normal | soft | diarrhea, blood | constipated, not_noticed = UNKNOWN |
+| vomiting | none | once | multiple, dry_heaving | — |
+| mobility | normal | stiff | limping, reluctant, difficulty_rising | — |
+| mood | normal | quiet, clingy | anxious, hiding, aggressive | — |
 
 ### delete-account (v1)
 
@@ -402,10 +514,69 @@ CREATE TABLE dogs (
   age_years NUMERIC CHECK (age_years IS NULL OR age_years >= 0),
   weight_lbs NUMERIC,
   vet_phone TEXT,
+  last_checkin_date DATE DEFAULT NULL,          -- v2.6: updated by streak trigger
+  checkin_streak INTEGER NOT NULL DEFAULT 0,    -- v2.6: consecutive check-in days
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 -- RLS: users can only CRUD their own dogs
+```
+
+### daily_check_ins (v2.6)
+
+```sql
+CREATE TABLE daily_check_ins (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  dog_id UUID NOT NULL REFERENCES dogs(id) ON DELETE CASCADE,
+  check_in_date DATE NOT NULL,
+  appetite TEXT NOT NULL CHECK (appetite IN ('normal','less','barely','refusing','more')),
+  water_intake TEXT NOT NULL CHECK (water_intake IN ('normal','less','much_less','more','excessive')),
+  energy_level TEXT NOT NULL CHECK (energy_level IN ('normal','low','lethargic','barely_moving','hyperactive')),
+  stool_quality TEXT NOT NULL CHECK (stool_quality IN ('normal','soft','diarrhea','constipated','blood','not_noticed')),
+  vomiting TEXT NOT NULL CHECK (vomiting IN ('none','once','multiple','dry_heaving')),
+  mobility TEXT NOT NULL CHECK (mobility IN ('normal','stiff','limping','reluctant','difficulty_rising')),
+  mood TEXT NOT NULL CHECK (mood IN ('normal','quiet','anxious','clingy','hiding','aggressive')),
+  additional_symptoms JSONB NOT NULL DEFAULT '[]',
+  free_text TEXT DEFAULT NULL CHECK (free_text IS NULL OR char_length(free_text) <= 500),
+  emergency_flagged BOOLEAN NOT NULL DEFAULT false,
+  revision_history JSONB NOT NULL DEFAULT '[]',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT unique_dog_checkin_date UNIQUE (dog_id, check_in_date)
+);
+-- RLS: full CRUD for own records
+-- Triggers: trg_checkin_streak (updates dogs.checkin_streak), trg_checkin_revision (appends to revision_history)
+```
+
+### pattern_alerts (v2.6)
+
+```sql
+CREATE TABLE pattern_alerts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  dog_id UUID NOT NULL REFERENCES dogs(id) ON DELETE CASCADE,
+  pattern_type TEXT NOT NULL CHECK (pattern_type IN (
+    'appetite_decline','energy_decline','digestive_issues','recurring_vomiting',
+    'abnormal_water','mobility_issues','behavioral_change','multi_symptom_acute',
+    'multi_symptom_trend','persistent_decline','blood_in_stool','vomiting_plus_other',
+    'appetite_thirst_increase','appetite_increase','excessive_energy',
+    'sudden_aggression','dry_heaving_emergency'
+  )),
+  alert_level TEXT NOT NULL CHECK (alert_level IN ('info','watch','concern','vet_recommended')),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  ai_insight TEXT DEFAULT NULL,
+  data_window JSONB NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  dismissed_by_user BOOLEAN NOT NULL DEFAULT false,
+  triggered_triage BOOLEAN NOT NULL DEFAULT false,
+  first_detected DATE NOT NULL,
+  last_confirmed DATE NOT NULL,
+  resolved_at TIMESTAMPTZ DEFAULT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- RLS: SELECT/UPDATE for own records. INSERT/DELETE restricted to service role (Edge Function).
 ```
 
 ### triage_audit_log
@@ -424,6 +595,8 @@ CREATE TABLE triage_audit_log (
   filter_severity TEXT,
   is_off_topic BOOLEAN,
   response_time_ms INTEGER,
+  daily_log_id UUID REFERENCES daily_check_ins(id) ON DELETE SET NULL,  -- v2.6
+  history_context_included BOOLEAN NOT NULL DEFAULT false,               -- v2.6
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 -- SET NULL on delete preserves safety monitoring data
@@ -497,6 +670,14 @@ Stores results from automated stress test runs. Columns include test_id, categor
 #### hybrid_search_dog_health(query_text, query_embedding, match_count, match_threshold, vector_weight, keyword_weight)
 
 RPC function for RAG retrieval. Combines pgvector similarity search with PostgreSQL full-text search using configurable weights.
+
+#### update_checkin_streak() (v2.6)
+
+SECURITY DEFINER trigger function. Fires AFTER INSERT/UPDATE on `daily_check_ins`. Updates `dogs.last_checkin_date` and `dogs.checkin_streak` based on `check_in_date` (not `now()`). Handles 3 cases: gap (reset to 1), consecutive (increment), same-day UPSERT (no change).
+
+#### append_checkin_revision() (v2.6)
+
+SECURITY DEFINER trigger function. Fires BEFORE UPDATE on `daily_check_ins`. If any metric field changed, appends old snapshot to `revision_history` JSONB array and updates `updated_at`.
 
 ---
 
@@ -601,36 +782,46 @@ dog_app_ui/
 │   │   ├── sign-up.tsx           # Sign-up with COPPA 13+ DOB gate
 │   │   └── forgot-password.tsx   # Password reset via email
 │   ├── (tabs)/                   # Main app (authenticated + terms)
-│   │   ├── index.tsx             # Home — dog cards, last triage dates
+│   │   ├── index.tsx             # Home — dog cards, check-in CTA, streak badges
+│   │   ├── health.tsx            # Health tab — calendar, alerts, consistency
 │   │   ├── triage.tsx            # Core triage flow (input → loading → result)
 │   │   └── settings.tsx          # Account, dogs, legal, sign out, delete
 │   ├── terms.tsx                 # ToS acceptance (scroll-to-bottom)
 │   ├── add-dog.tsx               # Add dog form
 │   ├── edit-dog.tsx              # Edit/delete dog form
+│   ├── check-in.tsx              # Daily check-in flow (9 questions)
 │   ├── emergency.tsx             # Emergency resources screen
 │   ├── change-password.tsx       # Change password (logged-in users)
 │   └── delete-account.tsx        # Account deletion (3-step confirm)
 ├── src/
 │   ├── components/
 │   │   ├── legal/                # Safety-critical components (5)
-│   │   ├── ui/                   # General UI components (7)
-│   │   └── __tests__/            # Component tests (4 suites)
+│   │   ├── ui/                   # General UI components (20)
+│   │   └── __tests__/            # Component tests (8 suites)
 │   ├── constants/
-│   │   ├── theme.ts              # "Soft Sage and Cream" palette + urgency colors
-│   │   ├── config.ts             # API config, limits, legal constants
+│   │   ├── theme.ts              # "Soft Sage and Cream" palette + urgency + alert + calendar colors
+│   │   ├── config.ts             # API config, limits, legal, check-in constants
+│   │   ├── checkInQuestions.ts   # 7 check-in questions + 11 additional symptoms
 │   │   └── loadingTips.ts        # Rotating loading screen tips
 │   ├── hooks/
 │   │   ├── useAppState.ts        # Foreground/background lifecycle
 │   │   └── useNetworkStatus.ts   # Offline detection (polling)
 │   ├── lib/
 │   │   ├── supabase.ts           # Supabase client with secure store
-│   │   └── emergencyKeywords.ts  # Client-side emergency detection
+│   │   ├── emergencyKeywords.ts  # Client-side emergency detection
+│   │   ├── consistencyScore.ts   # 7-day trailing consistency score
+│   │   ├── daySummary.ts         # Post-check-in summary classification
+│   │   └── patternRules.ts       # 17 pattern detection rules
 │   ├── stores/
 │   │   ├── authStore.ts          # Authentication state
 │   │   ├── dogStore.ts           # Dog profiles state
-│   │   └── triageStore.ts        # Triage flow state
+│   │   ├── triageStore.ts        # Triage flow state
+│   │   ├── checkInStore.ts       # Check-in draft + submission (persisted)
+│   │   └── healthStore.ts        # Calendar data + pattern alerts
 │   └── types/
-│       └── api.ts                # TypeScript types (API contract)
+│       ├── api.ts                # TypeScript types (API contract + Dog with checkin fields)
+│       ├── checkIn.ts            # Check-in types (metrics, draft, symptoms)
+│       └── health.ts             # Health types (patterns, alerts, calendar, consistency)
 └── Configuration files
     ├── app.json                  # Expo config (scheme: pawcheck)
     ├── tsconfig.json             # Strict TypeScript
@@ -661,7 +852,7 @@ Session + terms     → /(tabs)
 | `CallYourVetButton` | Direct phone dial or honest "no vet on file" fallback |
 | `SourceCitation` | Tiered veterinary references with tappable URLs |
 
-#### UI Components
+#### UI Components — Triage (v1.0)
 
 | Component | Purpose |
 |-----------|---------|
@@ -672,6 +863,24 @@ Session + terms     → /(tabs)
 | `OffTopicResult` | Friendly redirect for non-dog queries |
 | `OfflineBanner` | Network status indicator |
 | `TriageNudge` | "See a vet" suggestion after 3+ checks in 7 days |
+
+#### UI Components — Check-In & Health (v2.6)
+
+| Component | Purpose |
+|-----------|---------|
+| `CheckInCard` | Single question with radio-style options + yesterday hint |
+| `AdditionalSymptomsCard` | Multi-select chips ("None" deselects all) |
+| `FreeTextCard` | TextInput (500 chars) + emergency detection |
+| `CheckInReview` | Summary of all 9 answers, tap-to-edit |
+| `DaySummaryCard` | Post-submission feedback (4 tiers) + streak + alerts |
+| `ProgressDots` | Step indicator (current/completed/upcoming) |
+| `CalendarGrid` | Monthly grid with 6 status states (shape+color) |
+| `DayDetailSheet` | Bottom sheet with full check-in data + comparison |
+| `StreakCounter` | Consecutive check-in day counter |
+| `ConsistencyCard` | 7-day consistency score visual (5-dot bar) |
+| `PatternAlertCard` | Pattern alert with severity border + dismiss |
+| `AlertLevelBadge` | Alert severity pill badge |
+| `GettingStartedCard` | Cold start onboarding (auto-dismiss at 5+ days) |
 
 ---
 
@@ -727,22 +936,43 @@ MIN_TOUCH_TARGET: 48dp (WCAG minimum)
 
 ## 11. Testing
 
-### Unit Tests — 103 Tests, 7 Suites (All Passing)
+### Unit Tests — 205 Tests, 16 Suites (All Passing)
+
+**Lib tests (5 suites, 105 tests):**
 
 | Suite | Tests | Coverage |
 |-------|-------|----------|
 | `emergencyKeywords.test.ts` | 39 | Pattern matching, normalization, clusters, v9/v10 compound patterns |
 | `foreignBodyFloor.test.ts` | 22 | Step 12b regex pattern matching, urgency floor logic, edge cases |
+| `consistencyScore.test.ts` | 9 | 7-day trailing score, min 5 days threshold, tie-breaking |
+| `daySummary.test.ts` | 10 | 4 tiers, blood in stool alert, dry heaving alert, multiple abnormals |
+| `patternRules.test.ts` | 25 | All 17 rules, density gating, composite priority, empty input |
+
+**Store tests (3 suites, 41 tests):**
+
+| Suite | Tests | Coverage |
+|-------|-------|----------|
+| `triageStore.test.ts` | 13 | Symptoms, char limits, nudge tracking |
+| `checkInStore.test.ts` | 20 | startCheckIn, setAnswer, step navigation, toggleSymptom, free text limit, rehydration guards |
+| `healthStore.test.ts` | 8 | fetchMonthData, dismissAlert, clearHealth |
+
+**Component tests (8 suites, 59 tests):**
+
+| Suite | Tests | Coverage |
+|-------|-------|----------|
 | `UrgencyBadge.test.tsx` | 7 | All urgency levels, accessibility labels |
 | `TriageResult.test.tsx` | 10 | Triage, emergency bypass, sources, vet phone |
 | `LegalComponents.test.tsx` | 9 | Disclaimer, call banner, source citation |
 | `EmergencyAlert.test.tsx` | 3 | Rendering, dismiss callback |
-| `triageStore.test.ts` | 13 | Symptoms, char limits, nudge tracking |
+| `CheckInCard.test.tsx` | 8 | Question rendering, options, selected state, yesterday hint, inline alert |
+| `CheckInReview.test.tsx` | 5 | All answers rendered, tap-to-edit callback |
+| `PatternAlertCard.test.tsx` | 6 | Title/message, badge, dismiss, vet_recommended CTA |
+| `CalendarGrid.test.tsx` | 8 | Cell count, status indicators, date press, today highlight |
 
 ### Running Tests
 
 ```bash
-npm test              # Runs all 103 tests
+npm test              # Runs all 205 tests
 npx jest --no-cache   # If stale cache issues
 ```
 
@@ -946,7 +1176,8 @@ PawCheck operates as an **educational tool**, not a diagnostic tool. This distin
 | Tab bar icons | Done — MaterialCommunityIcons (home, stethoscope, cog-outline) |
 | Emergency regex gaps | Done — 6 fix blocks applied in v9, Tier 1 = 100% (60/60) |
 | Foreign body ingestion rule | Done — v10 system prompt rule + Step 12b regex urgency floor. CAT6-08 now 3/3 "urgent". |
-| Client-side pattern tests | Done — 14 new test cases for v9/v10 compound patterns + 22 Step 12b foreign body floor tests (103 total, 7 suites) |
+| Client-side pattern tests | Done — 14 new test cases for v9/v10 compound patterns + 22 Step 12b foreign body floor tests |
+| v2.6 Phase 1 | Done — Daily check-ins, pattern detection, health calendar, 4-tab navigation (205 tests, 16 suites) |
 | CAT10-08 prompt injection | Done — v9 blood-in-stool regex fires at Step 3, returns emergency_bypass before LLM sees injection |
 | Security hardening | Done — search_path fixed on 6 functions, RLS enabled on all public tables, 0 ERROR-level security findings |
 | Delete-account E2E test | Done — Happy path, wrong password (403), cascade, anonymization, audit log SET NULL all verified |
@@ -978,9 +1209,10 @@ PawCheck operates as an **educational tool**, not a diagnostic tool. This distin
 
 | Item | Notes |
 |------|-------|
+| v2.6 Phase 2 | AI-powered pattern insights + enhanced dashboard |
+| v2.6 Phase 3 | Enhanced triage v11 — integration with check-in history context |
 | Emergency vet locator API | Currently uses Google search link; proper API integration post-MVP |
 | Buddy mascot animation | Deferred — reanimated + svg installed but animation not built |
-| Symptom journal | Phase 3 feature |
 | Push notifications | Not in current scope |
 | JWT verify_jwt fix | ES256/HS256 mismatch — Edge Functions use `verify_jwt: false` with internal validation |
 
@@ -993,9 +1225,10 @@ PawCheck operates as an **educational tool**, not a diagnostic tool. This distin
 ### Known Dependency Issues
 
 1. **react-native-worklets** must be devDep — reanimated babel plugin requires it
-2. **Jest 29** required (not 30) — jest-expo peer dependency
-3. **expo-network** may need `--legacy-peer-deps`
-4. **Smart quotes** in `.ts` files cause compilation errors — use straight quotes only
+2. **@react-native-async-storage/async-storage** requires `--legacy-peer-deps` (react peer dep conflict)
+3. **Jest 29** required (not 30) — jest-expo peer dependency
+4. **expo-network** may need `--legacy-peer-deps`
+5. **Smart quotes** in `.ts` files cause compilation errors — use straight quotes only
 
 ---
 
@@ -1011,8 +1244,8 @@ PawCheck operates as an **educational tool**, not a diagnostic tool. This distin
 ### Installation
 
 ```bash
-git clone <repo-url>
-cd dog_app_ui
+git clone https://github.com/RohitS199/dog-app-v2.git
+cd dog-app-v2
 cp .env.example .env
 # Fill in Supabase credentials in .env
 npm install
@@ -1035,7 +1268,7 @@ npx expo start          # Start Expo dev server
 ### Running Tests
 
 ```bash
-npm test                # Run all 103 tests
+npm test                # Run all 205 tests
 npx jest --no-cache     # Clear cache first
 npx jest --verbose      # See individual test results
 ```
@@ -1047,3 +1280,11 @@ npx jest --verbose      # See individual test results
 3. If "GO_BACK was not handled" after sign-up — ensure `user_acknowledgments` table exists in Supabase
 4. If "Failed to add dog" — ensure `dogStore.addDog()` includes `user_id` in the insert (this was fixed)
 5. If tests fail with "Cannot find module 'react-native-worklets/plugin'" — run `npm install --save-dev react-native-worklets`
+
+---
+
+## 17. Repository Migration
+
+**Date:** February 21, 2026
+
+The repository was migrated from `https://github.com/RohitS199/dog-app-ui.git` to `https://github.com/RohitS199/dog-app-v2.git`. The old repo is archived. All new development (v2.5 daily health logging + pattern analysis pivot) targets the new repo.

@@ -1,8 +1,19 @@
 # PawCheck — Mobile App (dog_app_ui)
 
+## Repository
+
+- **GitHub**: https://github.com/RohitS199/dog-app-v2.git (migrated from dog-app-ui on Feb 21, 2026)
+- **Remote name**: `origin`
+- All new commits and PRs go to this repo. The old `dog-app-ui` repo is archived.
+
 ## What This Is
 
-PawCheck is a React Native (Expo) mobile app that provides **educational health guidance** for dogs. Users describe their dog's symptoms, and the app returns an AI-generated urgency classification (Emergency, Urgent, Soon, Low Urgency) along with educational information, what to tell the vet, and source citations. **It is NOT veterinary medicine** — this distinction is legally load-bearing and permeates every design decision.
+PawCheck is a React Native (Expo) mobile app that provides **educational health guidance** for dogs. It has two core features:
+
+1. **Daily Health Check-Ins** (v2.6) — 9-question structured logging with rule-based pattern detection and health trend analysis
+2. **Symptom Triage** (v1.0) — Free-text symptom input returning AI-generated urgency classification (Emergency, Urgent, Soon, Low Urgency) with educational information, vet tips, and source citations
+
+**It is NOT veterinary medicine** — this distinction is legally load-bearing and permeates every design decision.
 
 ### The Golden Rule
 
@@ -15,12 +26,13 @@ Every feature, every component, every urgency color choice exists in service of 
 - **Expo SDK 54** — Managed workflow, TypeScript strict mode
 - **Expo Router v6** — File-based navigation (`app/` directory)
 - **React Native 0.81** — New Architecture enabled
-- **Zustand v5** — Lightweight state management (3 stores)
+- **Zustand v5** — Lightweight state management (5 stores: auth, dog, triage, checkIn, health)
 - **Supabase JS v2** — Auth, Postgres database, Edge Functions
 - **expo-secure-store** — JWT token persistence (critical for security)
 - **expo-network** — Offline detection (polling, no listener API)
+- **@react-native-async-storage/async-storage** — Zustand persist middleware for check-in draft
 - **react-native-reanimated v4** + **react-native-svg** — Installed for future Buddy mascot animation (not yet implemented)
-- **Jest 29** + **React Native Testing Library** — 103 tests across 7 suites
+- **Jest 29** + **React Native Testing Library** — 205 tests across 16 suites
 
 ## Project Structure
 
@@ -34,25 +46,30 @@ dog_app_ui/
 │   │   ├── sign-up.tsx           # Sign-up with COPPA 13+ DOB gate
 │   │   └── forgot-password.tsx   # Password reset via email
 │   ├── (tabs)/                   # Main app (authenticated + terms accepted)
-│   │   ├── _layout.tsx           # Bottom tab navigator (Home, Check, Settings)
-│   │   ├── index.tsx             # Home — dog cards, last triage dates
+│   │   ├── _layout.tsx           # Bottom tab navigator (Home, Health, Triage, Settings)
+│   │   ├── index.tsx             # Home — dog cards, check-in CTA, streak badges
+│   │   ├── health.tsx            # Health tab — calendar, alerts, consistency score
 │   │   ├── triage.tsx            # Core triage flow — input → loading → result
 │   │   └── settings.tsx          # Account, dogs, legal, sign out, delete
 │   ├── terms.tsx                 # ToS acceptance (required before main app)
 │   ├── add-dog.tsx               # Add dog form
 │   ├── edit-dog.tsx              # Edit/delete dog form
+│   ├── check-in.tsx              # Daily check-in flow (9 questions, full-screen modal)
 │   ├── emergency.tsx             # Standalone emergency resources screen
 │   ├── change-password.tsx       # Change password for logged-in users
 │   └── delete-account.tsx        # Account deletion with confirmation
 ├── src/
 │   ├── components/
-│   │   ├── legal/                # Safety-critical legal components
-│   │   └── ui/                   # General UI components
-│   ├── constants/                # Theme, config, loading tips
+│   │   ├── legal/                # Safety-critical legal components (5)
+│   │   ├── ui/                   # General UI components (20)
+│   │   └── __tests__/            # Component tests (8 suites)
+│   ├── constants/                # Theme, config, loading tips, check-in questions
 │   ├── hooks/                    # useAppState, useNetworkStatus
-│   ├── lib/                      # Supabase client, emergency keywords
-│   ├── stores/                   # Zustand stores (auth, dog, triage)
-│   └── types/                    # TypeScript types (API contract)
+│   ├── lib/                      # Supabase client, emergency keywords, pattern rules, consistency score
+│   │   └── __tests__/            # Lib tests (5 suites)
+│   ├── stores/                   # Zustand stores (auth, dog, triage, checkIn, health)
+│   │   └── __tests__/            # Store tests (3 suites)
+│   └── types/                    # TypeScript types (api, checkIn, health)
 ├── jest.config.js                # Jest with jest-expo preset
 ├── jest.setup.js                 # Mocks for Supabase, Expo modules, Linking
 ├── app.json                      # Expo config (scheme: pawcheck)
@@ -120,6 +137,36 @@ The `triageStore.submitSymptoms()` has a one-time auto-retry with a `hasRetried`
 
 If the user runs 3+ triage checks within 7 days, a blue info card appears: "If you're worried about your dog, seeing a vet is always the best option." Dismissable per session. Timestamps are tracked in `recentTriageTimestamps[]` and filtered by 7-day window.
 
+### Daily Check-In Flow (v2.6)
+
+The check-in is a **full-screen modal** (`app/check-in.tsx`) with 9 steps:
+- Steps 0-6: Single-select questions (appetite, water, energy, stool, vomiting, mobility, mood)
+- Step 7: Multi-select additional symptoms (11 options, "None" deselects all others)
+- Step 8: Free text (500 char max) with emergency keyword detection
+- After step 8: Review screen (tap any answer to edit)
+- After submit: Day summary card with 4 tiers (all_normal, minor_notes, attention_needed, vet_recommended)
+
+**Check-in data flow**: UPSERT directly to Supabase `daily_check_ins` table (no Edge Function). After save, fires `analyze-patterns` Edge Function and `fetchDogs()` in parallel (non-blocking).
+
+**Draft persistence**: Zustand persist middleware with AsyncStorage. Only `draft` and `currentStep` are persisted. Three rehydration guards discard stale drafts: (a) dogId no longer exists, (b) check_in_date has passed, (c) entry already exists for that dog+date.
+
+### Pattern Detection (v2.6)
+
+17 rule-based pattern rules in `src/lib/patternRules.ts`:
+- **5 single-day rules** (always fire): blood_in_stool, dry_heaving_emergency, sudden_aggression, vomiting_plus_other, multi_symptom_acute
+- **12 trend rules** (require 70% density over trailing window): appetite_decline, appetite_increase, energy_decline, etc.
+- **Composite priority**: appetite_thirst_increase suppresses standalone appetite_increase
+- **Never auto-resolve**: blood_in_stool, dry_heaving_emergency
+- **Severity escalation**: watch → concern at 14+ days active
+
+### Health Calendar (v2.6)
+
+`app/(tabs)/health.tsx` — Monthly calendar grid with 6 status states:
+- Green circle (score 4-5), Amber triangle (2-3), Red diamond (1), Blue outlined circle (days 1-4), Gray dash (missed), Nothing (future)
+- Shape + color differentiation for WCAG AA accessibility
+- Day detail bottom sheet shows full check-in data with previous day comparison
+- Consistency score: mode of trailing 7-day window, 1-5 scale, requires min 5 days
+
 ## Backend (Supabase — separate project, all tasks COMPLETE)
 
 The backend is a Supabase project at `https://wwuwosuysoxihtbykwgh.supabase.co`. All Edge Functions deploy with `verify_jwt: false` due to ES256/HS256 mismatch — they validate JWTs internally.
@@ -129,13 +176,16 @@ The backend is a Supabase project at `https://wwuwosuysoxihtbykwgh.supabase.co`.
 | Function | Version | Purpose |
 |----------|---------|---------|
 | `check-symptoms` | v10 | 16-step triage pipeline (emergency bypass, RAG, LLM, output filter, foreign body floor, audit log) |
+| `analyze-patterns` | v1 | 8-step rule-based pattern detection (17 rules, 20/hr rate limit, dedup, auto-resolve) |
 | `delete-account` | v1 | Password re-auth → anonymize triage data → admin delete user |
 | `run-stress-test` | v3 | 120-prompt automated test harness (run per-category, not all at once) |
 
 ### Database Tables
 
-- **`dogs`** — Dog profiles. FK to auth.users with CASCADE delete.
-- **`triage_audit_log`** — Every triage result. FK to auth.users with SET NULL (preserves safety data).
+- **`dogs`** — Dog profiles + `last_checkin_date` + `checkin_streak`. FK to auth.users with CASCADE delete.
+- **`daily_check_ins`** — Structured daily health logs (7 metrics + symptoms + free text). UNIQUE(dog_id, check_in_date). RLS: full CRUD for own records.
+- **`pattern_alerts`** — Rule-based pattern detection results (17 types, 4 severity levels). RLS: SELECT/UPDATE only (INSERT/DELETE service role).
+- **`triage_audit_log`** — Every triage result + `daily_log_id` FK + `history_context_included`. FK to auth.users with SET NULL.
 - **`user_acknowledgments`** — ToS acceptance records. FK with CASCADE.
 - **`anonymized_safety_metrics`** — Aggregate triage data from deleted accounts.
 - **`dog_health_content`** — 303 RAG chunks with pgvector embeddings.
@@ -143,10 +193,17 @@ The backend is a Supabase project at `https://wwuwosuysoxihtbykwgh.supabase.co`.
 - **`documents`** — Legacy (32 rows, unused). Will be dropped after RAG expansion.
 - **RLS policies** on all tables. User-facing tables are user-scoped. `dog_health_content` has authenticated SELECT. System tables have RLS with no policies (service role only).
 
+### Database Triggers
+
+- **`trg_checkin_streak`** — AFTER INSERT/UPDATE on `daily_check_ins`: updates `dogs.checkin_streak` and `dogs.last_checkin_date`. Uses `check_in_date` (not `now()`).
+- **`trg_checkin_revision`** — BEFORE UPDATE on `daily_check_ins`: appends old snapshot to `revision_history` JSONB array.
+
 ### SQL Functions
 
 - **`anonymize_user_triage_data(user_id)`** — Called before account deletion. Aggregates metrics, redacts PII, nullifies user_id in audit records.
 - **`hybrid_search_dog_health(...)`** — RAG retrieval combining vector similarity + keyword search.
+- **`update_checkin_streak()`** — Trigger function for streak calculation on check-in insert/update.
+- **`append_checkin_revision()`** — Trigger function for revision history on check-in update.
 
 ### Backend Completion Status (ALL DONE — last updated Feb 20, 2026)
 
@@ -173,24 +230,40 @@ npx expo start
 
 **Known dependency issues:**
 - `react-native-worklets` must be installed as a devDependency — required by `react-native-reanimated`'s babel plugin. If tests fail with "Cannot find module 'react-native-worklets/plugin'", run `npm install --save-dev react-native-worklets`.
+- `@react-native-async-storage/async-storage` requires `--legacy-peer-deps` flag for installation (react peer dep conflict).
 - Jest must be v29 (not v30) — `jest-expo` bundles Jest 29 internally. v30 causes module scope errors.
 - `expo-network` may need `--legacy-peer-deps` flag for installation.
 
 ## Running Tests
 
 ```bash
-npm test          # Runs all 103 tests
+npm test          # Runs all 205 tests
 npx jest --no-cache  # If you encounter stale cache issues
 ```
 
-**7 test suites:**
-- `emergencyKeywords.test.ts` — 39 tests (pattern matching, normalization, clusters, v9 fix coverage, v10 compound pattern tests)
-- `foreignBodyFloor.test.ts` — 22 tests (Step 12b regex pattern matching, urgency floor logic, edge cases)
+**16 test suites:**
+
+*Lib tests (5 suites, 105 tests):*
+- `emergencyKeywords.test.ts` — 39 tests (pattern matching, normalization, clusters, v9/v10 compound patterns)
+- `foreignBodyFloor.test.ts` — 22 tests (Step 12b regex pattern matching, urgency floor logic)
+- `consistencyScore.test.ts` — 9 tests (7-day trailing score, min 5 days, tie-breaking)
+- `daySummary.test.ts` — 10 tests (4 tiers, blood in stool, dry heaving, multiple abnormals)
+- `patternRules.test.ts` — 25 tests (all 17 rules, density gating, composite priority)
+
+*Store tests (3 suites, 41 tests):*
+- `triageStore.test.ts` — 13 tests (symptoms, char limits, nudge tracking)
+- `checkInStore.test.ts` — 20 tests (startCheckIn, setAnswer, step navigation, toggleSymptom, free text limit, rehydration guards)
+- `healthStore.test.ts` — 8 tests (fetchMonthData, dismissAlert, clearHealth)
+
+*Component tests (8 suites, 59 tests):*
 - `UrgencyBadge.test.tsx` — 7 tests (all urgency levels, accessibility)
 - `TriageResult.test.tsx` — 10 tests (triage, emergency bypass, sources, vet phone)
 - `LegalComponents.test.tsx` — 9 tests (disclaimer, call banner, source citation)
 - `EmergencyAlert.test.tsx` — 3 tests (rendering, dismiss callback)
-- `triageStore.test.ts` — 13 tests (symptoms, char limits, nudge tracking)
+- `CheckInCard.test.tsx` — 8 tests (renders question, options, selected state, yesterday hint, inline alert)
+- `CheckInReview.test.tsx` — 5 tests (renders all answers, tap-to-edit callback)
+- `PatternAlertCard.test.tsx` — 6 tests (title/message, badge, dismiss, vet_recommended CTA)
+- `CalendarGrid.test.tsx` — 8 tests (cell count, status indicators, date press, today highlight)
 
 ## Accessibility
 
@@ -218,8 +291,9 @@ Do not remove or weaken these components. They are legally required.
 - **Milestone 2** (Dog Profiles + Onboarding): COMPLETE (animation skipped)
 - **Milestone 3** (Core Triage): COMPLETE
 - **Milestone 4** (Settings + Account Management): COMPLETE
-- **Milestone 5** (Testing + Polish): COMPLETE (103/103 tests pass, accessibility audit done)
+- **Milestone 5** (Testing + Polish): COMPLETE (accessibility audit done)
 - **Backend Completion**: COMPLETE — all tasks done, security hardened, stress test passed, delete-account verified
+- **v2.6 Phase 1** (Daily Check-Ins + Pattern Detection): COMPLETE — 205/205 tests pass, 16 suites, all 9 blocks implemented
 - **Milestone 6** (Beta Testing): NOT STARTED — needs TestFlight build + real user testers
 
 ## Stress Test Results (Feb 19, 2026 — v10 full retest)
@@ -228,17 +302,19 @@ Full 120-prompt stress test against v10: **Tier 1 (safety) = 100% (60/60)**, **T
 
 ## Known Remaining Work
 
-1. ~~**Tab bar icons**~~ — DONE. MaterialCommunityIcons: home, stethoscope, cog-outline.
-2. ~~**Emergency regex gaps**~~ — DONE. 6 fix blocks applied (v9) + foreign body ingestion rule (v10), Tier 1 = 100%.
-3. ~~**CAT6-08 foreign body non-determinism**~~ — DONE. System prompt rule + regex floor in v10. 3/3 "urgent".
-4. **Buddy mascot animation** — Deferred. `react-native-reanimated` and `react-native-svg` are installed but animation not implemented.
-5. **50/day rate limit** — Only 10/hour is implemented.
-6. **Leaked password protection** — Requires Supabase Pro Plan. Not active on Free plan.
-7. **Emergency vet locator** — Post-MVP. Currently opens Google search.
-8. **Symptom journal** — Phase 3 feature, not in current codebase.
-9. **Privacy Policy** — Needs attorney drafting (outlined in legal compliance docs).
-10. **LLC formation + E&O insurance** — Business prerequisites before launch.
-11. **Tier 2 RAG gaps** — Cat 12 needs dog_health_content expansion (post-beta). Cat 9 is LLM behavior, not RAG.
+1. ~~**Tab bar icons**~~ — DONE.
+2. ~~**Emergency regex gaps**~~ — DONE.
+3. ~~**CAT6-08 foreign body non-determinism**~~ — DONE.
+4. ~~**v2.6 Phase 1**~~ — DONE. Daily check-ins, pattern detection, health calendar, 4-tab navigation.
+5. **v2.6 Phase 2** (AI + Dashboard) — NOT STARTED. AI-powered pattern insights, enhanced dashboard.
+6. **v2.6 Phase 3** (Enhanced Triage v11) — NOT STARTED. Triage integration with check-in history context.
+7. **Buddy mascot animation** — Deferred. `react-native-reanimated` and `react-native-svg` are installed but animation not implemented.
+8. **50/day rate limit** — Only 10/hour is implemented (check-symptoms). analyze-patterns has 20/hour.
+9. **Leaked password protection** — Requires Supabase Pro Plan. Not active on Free plan.
+10. **Emergency vet locator** — Post-MVP. Currently opens Google search.
+11. **Privacy Policy** — Needs attorney drafting (outlined in legal compliance docs).
+12. **LLC formation + E&O insurance** — Business prerequisites before launch.
+13. **Tier 2 RAG gaps** — Cat 12 needs dog_health_content expansion (post-beta).
 
 ## Full Documentation
 

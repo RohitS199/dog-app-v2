@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDogStore } from '../../src/stores/dogStore';
 import { DisclaimerFooter } from '../../src/components/legal';
+import { GettingStartedCard } from '../../src/components/ui/GettingStartedCard';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
 import type { Dog } from '../../src/types/api';
 
@@ -48,6 +49,11 @@ export default function HomeScreen() {
     router.push({ pathname: '/edit-dog', params: { id: dog.id } });
   };
 
+  const handleCheckIn = (dog: Dog) => {
+    selectDog(dog.id);
+    router.push('/check-in');
+  };
+
   const renderDogCard = ({ item }: { item: Dog }) => {
     const lastTriage = lastTriageDates[item.id];
 
@@ -60,7 +66,14 @@ export default function HomeScreen() {
           accessibilityLabel={`${item.name}, ${item.breed}, ${item.age_years} years old. Tap to check symptoms.`}
         >
           <View style={styles.dogInfo}>
-            <Text style={styles.dogName}>{item.name}</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.dogName}>{item.name}</Text>
+              {(item.checkin_streak ?? 0) > 0 && (
+                <View style={styles.streakBadge}>
+                  <Text style={styles.streakText}>{item.checkin_streak}d</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.dogDetails}>
               {item.breed} · {item.age_years}y · {item.weight_lbs} lbs
             </Text>
@@ -70,7 +83,17 @@ export default function HomeScreen() {
               </Text>
             )}
           </View>
-          <Text style={styles.arrow} accessibilityElementsHidden>→</Text>
+          <Text style={styles.arrow} accessibilityElementsHidden>{'→'}</Text>
+        </Pressable>
+
+        {/* Check-In CTA */}
+        <Pressable
+          style={({ pressed }) => [styles.checkInButton, pressed && styles.cardPressed]}
+          onPress={() => handleCheckIn(item)}
+          accessibilityRole="button"
+          accessibilityLabel={`Start daily check-in for ${item.name}`}
+        >
+          <Text style={styles.checkInText}>Check In Now</Text>
         </Pressable>
 
         <Pressable
@@ -132,6 +155,17 @@ export default function HomeScreen() {
                 refreshing={isLoading}
                 onRefresh={onRefresh}
                 tintColor={COLORS.primary}
+              />
+            }
+            ListHeaderComponent={
+              <GettingStartedCard
+                streak={Math.max(0, ...dogs.map((d) => d.checkin_streak ?? 0))}
+                onCheckIn={() => {
+                  if (dogs.length > 0) {
+                    selectDog(dogs[0].id);
+                    router.push('/check-in');
+                  }
+                }}
               />
             }
             ListFooterComponent={<DisclaimerFooter />}
@@ -238,10 +272,26 @@ const styles = StyleSheet.create({
   dogInfo: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
   dogName: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
     color: COLORS.textPrimary,
+  },
+  streakBadge: {
+    backgroundColor: '#E8F0E1',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  streakText: {
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
+    color: COLORS.primaryDark,
   },
   dogDetails: {
     fontSize: FONT_SIZES.sm,
@@ -257,6 +307,20 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xl,
     color: COLORS.textSecondary,
     marginLeft: SPACING.sm,
+  },
+  checkInButton: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.divider,
+    paddingVertical: SPACING.sm,
+    alignItems: 'center',
+    minHeight: MIN_TOUCH_TARGET,
+    justifyContent: 'center',
+    backgroundColor: COLORS.primaryLight,
+  },
+  checkInText: {
+    color: '#FFFFFF',
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '700',
   },
   editButton: {
     borderTopWidth: StyleSheet.hairlineWidth,

@@ -55,6 +55,8 @@ export interface Dog {
   vet_phone: string | null;
   created_at: string;
   updated_at: string;
+  last_checkin_date: string | null;
+  checkin_streak: number;
 }
 
 export interface UserAcknowledgment {

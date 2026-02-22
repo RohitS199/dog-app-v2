@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useDogStore } from '../../src/stores/dogStore';
 import { useTriageStore } from '../../src/stores/triageStore';
+import { useCheckInStore } from '../../src/stores/checkInStore';
+import { useHealthStore } from '../../src/stores/healthStore';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
 import { LEGAL } from '../../src/constants/config';
 
@@ -52,10 +54,14 @@ export default function SettingsScreen() {
   const { dogs } = useDogStore();
   const clearDogs = useDogStore((s) => s.clearDogs);
   const clearAll = useTriageStore((s) => s.clearAll);
+  const clearCheckIn = useCheckInStore((s) => s.clearAll);
+  const clearHealth = useHealthStore((s) => s.clearHealth);
 
   const handleSignOut = async () => {
     clearDogs();
     clearAll();
+    clearCheckIn();
+    clearHealth();
     await signOut();
   };
 

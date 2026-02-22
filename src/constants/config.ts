@@ -5,6 +5,7 @@ export const API = {
   SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
   CHECK_SYMPTOMS_ENDPOINT: '/functions/v1/check-symptoms',
   DELETE_ACCOUNT_ENDPOINT: '/functions/v1/delete-account',
+  ANALYZE_PATTERNS_ENDPOINT: '/functions/v1/analyze-patterns',
 } as const;
 
 export const LIMITS = {
@@ -18,6 +19,13 @@ export const LIMITS = {
   DOG_AGE_MIN: 0,
   DOG_AGE_MAX: 30,
   COPPA_MIN_AGE: 13,
+} as const;
+
+export const CHECK_IN = {
+  FREE_TEXT_MAX_CHARS: 500,
+  QUESTIONS_COUNT: 9,
+  DENSITY_THRESHOLD: 0.7,
+  MIN_HISTORY_DAYS: 5,
 } as const;
 
 export const EMERGENCY = {

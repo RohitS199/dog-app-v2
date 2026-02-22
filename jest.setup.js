@@ -48,6 +48,8 @@ jest.mock('@supabase/supabase-js', () => ({
       delete: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       in: jest.fn().mockReturnThis(),
+      gte: jest.fn().mockReturnThis(),
+      lte: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
       single: jest.fn().mockReturnThis(),
       maybeSingle: jest.fn(() => Promise.resolve({ data: null })),
@@ -57,6 +59,11 @@ jest.mock('@supabase/supabase-js', () => ({
     },
   }),
 }));
+
+// Mock AsyncStorage
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 // Mock Linking
 jest.mock('react-native/Libraries/Linking/Linking', () => ({

@@ -35,10 +35,20 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="health"
+        options={{
+          title: 'Health',
+          tabBarLabel: 'Health',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="calendar-heart" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="triage"
         options={{
           title: 'Check Symptoms',
-          tabBarLabel: 'Check',
+          tabBarLabel: 'Triage',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="stethoscope" size={size} color={color} />
           ),
