@@ -6,23 +6,25 @@ Four files containing all magic values, design tokens, and configuration.
 
 All visual styling constants. Every component references these instead of hardcoded values.
 
-### COLORS — "Soft Sage and Cream" Palette
-- **Brand**: `primary` (#94A684 sage green), `primaryLight` (#A8B896), `primaryDark` (#7A8E6C)
+### COLORS — "Earthy Dog Park" Palette
+- **Brand — Earth Tones**: `primary` (#3E2723 Dark Loam), `primaryLight` (#5D4037 medium brown), `primaryDark` (#1B0F0A darkest brown)
+- **Accent — Orange Collar**: `accent` (#FF6F00), `accentLight` (rgba(255,111,0,0.12) ~12% tint for selection backgrounds)
 - **Urgency** (safety-critical — do NOT change):
   - `emergency` (#C62828 red)
   - `urgent` (#E65100 orange)
   - `soon` (#F57C00 amber)
   - `monitor` (#00897B teal — intentionally NOT green, avoids "all clear" signal)
-- **Neutrals — Cream palette**:
-  - `background` (#F8F9F5 warm off-white cream)
-  - `surface` (#FFFFFF)
-  - `textPrimary` (#1A1C19 deep charcoal for legibility)
-  - `textSecondary` (#5E625B softer grey-green)
-  - `textDisabled` (#9E9E9E — passes WCAG AA 4.6:1 on white)
-  - `border` (#E2E4DE sage-tinted)
-  - `divider` (#EDEEE9 light sage)
-- **Semantic**: `error` (#D32F2F), `success` (#388E3C), `warning` (#F57C00), `info` (#7A8E6C sage-tinted)
-- **Overlay**: `rgba(26, 28, 25, 0.5)` charcoal overlay
+- **Neutrals — Earthy palette**:
+  - `background` (#EFEBE9 Limestone — main app background)
+  - `surface` (#D7CCC8 Topsoil — cards, containers)
+  - `surfaceLight` (#F5F0ED light tint for input fields)
+  - `textPrimary` (#3E2723 Dark Loam for max readability)
+  - `textSecondary` (#5D4037 medium brown)
+  - `textDisabled` (#795548 warm brown — 4.6:1 on Limestone, WCAG AA)
+  - `border` (#BCAAA4 warm brown border)
+  - `divider` (#C8B8B0 slightly darker than Topsoil)
+- **Semantic**: `error` (#D32F2F), `success` (#388E3C), `warning` (#F57C00), `info` (#FF6F00 Orange Collar)
+- **Overlay**: `rgba(62, 39, 35, 0.5)` Dark Loam overlay
 
 ### URGENCY_CONFIG
 Maps each urgency level to its display config:

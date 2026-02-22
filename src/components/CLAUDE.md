@@ -158,7 +158,7 @@ Small pill badge for alert severity level.
 Cold start onboarding card on home screen.
 - Shows "Start Your First Check-In" for streak 0, "X more days until insights" for streaks 1-4
 - Auto-dismisses when `checkin_streak >= 5`
-- White CTA button on primaryLight background
+- White CTA button on Orange Collar (accent) background
 
 ---
 

@@ -36,7 +36,7 @@ src/
 6. **`stores/dogStore.ts`** — Dog CRUD. `addDog()` must include `user_id` explicitly (RLS requirement). Omit type excludes server-managed fields (`last_checkin_date`, `checkin_streak`).
 7. **`stores/healthStore.ts`** — Calendar data with trailing window fetch (7 days before month start), active alerts, dismiss.
 8. **`stores/authStore.ts`** — Auth state. `changePassword()` uses `updateUser()` (NOT `resetPasswordForEmail`).
-9. **`constants/theme.ts`** — "Soft Sage and Cream" palette. Urgency colors are safety-critical — do not change.
+9. **`constants/theme.ts`** — "Earthy Dog Park" palette. Urgency colors are safety-critical — do not change.
 10. **`components/legal/`** — All 5 components MUST appear on triage result screens. Legally required.
 
 ## Testing

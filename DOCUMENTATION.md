@@ -1,6 +1,6 @@
 # PawCheck — Complete Project Documentation
 
-> Last updated: February 21, 2026
+> Last updated: February 22, 2026
 
 ## Table of Contents
 
@@ -289,6 +289,24 @@ Comprehensive 5-agent parallel audit covering routes/imports, check-in flow, hea
 6. **emergency_flagged always false** (`src/stores/checkInStore.ts`) — `emergency_flagged` was hardcoded to `false` in the check-in data. **Fix**: Wire to `detectEmergencyKeywords()` — runs against free text field before submission.
 
 7. **Persist rehydration race condition** (`src/stores/checkInStore.ts`) — `startCheckIn` could run before Zustand's persist middleware finished rehydrating from AsyncStorage, causing a valid persisted draft to be discarded and replaced with a fresh empty draft. **Fix**: `startCheckIn` now awaits `useCheckInStore.persist.onFinishHydration()` (with `hasHydrated()` fast path) before checking draft validity.
+
+### Color Scheme Update: Earthy Dog Park (Feb 22, 2026)
+
+Replaced the "Soft Sage and Cream" palette with an "Earthy Dog Park" palette — organic, grounded, playful. Updated 12 files across `theme.ts` and all downstream components.
+
+**New palette:**
+- Limestone (#EFEBE9) — main app background
+- Topsoil (#D7CCC8) — cards, containers, modules
+- Dark Loam (#3E2723) — primary text, buttons, actions
+- Orange Collar (#FF6F00) — accent, selection states, active elements, FAB
+
+**New design tokens added:** `accent`, `accentLight`, `surfaceLight`
+
+**Files updated:** `theme.ts`, `_layout.tsx` (tabs), `index.tsx` (home), `CheckInCard.tsx`, `DogSelector.tsx`, `TriageNudge.tsx`, `CalendarGrid.tsx`, `AdditionalSymptomsCard.tsx`, `GettingStartedCard.tsx`, `ProgressDots.tsx`, `StreakCounter.tsx`, `DaySummaryCard.tsx`
+
+**Preserved unchanged:** All safety-critical urgency colors (emergency red, urgent orange, soon amber, monitor teal), emergency backgrounds (#FFEBEE), disclaimer backgrounds (#FFF8E1), ALERT_LEVEL_CONFIG semantic colors, CALENDAR_STATUS_CONFIG health-status colors.
+
+All 205 tests pass.
 
 ### Milestone 6: Beta Testing (NOT STARTED)
 
@@ -906,14 +924,20 @@ Session + terms     → /(tabs)
 
 ## 10. Design System
 
-### Color Palette — "Soft Sage and Cream"
+### Color Palette — "Earthy Dog Park"
+
+An organic, grounded, playful palette inspired by a dog park: Limestone background, Topsoil cards, Dark Loam text/buttons, Orange Collar accents.
 
 ```typescript
 export const COLORS = {
-  // Brand — Sage Green
-  primary: '#94A684',
-  primaryLight: '#A8B896',
-  primaryDark: '#7A8E6C',
+  // Brand — Earth Tones
+  primary: '#3E2723',        // Dark Loam — primary buttons, text, actions
+  primaryLight: '#5D4037',   // Medium brown — lighter primary contexts
+  primaryDark: '#1B0F0A',    // Darkest brown
+
+  // Accent — Orange Collar (selection, alerts, active states, FAB)
+  accent: '#FF6F00',
+  accentLight: 'rgba(255, 111, 0, 0.12)',  // Orange Collar ~12% for light tinted backgrounds
 
   // Urgency levels (safety-critical — do NOT change)
   emergency: '#C62828',      // Red
@@ -921,23 +945,34 @@ export const COLORS = {
   soon: '#F57C00',           // Amber
   monitor: '#00897B',        // Teal — intentionally NOT green
 
-  // Neutrals — Cream palette
-  background: '#F8F9F5',     // Warm off-white cream
-  surface: '#FFFFFF',
-  textPrimary: '#1A1C19',    // Deep charcoal
-  textSecondary: '#5E625B',  // Softer grey-green
-  textDisabled: '#9E9E9E',   // 4.6:1 on white — WCAG AA
-  border: '#E2E4DE',         // Sage-tinted
-  divider: '#EDEEE9',        // Light sage
+  // Neutrals — Earthy palette
+  background: '#EFEBE9',     // Limestone — main app background
+  surface: '#D7CCC8',        // Topsoil — cards, containers, modules
+  surfaceLight: '#F5F0ED',   // Light tint for input fields
+  textPrimary: '#3E2723',    // Dark Loam — maximum readability
+  textSecondary: '#5D4037',  // Medium brown — softer text
+  textDisabled: '#795548',   // Warm brown — 4.6:1 on Limestone, WCAG AA
+  border: '#BCAAA4',         // Warm brown border
+  divider: '#C8B8B0',        // Slightly darker than Topsoil for dividers
 
   // Semantic
   error: '#D32F2F',
   success: '#388E3C',
   warning: '#F57C00',
-  info: '#7A8E6C',           // Sage-tinted
-  overlay: 'rgba(26, 28, 25, 0.5)',
+  info: '#FF6F00',           // Orange Collar — info accent
+  overlay: 'rgba(62, 39, 35, 0.5)',  // Dark Loam overlay
 };
 ```
+
+### Component Color Conventions
+
+- **Tab bar**: Dark Loam background, Orange Collar active icons, Topsoil inactive icons
+- **FAB / Check-In CTA**: Orange Collar background with white text
+- **Selected states** (radio options, chips, dog selector): Orange Collar border + accentLight background
+- **Progress dots**: Orange Collar for active step, Dark Loam for completed
+- **Streak badges**: accentLight background + Orange Collar text
+- **Primary action buttons**: Dark Loam background with white text
+- **Emergency/urgency colors**: Preserved unchanged (safety-critical)
 
 ### Why Teal for "Monitor"?
 

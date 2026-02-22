@@ -105,6 +105,16 @@ type CheckSymptomsResponse =
 - The `type` field discriminates responses, NOT a boolean `is_emergency_bypass` (that field does NOT exist).
 - `show_poison_control` and `poison_control_number` only exist on `EmergencyBypassResponse`.
 
+### Color Palette — "Earthy Dog Park"
+
+The app uses an earthy, organic palette:
+- **Limestone** (#EFEBE9) — main background
+- **Topsoil** (#D7CCC8) — cards, containers
+- **Dark Loam** (#3E2723) — primary text, buttons, actions
+- **Orange Collar** (#FF6F00) — accent, selection states, FAB, active tab
+
+New tokens: `accent` (Orange Collar), `accentLight` (12% Orange Collar for tinted backgrounds), `surfaceLight` (light tint for input fields).
+
 ### Urgency Colors — Teal, NOT Green
 
 ```
@@ -273,7 +283,7 @@ npx jest --no-cache  # If you encounter stale cache issues
 The app targets **WCAG AA** compliance:
 - All touch targets are minimum 48dp (`MIN_TOUCH_TARGET` constant)
 - All interactive elements have `accessibilityRole` and `accessibilityLabel`
-- `COLORS.textDisabled` is `#9E9E9E` (4.6:1 on white) — passes AA
+- `COLORS.textDisabled` is `#795548` (4.6:1 on Limestone) — passes AA
 - Decorative emojis/arrows have `accessibilityElementsHidden`
 - Error messages use `accessibilityRole="alert"`
 
