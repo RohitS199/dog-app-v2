@@ -86,15 +86,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   selectedChip: {
-    backgroundColor: '#E8F0E1',
-    borderColor: COLORS.primary,
+    backgroundColor: COLORS.accentLight,
+    borderColor: COLORS.accent,
   },
   noneChip: {
     borderStyle: 'dashed',
   },
   selectedNoneChip: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#1976D2',
+    backgroundColor: COLORS.surfaceLight,
+    borderColor: COLORS.primary,
     borderStyle: 'solid',
   },
   chipText: {
@@ -103,13 +103,13 @@ const styles = StyleSheet.create({
   },
   selectedChipText: {
     fontWeight: '600',
-    color: COLORS.primaryDark,
+    color: COLORS.accent,
   },
   noneChipText: {
     color: COLORS.textSecondary,
   },
   selectedNoneChipText: {
-    color: '#1976D2',
+    color: COLORS.primary,
     fontWeight: '600',
   },
 });

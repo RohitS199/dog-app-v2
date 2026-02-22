@@ -29,12 +29,12 @@ export function TriageNudge({ triageCount, onDismiss }: TriageNudgeProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: COLORS.accentLight,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     margin: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.accent,
   },
   text: {
     fontSize: FONT_SIZES.sm,
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dismissText: {
-    color: COLORS.primary,
+    color: COLORS.accent,
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
   },

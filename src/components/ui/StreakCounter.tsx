@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    backgroundColor: '#E8F0E1',
+    backgroundColor: COLORS.accentLight,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.full,
@@ -33,11 +33,11 @@ const styles = StyleSheet.create({
   number: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '800',
-    color: COLORS.primaryDark,
+    color: COLORS.accent,
   },
   label: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
-    color: COLORS.primaryDark,
+    color: COLORS.accent,
   },
 });

@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   todayCell: {
-    backgroundColor: '#E8F0E1',
+    backgroundColor: COLORS.accentLight,
     borderRadius: 8,
   },
   dayNumber: {
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   },
   todayText: {
     fontWeight: '700',
-    color: COLORS.primaryDark,
+    color: COLORS.accent,
   },
 });
 

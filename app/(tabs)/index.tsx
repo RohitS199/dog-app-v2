@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tooltip: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.primary,
     margin: SPACING.md,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   streakBadge: {
-    backgroundColor: '#E8F0E1',
+    backgroundColor: COLORS.accentLight,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: BORDER_RADIUS.full,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   streakText: {
     fontSize: FONT_SIZES.xs,
     fontWeight: '700',
-    color: COLORS.primaryDark,
+    color: COLORS.accent,
   },
   dogDetails: {
     fontSize: FONT_SIZES.sm,
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: MIN_TOUCH_TARGET,
     justifyContent: 'center',
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.accent,
   },
   checkInText: {
     color: '#FFFFFF',
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 4,

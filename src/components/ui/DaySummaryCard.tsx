@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   streakBadge: {
-    backgroundColor: '#E8F0E1',
+    backgroundColor: COLORS.accentLight,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.full,
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   streakText: {
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
-    color: COLORS.primaryDark,
+    color: COLORS.accent,
   },
   summaryCard: {
     width: '100%',

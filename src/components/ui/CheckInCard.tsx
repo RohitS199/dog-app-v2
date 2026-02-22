@@ -96,8 +96,8 @@ const styles = StyleSheet.create({
     minHeight: MIN_TOUCH_TARGET,
   },
   selectedOption: {
-    borderColor: COLORS.primary,
-    backgroundColor: '#F0F4EC',
+    borderColor: COLORS.accent,
+    backgroundColor: COLORS.accentLight,
   },
   pressedOption: {
     opacity: 0.8,
@@ -113,13 +113,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   radioSelected: {
-    borderColor: COLORS.primary,
+    borderColor: COLORS.accent,
   },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.accent,
   },
   optionText: {
     fontSize: FONT_SIZES.md,
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   selectedOptionText: {
     fontWeight: '600',
-    color: COLORS.primaryDark,
+    color: COLORS.primary,
   },
   alertCard: {
     marginTop: SPACING.md,

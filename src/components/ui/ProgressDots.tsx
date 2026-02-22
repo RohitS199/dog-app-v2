@@ -41,9 +41,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.accent,
   },
   completedDot: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.primary,
   },
 });

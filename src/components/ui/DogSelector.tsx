@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   selectedRow: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: COLORS.accentLight,
   },
   pressedRow: {
     backgroundColor: COLORS.divider,
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   selectedText: {
-    color: COLORS.primary,
+    color: COLORS.accent,
   },
   dogDetails: {
     fontSize: FONT_SIZES.sm,
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: FONT_SIZES.xl,
-    color: COLORS.primary,
+    color: COLORS.accent,
     fontWeight: '700',
     marginLeft: SPACING.sm,
   },

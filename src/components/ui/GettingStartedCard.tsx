@@ -40,7 +40,7 @@ export function GettingStartedCard({ streak, onCheckIn }: GettingStartedCardProp
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.accent,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     margin: SPACING.md,
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   buttonText: {
-    color: COLORS.primaryDark,
+    color: COLORS.accent,
     fontSize: FONT_SIZES.sm,
     fontWeight: '700',
   },

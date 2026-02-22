@@ -6,14 +6,15 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textSecondary,
+        tabBarActiveTintColor: COLORS.accent,
+        tabBarInactiveTintColor: COLORS.surface,
         tabBarLabelStyle: {
           fontSize: FONT_SIZES.xs,
           fontWeight: '600',
         },
         tabBarStyle: {
-          borderTopColor: COLORS.divider,
+          backgroundColor: COLORS.primary,
+          borderTopColor: COLORS.primaryDark,
         },
         headerStyle: {
           backgroundColor: COLORS.surface,

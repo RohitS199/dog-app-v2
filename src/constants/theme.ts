@@ -1,12 +1,17 @@
 // Design tokens for PawCheck
-// "Soft Sage and Cream" palette — calming, pet-friendly feel
+// "Earthy Dog Park" palette — organic, grounded, playful feel
+// Limestone bg, Topsoil cards, Dark Loam text/buttons, Orange Collar accents
 // Urgency colors: Teal for "monitor" (NOT green) to avoid "all clear" signal
 
 export const COLORS = {
-  // Brand — Sage Green
-  primary: '#94A684',
-  primaryLight: '#A8B896',
-  primaryDark: '#7A8E6C',
+  // Brand — Earth Tones
+  primary: '#3E2723',      // Dark Loam — primary buttons, text, actions
+  primaryLight: '#5D4037',  // Medium brown — lighter primary contexts
+  primaryDark: '#1B0F0A',   // Darkest brown
+
+  // Accent — Orange Collar (selection, alerts, active states, FAB)
+  accent: '#FF6F00',
+  accentLight: 'rgba(255, 111, 0, 0.12)', // Orange Collar at ~12% for light tinted backgrounds
 
   // Urgency levels (safety-critical — do NOT change)
   emergency: '#C62828',
@@ -14,23 +19,24 @@ export const COLORS = {
   soon: '#F57C00',
   monitor: '#00897B', // Teal — intentionally NOT green
 
-  // Neutrals — Cream palette
-  background: '#F8F9F5',   // Warm off-white cream
-  surface: '#FFFFFF',
-  textPrimary: '#1A1C19',  // Deep charcoal for legibility
-  textSecondary: '#5E625B', // Softer grey-green
-  textDisabled: '#9E9E9E', // 4.6:1 on white — passes WCAG AA
-  border: '#E2E4DE',       // Sage-tinted border
-  divider: '#EDEEE9',      // Light sage divider
+  // Neutrals — Earthy palette
+  background: '#EFEBE9',   // Limestone — main app background
+  surface: '#D7CCC8',      // Topsoil — cards, containers, modules
+  surfaceLight: '#F5F0ED', // Light tint for input fields
+  textPrimary: '#3E2723',  // Dark Loam — maximum readability
+  textSecondary: '#5D4037', // Medium brown — softer text
+  textDisabled: '#795548', // Warm brown — 4.6:1 on Limestone, WCAG AA
+  border: '#BCAAA4',       // Warm brown border
+  divider: '#C8B8B0',      // Slightly darker than Topsoil for dividers
 
   // Semantic
   error: '#D32F2F',
   success: '#388E3C',
   warning: '#F57C00',
-  info: '#7A8E6C',         // Sage-tinted info
+  info: '#FF6F00',         // Orange Collar — info accent
 
   // Overlay
-  overlay: 'rgba(26, 28, 25, 0.5)', // Charcoal overlay
+  overlay: 'rgba(62, 39, 35, 0.5)', // Dark Loam overlay
 } as const;
 
 export const URGENCY_CONFIG = {
