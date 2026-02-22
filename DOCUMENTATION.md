@@ -270,6 +270,26 @@ Major pivot from reactive single-shot triage to proactive daily health logging +
 
 **Testing:** 102 new tests across 9 new suites (205 total, 16 suites)
 
+### v2.6 Phase 1 Bug Fix Audit (Feb 21, 2026)
+
+Comprehensive 5-agent parallel audit covering routes/imports, check-in flow, health tab, modified screens, and Supabase queries. Identified and fixed 7 bugs (2 HIGH, 5 MEDIUM):
+
+**HIGH severity fixes:**
+1. **handleSubmit dead state** (`app/check-in.tsx`) — `handleSubmit` unconditionally set `flowState='summary'` after `submitCheckIn()`, even on failure. User would see a blank summary screen with no data and no way to recover. **Fix**: Check `useCheckInStore.getState().error` before transitioning; stay on review screen if error occurred.
+
+2. **Month-boundary data gap** (`src/stores/healthStore.ts`) — `fetchMonthData` only fetched the current month's check-ins. The consistency score uses a 7-day trailing window, so the first few days of any month would have incomplete data (missing previous month's check-ins). Calendar status indicators would be wrong for days 1-7. **Fix**: Fetch from 7 days before month start through end of month.
+
+**MEDIUM severity fixes:**
+3. **Stale calendar on dog switch** (`src/stores/healthStore.ts`) — When switching between dogs, the previous dog's calendar data remained visible during the loading period. **Fix**: Reset `calendarData: {}` at the start of `fetchMonthData`.
+
+4. **No loading indicator on health tab** (`app/(tabs)/health.tsx`) — `isLoading` was destructured from `useHealthStore` but never displayed. Errors were also silently swallowed. **Fix**: Added `ActivityIndicator` during loading and error text display.
+
+5. **Dog switch mid-flow** (`app/check-in.tsx`) — If the user switched dogs via the selector while on the review or summary screen, `flowState` wasn't reset. **Fix**: Reset `flowState` to `'questions'` when `selectedDogId` changes.
+
+6. **emergency_flagged always false** (`src/stores/checkInStore.ts`) — `emergency_flagged` was hardcoded to `false` in the check-in data. **Fix**: Wire to `detectEmergencyKeywords()` — runs against free text field before submission.
+
+7. **Persist rehydration race condition** (`src/stores/checkInStore.ts`) — `startCheckIn` could run before Zustand's persist middleware finished rehydrating from AsyncStorage, causing a valid persisted draft to be discarded and replaced with a fresh empty draft. **Fix**: `startCheckIn` now awaits `useCheckInStore.persist.onFinishHydration()` (with `hasHydrated()` fast path) before checking draft validity.
+
 ### Milestone 6: Beta Testing (NOT STARTED)
 
 - TestFlight / internal testing build
@@ -1178,6 +1198,7 @@ PawCheck operates as an **educational tool**, not a diagnostic tool. This distin
 | Foreign body ingestion rule | Done — v10 system prompt rule + Step 12b regex urgency floor. CAT6-08 now 3/3 "urgent". |
 | Client-side pattern tests | Done — 14 new test cases for v9/v10 compound patterns + 22 Step 12b foreign body floor tests |
 | v2.6 Phase 1 | Done — Daily check-ins, pattern detection, health calendar, 4-tab navigation (205 tests, 16 suites) |
+| v2.6 Phase 1 bug fix audit | Done — 7 bugs fixed (2 HIGH: submit dead state, month boundary; 5 MEDIUM: stale calendar, loading UI, dog switch flow, emergency_flagged, persist rehydration) |
 | CAT10-08 prompt injection | Done — v9 blood-in-stool regex fires at Step 3, returns emergency_bypass before LLM sees injection |
 | Security hardening | Done — search_path fixed on 6 functions, RLS enabled on all public tables, 0 ERROR-level security findings |
 | Delete-account E2E test | Done — Happy path, wrong password (403), cascade, anonymization, audit log SET NULL all verified |

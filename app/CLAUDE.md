@@ -7,8 +7,8 @@ This directory contains all screens for the app, organized using Expo Router's f
 ### Route Groups
 
 - **`(auth)/`** — Unauthenticated screens. Wrapped in a `Stack` navigator with no headers. Users see these when they have no active session.
-- **`(tabs)/`** — Main app screens. Wrapped in a bottom `Tabs` navigator (Home, Check, Settings). Users must have a session AND accepted terms to access.
-- **Top-level screens** (`terms.tsx`, `add-dog.tsx`, etc.) — Modal-style screens pushed on top of the navigation stack.
+- **`(tabs)/`** — Main app screens. Wrapped in a bottom `Tabs` navigator (Home, Health, Triage, Settings). Users must have a session AND accepted terms to access.
+- **Top-level screens** (`terms.tsx`, `add-dog.tsx`, `check-in.tsx`, etc.) — Modal-style screens pushed on top of the navigation stack.
 
 ### Auth Guard (app/_layout.tsx)
 
@@ -58,19 +58,32 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 - After acceptance, calls `checkTermsAcceptance()` which updates the auth store, triggering the root layout to redirect to `/(tabs)`
 
 ### (tabs)/_layout.tsx
-- Bottom tab navigator with 3 tabs: Home (`index`), Check (`triage`), Settings (`settings`)
-- Tab icons use `MaterialCommunityIcons` from `@expo/vector-icons`: `home` (Home), `stethoscope` (Check), `cog-outline` (Settings)
+- Bottom tab navigator with 4 tabs: Home (`index`), Health (`health`), Triage (`triage`), Settings (`settings`)
+- Tab icons use `MaterialCommunityIcons` from `@expo/vector-icons`: `home` (Home), `calendar-heart` (Health), `stethoscope` (Triage), `cog-outline` (Settings)
 - Uses theme colors for active/inactive tint
 
 ### (tabs)/index.tsx (Home Screen)
 - `FlatList` of dog cards with pull-to-refresh
-- Each card shows: name, breed, age, weight, last triage date (formatted as "today", "yesterday", "X days ago")
-- Each card is tappable → selects that dog and navigates to triage screen
+- Each card shows: name, breed, age, weight, last triage date (formatted as "today", "yesterday", "X days ago"), streak badge
+- "Check In Now" CTA button per dog card → navigates to `/check-in`
 - Edit button per card → navigates to edit-dog with dog ID
 - Floating action button (FAB) for adding dogs
+- `GettingStartedCard` as list header — progressive cold start onboarding (auto-dismisses at 5+ day streak)
 - First-load tooltip: "Describe your dog's symptoms and I'll help you understand how urgently you should see a vet."
 - Empty state with "Add Your Dog" CTA
 - `fetchDogs()` and `fetchLastTriageDates()` called on mount
+
+### (tabs)/health.tsx (Health Calendar)
+- Dog selector row at top (same pattern as triage screen)
+- Streak counter: "{N}-day check-in streak!"
+- Month navigation with `< February 2026 >` arrows
+- `CalendarGrid` component — 7-column grid, 6 status states with shape+color per WCAG AA
+- Loading indicator + error display during data fetch
+- Consistency score card (when >= 5 days history)
+- Active alerts section (list of `PatternAlertCard` with dismiss)
+- `DayDetailSheet` bottom sheet on date tap — full check-in data + previous day comparison
+- Uses `useHealthStore` — fetches 7 days before month start for trailing window consistency scoring
+- Clears stale calendar data when switching dogs
 
 ### (tabs)/triage.tsx (Core Triage Flow)
 **This is the most complex screen.** It has 3 distinct states: input, loading, and result.
@@ -119,6 +132,20 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 - Calls `useAuthStore().changePassword()` which uses `supabase.auth.updateUser({ password })` — this is the correct method for logged-in users (NOT `resetPasswordForEmail`)
 - Shows success alert and navigates back
 
+### check-in.tsx (Daily Check-In Flow)
+- Full-screen modal launched via `router.push('/check-in')`
+- 3 flow states: `questions` → `review` → `summary`
+- Steps 0-6: `CheckInCard` — single-select questions (appetite, water, energy, stool, vomiting, mobility, mood)
+- Step 7: `AdditionalSymptomsCard` — multi-select chips (11 options, "None" deselects all)
+- Step 8: `FreeTextCard` — TextInput (500 chars) + emergency keyword detection
+- After step 8: `CheckInReview` — summary of all 9 answers, tap any to edit
+- After submit: `DaySummaryCard` — 4-tier feedback + streak + pattern alerts
+- Dog selector in header (if > 1 dog) — dog switch resets `flowState` to `questions`
+- `ProgressDots` shows step X of 9
+- Inline alerts for blood in stool (step 3) and dry heaving (step 4)
+- `handleSubmit` checks for errors before transitioning to summary (prevents dead state on failure)
+- Error display at bottom of screen
+
 ### delete-account.tsx
 - **3-step confirmation**: password re-entry + type "DELETE" + final `Alert.alert`
 - Verifies password by calling `supabase.auth.signInWithPassword()` before deletion
@@ -126,5 +153,5 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
   - Edge Function flow: JWT verify → password re-auth → anonymize triage data → admin.deleteUser()
   - Anonymization: aggregates metrics to `anonymized_safety_metrics`, redacts symptoms, nullifies user_id in audit log
   - Cascade: dogs are deleted (CASCADE FK), audit records persist with null user_id (SET NULL FK)
-- Clears all local state: `clearDogs()`, `clearAll()`, `signOut()`
-- Warning card lists everything that gets deleted: account, dogs, triage history, terms record
+- Clears all local state: `clearDogs()`, `clearAll()`, `clearCheckIn()`, `clearHealth()`, `signOut()`
+- Warning card lists everything that gets deleted: account, dogs, triage history, check-in history, terms record

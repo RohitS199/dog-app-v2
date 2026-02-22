@@ -98,9 +98,71 @@ The main triage result display. Renders a ScrollView with the full result breakd
 - Emergency bypass results have empty sources, so SourceCitation isn't rendered
 - The disclaimer text comes from `result.disclaimer`, not the default constant
 
+### CheckInCard.tsx
+Single check-in question with radio-style options and optional yesterday comparison hint.
+- **Props**: `question: CheckInQuestion`, `selectedValue: string | null`, `yesterdayValue: string | null`, `onSelect: (value) => void`, `showAlert: { message: string } | null`
+- Shows yesterday's answer as a hint label below options (e.g., "Yesterday: Normal")
+- Optional inline alert (e.g., blood in stool warning)
+
+### AdditionalSymptomsCard.tsx
+Multi-select symptom chips for step 7 of the check-in flow.
+- **Props**: `selectedSymptoms: AdditionalSymptom[]`, `onToggle: (symptom) => void`
+- "None" chip deselects all others; selecting any symptom deselects "None"
+
+### FreeTextCard.tsx
+Free text input (step 8) with 500-character limit and optional emergency keyword detection.
+- **Props**: `value: string | null`, `onChange: (text) => void`
+
+### CheckInReview.tsx
+Summary of all 9 answers with tap-to-edit functionality.
+- **Props**: `draft: CheckInDraft`, `onEditStep: (step) => void`, `onSubmit: () => void`, `isSubmitting: boolean`
+
+### DaySummaryCard.tsx
+Post-submission confirmation card with 4 tiers, streak display, and pattern alerts.
+- **Props**: `summary: DaySummary`, `streak: number`, `alertsResult: AnalyzePatternsResponse | null`, `onDone: () => void`
+
+### ProgressDots.tsx
+Horizontal dot indicator showing current step in the check-in flow.
+- **Props**: `totalSteps: number`, `currentStep: number`
+
+### CalendarGrid.tsx
+Monthly calendar grid with 6 status states (shape+color for WCAG AA).
+- **Props**: `year: number`, `month: number`, `dayStatuses: Record<string, CalendarDayStatus>`, `onDayPress: (date) => void`, `todayString: string`
+- Green circle (score 4-5), amber triangle (2-3), red diamond (1), blue outlined circle (days 1-4), gray dash (missed), nothing (future)
+- 48x48 cells for MIN_TOUCH_TARGET
+
+### DayDetailSheet.tsx
+Bottom sheet modal showing full check-in data with previous day comparison.
+- **Props**: `visible: boolean`, `onClose: () => void`, `checkIn: DailyCheckIn | null`, `previousCheckIn: DailyCheckIn | null`, `dateString: string`
+
+### StreakCounter.tsx
+Streak display with gamification messaging.
+- **Props**: `streak: number`
+
+### ConsistencyCard.tsx
+7-day consistency score visual with 5-dot bar.
+- **Props**: `score: ConsistencyScore`
+
+### PatternAlertCard.tsx
+Pattern alert display with severity-colored left border and dismiss button.
+- **Props**: `alert: PatternAlert`, `onDismiss: (alertId) => void`
+- `vet_recommended` level shows "Contact Your Vet" prominently
+- Uses `ALERT_LEVEL_CONFIG` for colors/icons
+
+### AlertLevelBadge.tsx
+Small pill badge for alert severity level.
+- **Props**: `level: AlertLevel`
+- Follows `UrgencyBadge.tsx` pattern
+
+### GettingStartedCard.tsx
+Cold start onboarding card on home screen.
+- Shows "Start Your First Check-In" for streak 0, "X more days until insights" for streaks 1-4
+- Auto-dismisses when `checkin_streak >= 5`
+- White CTA button on primaryLight background
+
 ---
 
-## __tests__/ — Component Tests
+## __tests__/ — Component Tests (8 suites, 59 tests)
 
 All tests use Jest + React Native Testing Library. See `jest.setup.js` at project root for mock configuration.
 
@@ -115,3 +177,15 @@ Tests headline, educational_info, what_to_tell_vet bullets, sources, disclaimer,
 
 ### UrgencyBadge.test.tsx (7 tests)
 Tests all 4 urgency levels render correct labels, accessibility labels include descriptions, large size variant renders.
+
+### CheckInCard.test.tsx (8 tests)
+Tests question rendering, option selection, selected state highlighting, yesterday hint display, inline alert for blood in stool.
+
+### CheckInReview.test.tsx (5 tests)
+Tests all answers rendered, tap-to-edit callback fires with correct step index.
+
+### PatternAlertCard.test.tsx (6 tests)
+Tests title/message rendering, severity badge, dismiss callback, vet_recommended shows "Contact Your Vet" CTA.
+
+### CalendarGrid.test.tsx (8 tests)
+Tests correct cell count for month, status indicators (shape+color), date press callback, today cell highlighting.

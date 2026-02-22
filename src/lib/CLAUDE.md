@@ -68,3 +68,88 @@ Creates and exports the singleton Supabase client used throughout the app.
 - **"lethargic" vs "lethargy"**: The cluster includes both `'lethargy'` and `'lethargic'` as separate keywords. Word boundaries prevent partial matching, so both forms need to be listed.
 - **"rat poison" and "snail bait"**: These are in the single-word list but are actually multi-word strings. They still match because the normalized text preserves spaces and the regex uses word boundaries around the full phrase.
 - **Smart quotes**: The normalization explicitly handles curly apostrophes. "can't" with a Unicode right single quote (`\u2019`) is normalized to "can't" with a straight apostrophe, matching the compound pattern `["can't", "breathe"]`.
+
+---
+
+## consistencyScore.ts — 7-Day Consistency Score (v2.6)
+
+Pure function: computes a consistency score from a trailing 7-day check-in window.
+
+`calculateConsistencyScore(checkIns: DailyCheckIn[])` returns `ConsistencyScore | null`.
+
+1. Returns `null` if fewer than `MIN_HISTORY_DAYS` (5) days of data
+2. For each of 7 metric fields, computes the **mode** (most frequent value) across the window
+3. Counts how many of today's (most recent) values match their respective modes
+4. Maps match count to 1-5 scale: 0-1 matches = 1, 2-3 = 2, 4 = 3, 5-6 = 4, 7 = 5
+5. Tie-breaking: if multiple values have equal frequency, defaults to the most recent check-in's value
+
+### Test Coverage
+
+9 tests in `__tests__/consistencyScore.test.ts`:
+- 7/7 matches = score 5, 0/7 = score 1
+- < 5 days returns null
+- Tie-breaking with most recent value
+- Partial match scores (2-4)
+
+---
+
+## daySummary.ts — Post-Check-In Day Summary (v2.6)
+
+Pure function: classifies a check-in into one of 4 summary tiers.
+
+`generateDaySummary(checkIn: DailyCheckIn)` returns `DaySummary`.
+
+Classifies each field's abnormality level per PRD Section 3.2.1:
+- **Baseline**: normal values (no concern)
+- **Mild**: slight deviations (e.g., `less` appetite, `soft` stool)
+- **Significant**: concerning values (e.g., `barely_moving`, `blood`, `dry_heaving`)
+- **Flag**: unusual increases (e.g., `more` appetite = polyphagia)
+
+**Summary tiers:**
+- `all_normal` — All fields at baseline
+- `minor_notes` — Only mild deviations
+- `attention_needed` — One or more significant abnormalities
+- `vet_recommended` — Critical: blood in stool, dry heaving, 3+ significant abnormalities
+
+### Test Coverage
+
+10 tests in `__tests__/daySummary.test.ts`:
+- All-normal template, blood in stool alert, dry heaving alert, multiple abnormals
+- Mild-only summary, mixed mild+significant
+
+---
+
+## patternRules.ts — Rule-Based Pattern Detection (v2.6)
+
+17 pattern detection rules as pure functions, used by the `analyze-patterns` Edge Function and tested locally.
+
+### Rule Categories
+
+**Single-day rules (5)** — Always fire regardless of data density:
+- `blood_in_stool` — stool_quality = 'blood' → vet_recommended
+- `dry_heaving_emergency` — vomiting = 'dry_heaving' → vet_recommended
+- `sudden_aggression` — mood = 'aggressive' → concern
+- `vomiting_plus_other` — vomiting = 'multiple' + another significant abnormality → concern
+- `multi_symptom_acute` — 3+ significant abnormalities in single day → concern
+
+**Trend rules (12)** — Require ≥70% density over trailing window:
+- `appetite_decline` — appetite 'barely'/'refusing' for 3+ of last 5 days → watch
+- `appetite_increase` — appetite 'more' for 3+ days → info
+- `appetite_thirst_increase` — appetite 'more' + water 'excessive' (composite, suppresses standalone appetite_increase) → watch
+- `energy_decline` — energy 'lethargic'/'barely_moving' for 3+ days → watch
+- `excessive_energy` — energy 'hyperactive' for 3+ days → info
+- `digestive_issues` — stool 'diarrhea'/'blood' or vomiting 'multiple'/'dry_heaving' for 2+ days → watch
+- `recurring_vomiting` — vomiting not 'none' for 3+ of last 5 days → concern
+- `abnormal_water` — water 'much_less'/'excessive' for 3+ days → watch
+- `mobility_issues` — mobility 'limping'/'reluctant'/'difficulty_rising' for 3+ days → watch
+- `behavioral_change` — mood 'anxious'/'hiding'/'aggressive' for 3+ days → watch
+- `multi_symptom_trend` — 2+ fields with significant abnormalities across multiple days → concern
+- `persistent_decline` — any field with significant abnormality for 5+ consecutive days → concern
+
+### Test Coverage
+
+25 tests in `__tests__/patternRules.test.ts`:
+- All 17 rules tested per PRD Section 10.3 test cases
+- Density gating (rules don't fire below 70%)
+- Composite priority (appetite_thirst_increase > appetite_increase)
+- Empty/insufficient input handling

@@ -146,9 +146,9 @@ The check-in is a **full-screen modal** (`app/check-in.tsx`) with 9 steps:
 - After step 8: Review screen (tap any answer to edit)
 - After submit: Day summary card with 4 tiers (all_normal, minor_notes, attention_needed, vet_recommended)
 
-**Check-in data flow**: UPSERT directly to Supabase `daily_check_ins` table (no Edge Function). After save, fires `analyze-patterns` Edge Function and `fetchDogs()` in parallel (non-blocking).
+**Check-in data flow**: UPSERT directly to Supabase `daily_check_ins` table (no Edge Function). Sets `emergency_flagged` by running `detectEmergencyKeywords()` on free text. After save, fires `analyze-patterns` Edge Function and `fetchDogs()` in parallel (non-blocking). `handleSubmit` checks for errors before transitioning to summary (prevents dead state on failure).
 
-**Draft persistence**: Zustand persist middleware with AsyncStorage. Only `draft` and `currentStep` are persisted. Three rehydration guards discard stale drafts: (a) dogId no longer exists, (b) check_in_date has passed, (c) entry already exists for that dog+date.
+**Draft persistence**: Zustand persist middleware with AsyncStorage. Only `draft` and `currentStep` are persisted. `startCheckIn` awaits persist rehydration before checking draft. Three rehydration guards discard stale drafts: (a) dogId no longer exists, (b) check_in_date has passed, (c) entry already exists for that dog+date. Dog switch mid-flow resets `flowState` to questions.
 
 ### Pattern Detection (v2.6)
 
@@ -166,6 +166,9 @@ The check-in is a **full-screen modal** (`app/check-in.tsx`) with 9 steps:
 - Shape + color differentiation for WCAG AA accessibility
 - Day detail bottom sheet shows full check-in data with previous day comparison
 - Consistency score: mode of trailing 7-day window, 1-5 scale, requires min 5 days
+- Health store fetches 7 days before month start for trailing window at boundaries
+- Loading indicator + error display during data fetch
+- Calendar data cleared on dog switch (prevents stale data from previous dog)
 
 ## Backend (Supabase — separate project, all tasks COMPLETE)
 
@@ -293,7 +296,7 @@ Do not remove or weaken these components. They are legally required.
 - **Milestone 4** (Settings + Account Management): COMPLETE
 - **Milestone 5** (Testing + Polish): COMPLETE (accessibility audit done)
 - **Backend Completion**: COMPLETE — all tasks done, security hardened, stress test passed, delete-account verified
-- **v2.6 Phase 1** (Daily Check-Ins + Pattern Detection): COMPLETE — 205/205 tests pass, 16 suites, all 9 blocks implemented
+- **v2.6 Phase 1** (Daily Check-Ins + Pattern Detection): COMPLETE — 205/205 tests pass, 16 suites, all 9 blocks implemented, 7-bug audit fix applied
 - **Milestone 6** (Beta Testing): NOT STARTED — needs TestFlight build + real user testers
 
 ## Stress Test Results (Feb 19, 2026 — v10 full retest)

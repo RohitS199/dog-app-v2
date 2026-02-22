@@ -1,6 +1,6 @@
 # src/constants/ — App-Wide Constants
 
-Three files containing all magic values, design tokens, and configuration.
+Four files containing all magic values, design tokens, and configuration.
 
 ## theme.ts — Design Tokens
 
@@ -39,11 +39,50 @@ The `UrgencyLevel` type is derived from `keyof typeof URGENCY_CONFIG`.
 - `BORDER_RADIUS`: sm(4), md(8), lg(12), xl(16), full(9999)
 - `MIN_TOUCH_TARGET`: 48 — WCAG minimum touch target in dp. Used on every button and interactive element.
 
+### ALERT_LEVEL_CONFIG
+Maps alert severity levels to display config:
+- `info` — Blue (#1565C0), info icon, "Information" label
+- `watch` — Amber (#F57C00), eye icon, "Watch" label
+- `concern` — Orange (#E65100), alert icon, "Concern" label
+- `vet_recommended` — Red (#C62828), medical icon, "Vet Recommended" label
+
+### CALENDAR_STATUS_CONFIG
+Maps calendar day status to visual indicators:
+- `good` — Green circle (score 4-5)
+- `fair` — Amber triangle (score 2-3)
+- `poor` — Red diamond (score 1)
+- `new` — Blue outlined circle (first 4 days, not enough data)
+- `missed` — Gray dash
+- `future` — Nothing (no rendering)
+
+## checkInQuestions.ts — Check-In Question Definitions
+
+7 single-select questions + 11 additional symptoms for the daily check-in flow:
+
+### CHECK_IN_QUESTIONS (7 questions)
+Each has `id` (matching metric field name), `question` text, and `options` array (value + label):
+1. appetite: normal, less, barely, refusing, more
+2. water_intake: normal, less, much_less, more, excessive
+3. energy_level: normal, low, lethargic, barely_moving, hyperactive
+4. stool_quality: normal, soft, diarrhea, constipated, blood, not_noticed
+5. vomiting: none, once, multiple, dry_heaving
+6. mobility: normal, stiff, limping, reluctant, difficulty_rising
+7. mood: normal, quiet, anxious, clingy, hiding, aggressive
+
+### ADDITIONAL_SYMPTOMS_OPTIONS (11 + none)
+Multi-select chips: coughing, sneezing, scratching, eye_discharge, nasal_discharge, ear_issues, skin_changes, lumps, bad_breath, excessive_panting, none
+
 ## config.ts — App Configuration
 
 ### API
 - `SUPABASE_URL` and `SUPABASE_ANON_KEY` — Read from `process.env.EXPO_PUBLIC_*` env vars (set in `.env` file)
-- `CHECK_SYMPTOMS_ENDPOINT` and `DELETE_ACCOUNT_ENDPOINT` — Edge Function paths (used for reference, actual calls go through `supabase.functions.invoke()`)
+- `CHECK_SYMPTOMS_ENDPOINT`, `DELETE_ACCOUNT_ENDPOINT`, `ANALYZE_PATTERNS_ENDPOINT` — Edge Function paths (used for reference, actual calls go through `supabase.functions.invoke()`)
+
+### CHECK_IN
+- `FREE_TEXT_MAX_CHARS: 500` — Max characters for free text field in daily check-in
+- `QUESTIONS_COUNT: 9` — Total questions in check-in flow (7 metrics + additional symptoms + free text)
+- `DENSITY_THRESHOLD: 0.7` — Minimum logged days ratio for trend rules (70%)
+- `MIN_HISTORY_DAYS: 5` — Minimum days before consistency score calculation
 
 ### LIMITS
 - `SYMPTOM_MAX_CHARS: 2000` — Server also enforces this. NOT 1000.
