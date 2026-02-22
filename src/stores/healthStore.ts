@@ -25,11 +25,16 @@ export const useHealthStore = create<HealthState>((set, get) => ({
   error: null,
 
   fetchMonthData: async (dogId, year, month) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, calendarData: {} });
 
     try {
-      // Build date range for the month
-      const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+      // Fetch from 7 days before month start (for trailing window consistency scoring)
+      // through end of the requested month
+      const monthStart = new Date(year, month - 1, 1);
+      const trailingStart = new Date(monthStart);
+      trailingStart.setDate(trailingStart.getDate() - 7);
+      const startDate = `${trailingStart.getFullYear()}-${String(trailingStart.getMonth() + 1).padStart(2, '0')}-${String(trailingStart.getDate()).padStart(2, '0')}`;
+
       const lastDay = new Date(year, month, 0).getDate();
       const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 

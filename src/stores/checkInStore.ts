@@ -6,6 +6,7 @@ import type { DailyCheckIn, CheckInDraft, MetricField, AdditionalSymptom } from 
 import type { DaySummary, AnalyzePatternsResponse } from '../types/health';
 import { CHECK_IN } from '../constants/config';
 import { generateDaySummary } from '../lib/daySummary';
+import { detectEmergencyKeywords } from '../lib/emergencyKeywords';
 import { useDogStore } from './dogStore';
 
 interface CheckInState {
@@ -72,6 +73,19 @@ export const useCheckInStore = create<CheckInState>()(
       analyzePatternsResult: null,
 
       startCheckIn: async (dogId: string) => {
+        // Wait for persist rehydration to complete before checking draft
+        await new Promise<void>((resolve) => {
+          const unsub = useCheckInStore.persist.onFinishHydration(() => {
+            unsub();
+            resolve();
+          });
+          // If already hydrated, resolve immediately
+          if (useCheckInStore.persist.hasHydrated()) {
+            unsub();
+            resolve();
+          }
+        });
+
         const today = getTodayDateString();
         const yesterday = getYesterdayDateString();
 
@@ -237,7 +251,7 @@ export const useCheckInStore = create<CheckInState>()(
             mood: draft.mood,
             additional_symptoms: draft.additional_symptoms.length > 0 ? draft.additional_symptoms : [],
             free_text: draft.free_text,
-            emergency_flagged: false,
+            emergency_flagged: draft.free_text ? detectEmergencyKeywords(draft.free_text).isEmergency : false,
           };
 
           // UPSERT: insert or update if same dog+date exists

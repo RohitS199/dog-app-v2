@@ -47,6 +47,7 @@ export default function CheckInScreen() {
 
   useEffect(() => {
     if (selectedDogId) {
+      setFlowState('questions');
       startCheckIn(selectedDogId);
     }
   }, [selectedDogId]);
@@ -76,7 +77,10 @@ export default function CheckInScreen() {
 
   const handleSubmit = async () => {
     await submitCheckIn();
-    setFlowState('summary');
+    // Only transition to summary if submission succeeded (no error set)
+    if (!useCheckInStore.getState().error) {
+      setFlowState('summary');
+    }
   };
 
   const handleDone = () => {

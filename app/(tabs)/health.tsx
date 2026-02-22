@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDogStore } from '../../src/stores/dogStore';
 import { useHealthStore } from '../../src/stores/healthStore';
@@ -32,6 +32,8 @@ export default function HealthScreen() {
   const {
     calendarData,
     activeAlerts,
+    isLoading,
+    error: healthError,
     fetchMonthData,
     fetchActiveAlerts,
     dismissAlert,
@@ -181,6 +183,16 @@ export default function HealthScreen() {
           </Pressable>
         </View>
 
+        {/* Loading / Error */}
+        {isLoading && (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          </View>
+        )}
+        {healthError && (
+          <Text style={styles.errorText} accessibilityRole="alert">{healthError}</Text>
+        )}
+
         {/* Calendar */}
         <CalendarGrid
           year={viewYear}
@@ -295,5 +307,15 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
+  },
+  loadingRow: {
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: FONT_SIZES.sm,
+    textAlign: 'center',
+    marginVertical: SPACING.sm,
   },
 });
