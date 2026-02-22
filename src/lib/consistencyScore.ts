@@ -20,7 +20,7 @@ function computeMode(checkIns: DailyCheckIn[], field: MetricField): string {
   }
 
   let maxCount = 0;
-  let mode = checkIns[0][field]; // default to most recent
+  let mode: string = checkIns[0][field]; // default to most recent
 
   for (const [value, count] of counts) {
     if (count > maxCount) {
