@@ -95,3 +95,14 @@ Type aliases matching `daily_check_ins` CHECK constraints exactly:
 - **`ConsistencyScore`** — `{ score: number, matchCount: number, totalFields: number }`
 - **`DaySummary`** — `{ type: 'all_normal' | 'minor_notes' | 'attention_needed' | 'vet_recommended', title: string, message: string, abnormalities: string[] }`
 - **`AnalyzePatternsResponse`** — `{ patterns: PatternAlert[], summary: string, density: { logged: number, window: number } }`
+
+---
+
+## learn.ts — Learn Tab Type Definitions
+
+### Interfaces
+- **`Article`** — Mapped from `blog_articles` table row (camelCase). Fields: `slug` (routing key, NOT uuid), `title`, `summary`, `body` (raw Markdown), `section` (section slug), `readTimeMinutes`, `imageUrl` (nullable), `sortOrder`, `publishedAt` (nullable). No `id` field — intentionally excluded from Supabase query.
+- **`Section`** — Display grouping for articles. Fields: `id` (section slug), `title`, `description`, `icon` (MaterialCommunityIcons name), `accentColor`, `articles: Article[]`.
+
+### Section Slugs (must match DB CHECK constraint)
+`know-your-dog`, `when-to-worry`, `safety-first-aid`, `nutrition-diet`, `behavior-wellness`, `puppy-new-dog`

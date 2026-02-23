@@ -10,7 +10,7 @@ These components enforce the legal boundary between "educational information" an
 Yellow warning banner with ⚕️ icon and legal disclaimer text. Appears at the bottom of every result screen and the home screen.
 - **Props**: `text?: string` — custom text, defaults to `LEGAL.DISCLAIMER_TEXT`
 - **Styling**: Yellow background (#FFF8E1), left border accent in warning color, icon + text in row layout
-- **Used in**: TriageResult, Home screen FlatList footer, triage input screen
+- **Used in**: TriageResult, Home screen FlatList footer, triage input screen, article detail screen
 
 ### UrgencyBadge.tsx
 Color-coded pill badge that displays the urgency level. The single most important visual indicator.

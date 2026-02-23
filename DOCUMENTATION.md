@@ -25,10 +25,11 @@
 
 ## 1. Project Overview
 
-PawCheck is a React Native mobile application that provides **educational health guidance** for dogs through two core features:
+PawCheck is a React Native mobile application that provides **educational health guidance** for dogs through three core features:
 
 1. **Daily Health Check-Ins** (v2.6) — 9-question structured health logging with rule-based pattern detection, trend analysis, and proactive alerts
 2. **Symptom Triage** (v1.0) — Free-text symptom input returning AI-generated urgency classification with educational information, vet tips, and source citations
+3. **Learn** — Educational article library with 22 articles across 6 sections (Know Your Dog, When to Worry, Safety & First Aid, Nutrition & Diet, Behavior & Wellness, Puppy & New Dog), backed by Supabase `blog_articles` table with Markdown rendering
 
 **PawCheck is NOT veterinary medicine.** This distinction is legally load-bearing and permeates every design decision, from the language used in responses to the colors chosen for urgency badges.
 
@@ -98,13 +99,14 @@ Mobile App (Expo/React Native)
 
 ### State Management
 
-Five Zustand stores manage all app state:
+Six Zustand stores manage all app state:
 
 - **authStore** — Session, user, loading, terms acceptance
 - **dogStore** — Dog profiles, selected dog, last triage dates
 - **triageStore** — Symptoms, loading, results, cached result, auto-retry, nudge tracking
 - **checkInStore** — Check-in draft (persisted via AsyncStorage), step navigation, submission, day summary
 - **healthStore** — Calendar data, active pattern alerts, date selection
+- **learnStore** — Articles, sections, 5-min cache TTL, slug lookup, section metadata
 
 ---
 
@@ -123,7 +125,8 @@ Five Zustand stores manage all app state:
 | Persistence | @react-native-async-storage/async-storage | - | Zustand persist middleware |
 | Animation | react-native-reanimated | v4 | Installed, not yet used |
 | SVG | react-native-svg | - | Installed, not yet used |
-| Testing | Jest + RNTL | v29 | 205 tests across 16 suites |
+| Markdown | react-native-markdown-display | - | Article body rendering (Learn tab) |
+| Testing | Jest + RNTL | v29 | 215 tests across 17 suites |
 
 ### Key Dependencies
 
@@ -137,7 +140,8 @@ Five Zustand stores manage all app state:
   "expo-secure-store": "~14.2.3",
   "expo-network": "~7.1.3",
   "react-native-reanimated": "^4.0.0",
-  "react-native-svg": "^16.0.0"
+  "react-native-svg": "^16.0.0",
+  "react-native-markdown-display": "^7.0.2"
 }
 ```
 
@@ -264,11 +268,11 @@ Major pivot from reactive single-shot triage to proactive daily health logging +
 - Severity escalation: watch → concern at 14+ days
 
 **Navigation & Home Screen:**
-- 4-tab layout: Home, Health, Triage, Settings (was 3 tabs)
+- 5-tab layout: Home, Health, Learn, Triage, Settings (was 3 tabs)
 - Home screen: check-in CTA per dog card, streak badges, GettingStartedCard for cold start onboarding
-- Settings/delete-account: clearCheckIn + clearHealth added to sign-out/deletion flows
+- Settings/delete-account: clearCheckIn + clearHealth + clearLearn added to sign-out/deletion flows
 
-**Testing:** 102 new tests across 9 new suites (205 total, 16 suites)
+**Testing:** 102 new tests across 9 new suites (215 total, 17 suites)
 
 ### v2.6 Phase 1 Bug Fix Audit (Feb 21, 2026)
 
@@ -306,7 +310,7 @@ Replaced the "Soft Sage and Cream" palette with an "Earthy Dog Park" palette —
 
 **Preserved unchanged:** All safety-critical urgency colors (emergency red, urgent orange, soon amber, monitor teal), emergency backgrounds (#FFEBEE), disclaimer backgrounds (#FFF8E1), ALERT_LEVEL_CONFIG semantic colors, CALENDAR_STATUS_CONFIG health-status colors.
 
-All 205 tests pass.
+All 215 tests pass.
 
 ### Milestone 6: Beta Testing (NOT STARTED)
 
@@ -690,6 +694,12 @@ Contains 303 RAG chunks from veterinary sources with pgvector embeddings. Used b
 
 32 rows from early RAG development. Not referenced by any current edge function. RLS enabled with no policies (no user access). Will be dropped after RAG expansion is complete, along with associated legacy functions (`match_documents`, `check_duplicate_article`, `get_content_stats`).
 
+### blog_articles
+
+Educational articles for the Learn tab. 22 articles across 6 sections. Columns: `id` (uuid PK), `slug` (text UNIQUE), `title` (text), `section` (text, CHECK constraint for 6 valid values), `body` (text, Markdown), `summary` (text, max 200 chars CHECK), `read_time_minutes` (integer), `image_url` (text, nullable), `published` (boolean, default false), `published_at` (timestamptz, nullable), `sort_order` (integer, default 0), `metadata` (jsonb, default {}), `created_at` (timestamptz), `updated_at` (timestamptz). RLS: authenticated SELECT policy.
+
+**Section CHECK constraint values:** `know-your-dog`, `when-to-worry`, `safety-first-aid`, `nutrition-diet`, `behavior-wellness`, `puppy-new-dog`
+
 ### stress_test_results
 
 Stores results from automated stress test runs. Columns include test_id, category, priority, prompt_text, expected/actual type and urgency, pass/fail, failure reasons, filter violations, etc.
@@ -859,7 +869,8 @@ dog_app_ui/
 │   └── types/
 │       ├── api.ts                # TypeScript types (API contract + Dog with checkin fields)
 │       ├── checkIn.ts            # Check-in types (metrics, draft, symptoms)
-│       └── health.ts             # Health types (patterns, alerts, calendar, consistency)
+│       ├── health.ts             # Health types (patterns, alerts, calendar, consistency)
+│       └── learn.ts              # Learn tab types (Article, Section)
 └── Configuration files
     ├── app.json                  # Expo config (scheme: pawcheck)
     ├── tsconfig.json             # Strict TypeScript
@@ -1003,13 +1014,14 @@ MIN_TOUCH_TARGET: 48dp (WCAG minimum)
 | `daySummary.test.ts` | 10 | 4 tiers, blood in stool alert, dry heaving alert, multiple abnormals |
 | `patternRules.test.ts` | 25 | All 17 rules, density gating, composite priority, empty input |
 
-**Store tests (3 suites, 41 tests):**
+**Store tests (4 suites, 51 tests):**
 
 | Suite | Tests | Coverage |
 |-------|-------|----------|
 | `triageStore.test.ts` | 13 | Symptoms, char limits, nudge tracking |
 | `checkInStore.test.ts` | 20 | startCheckIn, setAnswer, step navigation, toggleSymptom, free text limit, rehydration guards |
 | `healthStore.test.ts` | 8 | fetchMonthData, dismissAlert, clearHealth |
+| `learnStore.test.ts` | 10 | fetchArticles (cache, force), getArticleBySlug, sections assembly, clearLearn |
 
 **Component tests (8 suites, 59 tests):**
 
@@ -1027,7 +1039,7 @@ MIN_TOUCH_TARGET: 48dp (WCAG minimum)
 ### Running Tests
 
 ```bash
-npm test              # Runs all 205 tests
+npm test              # Runs all 215 tests
 npx jest --no-cache   # If stale cache issues
 ```
 
@@ -1232,7 +1244,7 @@ PawCheck operates as an **educational tool**, not a diagnostic tool. This distin
 | Emergency regex gaps | Done — 6 fix blocks applied in v9, Tier 1 = 100% (60/60) |
 | Foreign body ingestion rule | Done — v10 system prompt rule + Step 12b regex urgency floor. CAT6-08 now 3/3 "urgent". |
 | Client-side pattern tests | Done — 14 new test cases for v9/v10 compound patterns + 22 Step 12b foreign body floor tests |
-| v2.6 Phase 1 | Done — Daily check-ins, pattern detection, health calendar, 4-tab navigation (205 tests, 16 suites) |
+| v2.6 Phase 1 | Done — Daily check-ins, pattern detection, health calendar, 5-tab navigation (215 tests, 17 suites) |
 | v2.6 Phase 1 bug fix audit | Done — 7 bugs fixed (2 HIGH: submit dead state, month boundary; 5 MEDIUM: stale calendar, loading UI, dog switch flow, emergency_flagged, persist rehydration) |
 | CAT10-08 prompt injection | Done — v9 blood-in-stool regex fires at Step 3, returns emergency_bypass before LLM sees injection |
 | Security hardening | Done — search_path fixed on 6 functions, RLS enabled on all public tables, 0 ERROR-level security findings |
@@ -1324,7 +1336,7 @@ npx expo start          # Start Expo dev server
 ### Running Tests
 
 ```bash
-npm test                # Run all 205 tests
+npm test                # Run all 215 tests
 npx jest --no-cache     # Clear cache first
 npx jest --verbose      # See individual test results
 ```

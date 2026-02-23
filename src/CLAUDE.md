@@ -37,8 +37,8 @@ src/
 7. **`stores/healthStore.ts`** — Calendar data with trailing window fetch (7 days before month start), active alerts, dismiss.
 8. **`stores/learnStore.ts`** — Learn tab articles with 5-min cache TTL, section grouping, slug lookup.
 9. **`stores/authStore.ts`** — Auth state. `changePassword()` uses `updateUser()` (NOT `resetPasswordForEmail`).
-9. **`constants/theme.ts`** — "Earthy Dog Park" palette. Urgency colors are safety-critical — do not change.
-10. **`components/legal/`** — All 5 components MUST appear on triage result screens. Legally required.
+10. **`constants/theme.ts`** — "Earthy Dog Park" palette. Urgency colors are safety-critical — do not change.
+11. **`components/legal/`** — All 5 components MUST appear on triage result screens. Legally required.
 
 ## Testing
 

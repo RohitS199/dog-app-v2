@@ -8,10 +8,11 @@
 
 ## What This Is
 
-PawCheck is a React Native (Expo) mobile app that provides **educational health guidance** for dogs. It has two core features:
+PawCheck is a React Native (Expo) mobile app that provides **educational health guidance** for dogs. It has three core features:
 
 1. **Daily Health Check-Ins** (v2.6) — 9-question structured logging with rule-based pattern detection and health trend analysis
 2. **Symptom Triage** (v1.0) — Free-text symptom input returning AI-generated urgency classification (Emergency, Urgent, Soon, Low Urgency) with educational information, vet tips, and source citations
+3. **Learn** — Educational article library with 22 articles across 6 sections, backed by Supabase `blog_articles` table with Markdown rendering
 
 **It is NOT veterinary medicine** — this distinction is legally load-bearing and permeates every design decision.
 
@@ -183,6 +184,17 @@ The check-in is a **full-screen modal** (`app/check-in.tsx`) with 9 steps:
 - Loading indicator + error display during data fetch
 - Calendar data cleared on dog switch (prevents stale data from previous dog)
 
+### Learn Tab
+
+`app/(tabs)/learn.tsx` — Educational article library with 22 articles across 6 sections:
+- **Sections** (fixed display order): Know Your Dog (5), When to Worry (5), Safety & First Aid (3), Nutrition & Diet (3), Behavior & Wellness (3), Puppy & New Dog (3)
+- Each section has icon, accent color, and description from `SECTION_META` in `learnStore.ts`
+- Articles fetched from Supabase `blog_articles` table with 5-minute client cache (TTL)
+- Article detail screen (`app/article/[slug].tsx`) renders Markdown body via `react-native-markdown-display`
+- `DisclaimerFooter` on every article detail screen
+- `clearLearn()` called on sign-out and account deletion (prevents cross-user cache leak)
+- Section slugs match DB CHECK constraint: `know-your-dog`, `when-to-worry`, `safety-first-aid`, `nutrition-diet`, `behavior-wellness`, `puppy-new-dog`
+
 ## Backend (Supabase — separate project, all tasks COMPLETE)
 
 The backend is a Supabase project at `https://wwuwosuysoxihtbykwgh.supabase.co`. All Edge Functions deploy with `verify_jwt: false` due to ES256/HS256 mismatch — they validate JWTs internally.
@@ -205,6 +217,7 @@ The backend is a Supabase project at `https://wwuwosuysoxihtbykwgh.supabase.co`.
 - **`user_acknowledgments`** — ToS acceptance records. FK with CASCADE.
 - **`anonymized_safety_metrics`** — Aggregate triage data from deleted accounts.
 - **`dog_health_content`** — 303 RAG chunks with pgvector embeddings.
+- **`blog_articles`** — Educational articles for Learn tab (22 rows, 6 sections). Columns: slug (UNIQUE), title, section (CHECK constraint), body (Markdown), summary (max 200 chars), read_time_minutes, image_url, published, published_at, sort_order, metadata (JSONB). RLS: authenticated SELECT.
 - **`stress_test_results`** — Automated test run results.
 - **`documents`** — Legacy (32 rows, unused). Will be dropped after RAG expansion.
 - **RLS policies** on all tables. User-facing tables are user-scoped. `dog_health_content` has authenticated SELECT. System tables have RLS with no policies (service role only).
