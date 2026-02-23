@@ -46,6 +46,16 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="learn"
+        options={{
+          title: 'Learn',
+          tabBarLabel: 'Learn',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="book-open-variant" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="triage"
         options={{
           title: 'Check Symptoms',

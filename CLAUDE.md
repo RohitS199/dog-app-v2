@@ -26,13 +26,14 @@ Every feature, every component, every urgency color choice exists in service of 
 - **Expo SDK 54** — Managed workflow, TypeScript strict mode
 - **Expo Router v6** — File-based navigation (`app/` directory)
 - **React Native 0.81** — New Architecture enabled
-- **Zustand v5** — Lightweight state management (5 stores: auth, dog, triage, checkIn, health)
+- **Zustand v5** — Lightweight state management (6 stores: auth, dog, triage, checkIn, health, learn)
 - **Supabase JS v2** — Auth, Postgres database, Edge Functions
 - **expo-secure-store** — JWT token persistence (critical for security)
 - **expo-network** — Offline detection (polling, no listener API)
 - **@react-native-async-storage/async-storage** — Zustand persist middleware for check-in draft
 - **react-native-reanimated v4** + **react-native-svg** — Installed for future Buddy mascot animation (not yet implemented)
-- **Jest 29** + **React Native Testing Library** — 205 tests across 16 suites
+- **react-native-markdown-display** — Markdown renderer for Learn tab article body
+- **Jest 29** + **React Native Testing Library** — 215 tests across 17 suites
 
 ## Project Structure
 
@@ -46,15 +47,17 @@ dog_app_ui/
 │   │   ├── sign-up.tsx           # Sign-up with COPPA 13+ DOB gate
 │   │   └── forgot-password.tsx   # Password reset via email
 │   ├── (tabs)/                   # Main app (authenticated + terms accepted)
-│   │   ├── _layout.tsx           # Bottom tab navigator (Home, Health, Triage, Settings)
+│   │   ├── _layout.tsx           # Bottom tab navigator (Home, Health, Learn, Triage, Settings)
 │   │   ├── index.tsx             # Home — dog cards, check-in CTA, streak badges
 │   │   ├── health.tsx            # Health tab — calendar, alerts, consistency score
+│   │   ├── learn.tsx             # Learn tab — educational article library by section
 │   │   ├── triage.tsx            # Core triage flow — input → loading → result
 │   │   └── settings.tsx          # Account, dogs, legal, sign out, delete
 │   ├── terms.tsx                 # ToS acceptance (required before main app)
 │   ├── add-dog.tsx               # Add dog form
 │   ├── edit-dog.tsx              # Edit/delete dog form
 │   ├── check-in.tsx              # Daily check-in flow (9 questions, full-screen modal)
+│   ├── article/[slug].tsx        # Article detail screen with Markdown rendering
 │   ├── emergency.tsx             # Standalone emergency resources screen
 │   ├── change-password.tsx       # Change password for logged-in users
 │   └── delete-account.tsx        # Account deletion with confirmation
@@ -67,9 +70,9 @@ dog_app_ui/
 │   ├── hooks/                    # useAppState, useNetworkStatus
 │   ├── lib/                      # Supabase client, emergency keywords, pattern rules, consistency score
 │   │   └── __tests__/            # Lib tests (5 suites)
-│   ├── stores/                   # Zustand stores (auth, dog, triage, checkIn, health)
-│   │   └── __tests__/            # Store tests (3 suites)
-│   └── types/                    # TypeScript types (api, checkIn, health)
+│   ├── stores/                   # Zustand stores (auth, dog, triage, checkIn, health, learn)
+│   │   └── __tests__/            # Store tests (4 suites)
+│   └── types/                    # TypeScript types (api, checkIn, health, learn)
 ├── jest.config.js                # Jest with jest-expo preset
 ├── jest.setup.js                 # Mocks for Supabase, Expo modules, Linking
 ├── app.json                      # Expo config (scheme: pawcheck)
@@ -250,11 +253,11 @@ npx expo start
 ## Running Tests
 
 ```bash
-npm test          # Runs all 205 tests
+npm test          # Runs all 215 tests
 npx jest --no-cache  # If you encounter stale cache issues
 ```
 
-**16 test suites:**
+**17 test suites:**
 
 *Lib tests (5 suites, 105 tests):*
 - `emergencyKeywords.test.ts` — 39 tests (pattern matching, normalization, clusters, v9/v10 compound patterns)
@@ -263,10 +266,11 @@ npx jest --no-cache  # If you encounter stale cache issues
 - `daySummary.test.ts` — 10 tests (4 tiers, blood in stool, dry heaving, multiple abnormals)
 - `patternRules.test.ts` — 25 tests (all 17 rules, density gating, composite priority)
 
-*Store tests (3 suites, 41 tests):*
+*Store tests (4 suites, 51 tests):*
 - `triageStore.test.ts` — 13 tests (symptoms, char limits, nudge tracking)
 - `checkInStore.test.ts` — 20 tests (startCheckIn, setAnswer, step navigation, toggleSymptom, free text limit, rehydration guards)
 - `healthStore.test.ts` — 8 tests (fetchMonthData, dismissAlert, clearHealth)
+- `learnStore.test.ts` — 10 tests (fetchArticles, cache, getArticleBySlug, sections assembly, clearLearn)
 
 *Component tests (8 suites, 59 tests):*
 - `UrgencyBadge.test.tsx` — 7 tests (all urgency levels, accessibility)
@@ -306,7 +310,7 @@ Do not remove or weaken these components. They are legally required.
 - **Milestone 4** (Settings + Account Management): COMPLETE
 - **Milestone 5** (Testing + Polish): COMPLETE (accessibility audit done)
 - **Backend Completion**: COMPLETE — all tasks done, security hardened, stress test passed, delete-account verified
-- **v2.6 Phase 1** (Daily Check-Ins + Pattern Detection): COMPLETE — 205/205 tests pass, 16 suites, all 9 blocks implemented, 7-bug audit fix applied
+- **v2.6 Phase 1** (Daily Check-Ins + Pattern Detection): COMPLETE — 215/215 tests pass, 17 suites, all 9 blocks implemented, 7-bug audit fix applied
 - **Milestone 6** (Beta Testing): NOT STARTED — needs TestFlight build + real user testers
 
 ## Stress Test Results (Feb 19, 2026 — v10 full retest)

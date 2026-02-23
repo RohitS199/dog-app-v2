@@ -7,7 +7,7 @@ This directory contains all screens for the app, organized using Expo Router's f
 ### Route Groups
 
 - **`(auth)/`** — Unauthenticated screens. Wrapped in a `Stack` navigator with no headers. Users see these when they have no active session.
-- **`(tabs)/`** — Main app screens. Wrapped in a bottom `Tabs` navigator (Home, Health, Triage, Settings). Users must have a session AND accepted terms to access.
+- **`(tabs)/`** — Main app screens. Wrapped in a bottom `Tabs` navigator (Home, Health, Learn, Triage, Settings). Users must have a session AND accepted terms to access.
 - **Top-level screens** (`terms.tsx`, `add-dog.tsx`, `check-in.tsx`, etc.) — Modal-style screens pushed on top of the navigation stack.
 
 ### Auth Guard (app/_layout.tsx)
@@ -58,8 +58,8 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 - After acceptance, calls `checkTermsAcceptance()` which updates the auth store, triggering the root layout to redirect to `/(tabs)`
 
 ### (tabs)/_layout.tsx
-- Bottom tab navigator with 4 tabs: Home (`index`), Health (`health`), Triage (`triage`), Settings (`settings`)
-- Tab icons use `MaterialCommunityIcons` from `@expo/vector-icons`: `home` (Home), `calendar-heart` (Health), `stethoscope` (Triage), `cog-outline` (Settings)
+- Bottom tab navigator with 5 tabs: Home (`index`), Health (`health`), Learn (`learn`), Triage (`triage`), Settings (`settings`)
+- Tab icons use `MaterialCommunityIcons` from `@expo/vector-icons`: `home` (Home), `calendar-heart` (Health), `book-open-variant` (Learn), `stethoscope` (Triage), `cog-outline` (Settings)
 - Uses theme colors for active/inactive tint
 
 ### (tabs)/index.tsx (Home Screen)
@@ -84,6 +84,17 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 - `DayDetailSheet` bottom sheet on date tap — full check-in data + previous day comparison
 - Uses `useHealthStore` — fetches 7 days before month start for trailing window consistency scoring
 - Clears stale calendar data when switching dogs
+
+### (tabs)/learn.tsx (Learn Tab)
+- Educational article library organized by sections
+- Uses `useLearnStore` for data fetching with 5-minute cache TTL
+- `RefreshControl` for pull-to-refresh (force bypasses cache)
+- Sections displayed with icon, title, description, and horizontal `FlatList` of article cards
+- Article cards navigate to `/article/[slug]` on press
+- 3 states: loading (first fetch), error (with retry), empty ("Articles are on the way!")
+- Stale-while-revalidate: shows cached sections during background refresh
+- Educational disclaimer at bottom
+- `clearLearn()` called on sign-out and account deletion
 
 ### (tabs)/triage.tsx (Core Triage Flow)
 **This is the most complex screen.** It has 3 distinct states: input, loading, and result.
@@ -117,6 +128,15 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 - Same validation as add-dog
 - Includes "Delete [name]" button at bottom → `Alert.alert` confirmation → `deleteDog()`
 - If dog not found (e.g., navigated via stale link), shows error with "Go Back" link
+
+### article/[slug].tsx (Article Detail)
+- Dynamic route using `useLocalSearchParams<{ slug: string }>()`
+- Fetches article via `useLearnStore().getArticleBySlug(slug)`
+- Layout: back button → section label (colored) → title → summary → metadata row (read time + date) → accent divider → Markdown body → DisclaimerFooter
+- Markdown rendered via `react-native-markdown-display` with PawCheck theme overrides
+- Links in Markdown open via `Linking.openURL()`
+- States: loading, not found (with back button), normal article view
+- No hero image rendering (imageUrl is null for launch articles)
 
 ### emergency.tsx
 - Standalone emergency resources screen, reachable from triage result or directly
@@ -153,5 +173,5 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
   - Edge Function flow: JWT verify → password re-auth → anonymize triage data → admin.deleteUser()
   - Anonymization: aggregates metrics to `anonymized_safety_metrics`, redacts symptoms, nullifies user_id in audit log
   - Cascade: dogs are deleted (CASCADE FK), audit records persist with null user_id (SET NULL FK)
-- Clears all local state: `clearDogs()`, `clearAll()`, `clearCheckIn()`, `clearHealth()`, `signOut()`
+- Clears all local state: `clearDogs()`, `clearAll()`, `clearCheckIn()`, `clearHealth()`, `clearLearn()`, `signOut()`
 - Warning card lists everything that gets deleted: account, dogs, triage history, check-in history, terms record

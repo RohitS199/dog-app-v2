@@ -1,6 +1,6 @@
 # src/stores/ — Zustand State Management
 
-Five Zustand stores manage all app state. Auth, dog, and triage stores use the `create<Interface>((set, get) => ...)` pattern. The checkInStore additionally uses Zustand's `persist` middleware with AsyncStorage.
+Six Zustand stores manage all app state. Auth, dog, triage, and learn stores use the `create<Interface>((set, get) => ...)` pattern. The checkInStore additionally uses Zustand's `persist` middleware with AsyncStorage.
 
 ## authStore.ts — Authentication State
 
@@ -26,7 +26,7 @@ Calls `supabase.auth.signInWithPassword()`. On success, sets session/user and ch
 Calls `supabase.auth.signUp()`. Does NOT sign the user in — Supabase sends a confirmation email. The sign-up screen shows a "Check Your Email" alert.
 
 ### `signOut()`
-Calls `supabase.auth.signOut()`. Resets session, user, and hasAcceptedTerms to initial values. Callers (settings screen, delete-account) should also call `clearDogs()`, `clearAll()`, `clearCheckIn()`, and `clearHealth()` to wipe local state.
+Calls `supabase.auth.signOut()`. Resets session, user, and hasAcceptedTerms to initial values. Callers (settings screen, delete-account) should also call `clearDogs()`, `clearAll()`, `clearCheckIn()`, `clearHealth()`, and `clearLearn()` to wipe local state.
 
 ### `resetPassword(email)`
 Calls `supabase.auth.resetPasswordForEmail()`. For FORGOT password flow only (unauthenticated).
@@ -204,3 +204,33 @@ Simple setters. `clearHealth` resets all state. Called on sign-out and account d
 
 8 tests in `__tests__/healthStore.test.ts`:
 - fetchMonthData, dismissAlert, clearHealth
+
+---
+
+## learnStore.ts — Learn Tab Article Library
+
+**State:**
+- `articles: Article[]` — All published articles (camelCase mapped from DB)
+- `sections: Section[]` — Sections with articles grouped in, filtered to non-empty sections only
+- `isLoading: boolean` — True during fetch
+- `error: string | null`
+- `lastFetched: number | null` — Timestamp for 5-minute cache TTL
+
+**Methods:**
+
+### `fetchArticles(force?)`
+Checks cache TTL (5 min) → queries Supabase `blog_articles` with explicit column select (no `id`) → maps snake_case to camelCase → groups by section using `SECTION_META` constant (6 sections in fixed display order) → filters out empty sections. Error handling preserves cached data.
+
+### `getArticleBySlug(slug)`
+Synchronous lookup: `articles.find(a => a.slug === slug)`. Used by article detail screen.
+
+### `getSectionMeta(sectionSlug)`
+Returns section metadata (title, icon, accentColor) for use in article detail screen header.
+
+### `clearLearn()`
+Resets all state including `lastFetched: null`. Called on sign-out and account deletion to prevent cross-user cache leak.
+
+### Test Coverage
+
+10 tests in `__tests__/learnStore.test.ts`:
+- Initial state, fetchArticles (cache skip, force bypass, error), getArticleBySlug, sections assembly, clearLearn

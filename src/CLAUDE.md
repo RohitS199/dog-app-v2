@@ -14,9 +14,9 @@ src/
 ├── hooks/           # useAppState, useNetworkStatus
 ├── lib/             # Supabase client, emergency keywords, pattern rules, consistency score, day summary
 │   └── __tests__/   # Lib tests (5 suites, 105 tests)
-├── stores/          # Zustand state management (auth, dog, triage, checkIn, health)
-│   └── __tests__/   # Store tests (3 suites, 41 tests)
-└── types/           # TypeScript type definitions (api, checkIn, health)
+├── stores/          # Zustand state management (auth, dog, triage, checkIn, health, learn)
+│   └── __tests__/   # Store tests (4 suites, 51 tests)
+└── types/           # TypeScript type definitions (api, checkIn, health, learn)
 ```
 
 ## Import Patterns
@@ -35,10 +35,11 @@ src/
 5. **`lib/patternRules.ts`** — 17 rule-based pattern detection rules (5 single-day, 12 trend).
 6. **`stores/dogStore.ts`** — Dog CRUD. `addDog()` must include `user_id` explicitly (RLS requirement). Omit type excludes server-managed fields (`last_checkin_date`, `checkin_streak`).
 7. **`stores/healthStore.ts`** — Calendar data with trailing window fetch (7 days before month start), active alerts, dismiss.
-8. **`stores/authStore.ts`** — Auth state. `changePassword()` uses `updateUser()` (NOT `resetPasswordForEmail`).
+8. **`stores/learnStore.ts`** — Learn tab articles with 5-min cache TTL, section grouping, slug lookup.
+9. **`stores/authStore.ts`** — Auth state. `changePassword()` uses `updateUser()` (NOT `resetPasswordForEmail`).
 9. **`constants/theme.ts`** — "Earthy Dog Park" palette. Urgency colors are safety-critical — do not change.
 10. **`components/legal/`** — All 5 components MUST appear on triage result screens. Legally required.
 
 ## Testing
 
-205 tests across 16 suites, all passing. Run with `npm test` or `npx jest --no-cache`.
+215 tests across 17 suites, all passing. Run with `npm test` or `npx jest --no-cache`.
