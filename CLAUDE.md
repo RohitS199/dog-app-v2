@@ -195,6 +195,18 @@ The check-in is a **full-screen modal** (`app/check-in.tsx`) with 9 steps:
 - `clearLearn()` called on sign-out and account deletion (prevents cross-user cache leak)
 - Section slugs match DB CHECK constraint: `know-your-dog`, `when-to-worry`, `safety-first-aid`, `nutrition-diet`, `behavior-wellness`, `puppy-new-dog`
 
+### AI Health Analysis (v2.6 Phase 2)
+
+AI layer built on TOP of deterministic rules. Rules remain untouched — AI adds nuance.
+
+**Daily Analysis** (`ai-health-analysis`): Fire-and-forget after each check-in. Sonnet 4.5 reads dog profile + rolling summary (READ-ONLY) + 14 days raw data + alerts + article catalog. Produces 1-3 observations, 0-2 article recommendations, alert enrichments, and optional summary annotation (for critical events only).
+
+**Weekly Compression** (`weekly-summary-update`): Haiku 4.5 compresses raw data into rolling summary. One dog per invocation, n8n orchestrated (Sunday 11 PM UTC). The ONLY process that performs a full `dogs.health_summary` rewrite.
+
+**Read/Write Separation**: Daily Sonnet READS summary, NEVER rewrites. Weekly Haiku is the ONLY rewriter. This prevents daily overwrites from losing long-term context. The 14-day raw data window covers gaps.
+
+**AI Test Results (Feb 24, 2026)**: 9 scenarios, 55/55 runs passed (100%). Safety-critical: Cushing's guardrail 5/5 (no diagnosis), ibuprofen detection 5/5 (elevated + annotation), baseline shift 5/5 each part (old shift=info, recent shift=watch). See DOCUMENTATION.md Section 6 for full breakdown.
+
 ## Backend (Supabase — separate project, all tasks COMPLETE)
 
 The backend is a Supabase project at `https://wwuwosuysoxihtbykwgh.supabase.co`. All Edge Functions deploy with `verify_jwt: false` due to ES256/HS256 mismatch — they validate JWTs internally.
@@ -238,7 +250,7 @@ The backend is a Supabase project at `https://wwuwosuysoxihtbykwgh.supabase.co`.
 - **`append_checkin_revision()`** — Trigger function for revision history on check-in update.
 - **`get_eligible_dogs_for_summary()`** — SECURITY DEFINER. Returns dogs with check-ins in last 7 days OR null `health_summary`. Used by n8n weekly workflow.
 
-### Backend Completion Status (ALL DONE — last updated Feb 20, 2026)
+### Backend Completion Status (ALL DONE — last updated Feb 24, 2026)
 
 1. ToS acknowledgment verified working
 2. `what_to_tell_vet` output filter fixed (check-symptoms v7)
@@ -248,6 +260,7 @@ The backend is a Supabase project at `https://wwuwosuysoxihtbykwgh.supabase.co`.
 6. Audit log verified (all urgency values valid, append-only by design), rate limits confirmed (10/hr)
 7. Security hardening: search_path fixed on 6 functions, RLS enabled on all public tables, 0 ERROR-level security findings
 8. Supabase security linter: 0 ERRORs, 0 WARNs on code (leaked password protection requires Pro Plan)
+9. AI health analysis test suite: 9 scenarios, 55/55 runs passed (100%), 15/15 safety-critical (Cushing's guardrail, ibuprofen, baseline shift)
 
 ## Environment Setup
 
@@ -341,7 +354,7 @@ Full 120-prompt stress test against v10: **Tier 1 (safety) = 100% (60/60)**, **T
 2. ~~**Emergency regex gaps**~~ — DONE.
 3. ~~**CAT6-08 foreign body non-determinism**~~ — DONE.
 4. ~~**v2.6 Phase 1**~~ — DONE. Daily check-ins, pattern detection, health calendar, 4-tab navigation.
-5. **v2.6 Phase 2** (AI Pattern Analysis — backend only) — COMPLETE. `ai-health-analysis` v1 (daily Sonnet 4.5), `weekly-summary-update` v1 (weekly Haiku 4.5), `ai_health_insights` table, `dogs.health_summary` column. Frontend dashboard NOT YET BUILT.
+5. ~~**v2.6 Phase 2**~~ (AI Pattern Analysis — backend only) — COMPLETE. `ai-health-analysis` v1 (daily Sonnet 4.5), `weekly-summary-update` v1 (weekly Haiku 4.5), `ai_health_insights` table, `dogs.health_summary` column. AI test suite 55/55 (100%). Frontend dashboard NOT YET BUILT.
 6. **v2.6 Phase 3** (Enhanced Triage v11) — NOT STARTED. Triage integration with check-in history context.
 7. **Buddy mascot animation** — Deferred. `react-native-reanimated` and `react-native-svg` are installed but animation not implemented.
 8. **50/day rate limit** — Only 10/hour is implemented (check-symptoms). analyze-patterns has 20/hour.
@@ -369,3 +382,4 @@ See `DOCUMENTATION.md` in the project root for comprehensive documentation inclu
 4. **Urgency value "low" does NOT exist** — The API returns `"monitor"`. If you code against `"low"`, the urgency badge won't render for lowest level.
 5. **`resetPasswordForEmail` vs `updateUser`** — `resetPasswordForEmail` is for FORGOT password (sends email). `updateUser({ password })` is for CHANGE password (logged-in user). Don't confuse them.
 6. **Character limit is 2000** — Not 1000. The server enforces 2000. `LIMITS.SYMPTOM_MAX_CHARS = 2000`.
+7. **AI summary read/write separation** — Daily Sonnet READS `dogs.health_summary` but NEVER rewrites it. Only weekly Haiku rewrites. Annotations are string appends only. Do not change this architecture.

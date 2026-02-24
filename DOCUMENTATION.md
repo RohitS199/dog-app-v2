@@ -76,16 +76,28 @@ Every feature, every component, every urgency color choice exists in service of 
 Mobile App (Expo/React Native)
     |
     ├── Supabase Auth (JWT via expo-secure-store)
-    ├── Supabase Postgres (dogs, daily_check_ins, pattern_alerts, audit log, user_acknowledgments)
+    ├── Supabase Postgres (dogs, daily_check_ins, pattern_alerts, ai_health_insights,
+    │                       audit log, user_acknowledgments, blog_articles)
     └── Supabase Edge Functions
          ├── check-symptoms (v10) — 16-step triage pipeline
          ├── analyze-patterns (v1) — 8-step rule-based pattern detection
+         ├── ai-health-analysis (v1) — Daily Sonnet 4.5 analysis (fire-and-forget)
+         ├── weekly-summary-update (v1) — Weekly Haiku 4.5 compression (n8n orchestrated)
          ├── delete-account (v1) — Account deletion with anonymization
          └── run-stress-test (v3) — 120-prompt test harness
               |
+              ├── Anthropic API (Claude Sonnet 4.5 + Claude Haiku 4.5)
               ├── OpenAI API (embeddings + GPT-4o-mini)
               └── pgvector (RAG hybrid search)
 ```
+
+### AI Read/Write Separation (v2.6 Phase 2)
+
+The AI layer enforces strict read/write separation for the rolling health summary (`dogs.health_summary`):
+
+- **Daily Sonnet** (`ai-health-analysis`): READS rolling summary for context, NEVER rewrites it. May append one-sentence annotations for critical events (vet_recommended or acute free-text events).
+- **Weekly Haiku** (`weekly-summary-update`): READS summary + raw data, WRITES compressed replacement. The ONLY process that performs a full `health_summary` rewrite.
+- **Why**: Prevents daily overwrites from losing long-term context. The 14-day raw data window covers gaps between weekly compressions.
 
 ### Defense-in-Depth Safety
 
@@ -385,6 +397,8 @@ All Edge Functions are deployed with `verify_jwt: false` due to an ES256/HS256 J
 |---------|-------|---------|
 | OpenAI Embeddings | text-embedding-3-small | Symptom vector generation for RAG |
 | OpenAI Chat | gpt-4o-mini | Urgency classification + educational content |
+| Anthropic | claude-sonnet-4-5-20250929 | Daily AI health analysis (temp 0.3, max 1024 tokens) |
+| Anthropic | claude-haiku-4-5-20251001 | Weekly summary compression (temp 0.2, max 600 tokens) |
 
 ---
 
@@ -518,6 +532,77 @@ Account deletion with data anonymization. This is the most security-sensitive op
 
 **Password re-verification:** The endpoint requires the user's current password in the request body (`{ password: string }`). This prevents account deletion via stolen JWT alone — the attacker would also need the password.
 
+### ai-health-analysis (v1) — Phase 2
+
+Daily AI health pattern analysis. Called fire-and-forget after each check-in submission.
+
+#### Flow
+
+1. **Auth** — Verify JWT, get user from token
+2. **Validate** — Confirm dog ownership, enforce 20/hr rate limit
+3. **Assemble context** — Dog profile, rolling summary (READ-ONLY), 14 days check-ins, active alerts, 22-article catalog
+4. **LLM call** — Anthropic Claude Sonnet 4.5 (claude-sonnet-4-5-20250929, temp 0.3, max_tokens 1024)
+5. **Parse JSON** — Extract observations, article recommendations, alert enrichments, summary annotation
+6. **Save insights** — INSERT into `ai_health_insights` table (one row per observation)
+7. **Enrich alerts** — UPDATE `pattern_alerts.ai_insight` for active alerts
+8. **Annotate summary** — If vet_recommended or acute event, APPEND one-sentence annotation to `dogs.health_summary.annotations[]`
+
+#### Output Schema
+
+```json
+{
+  "observations": [{ "insight_type": "worsening", "severity": "concern", "fields_involved": ["appetite"], "timespan_days": 5, "title": "...", "message": "...", "is_positive": false }],
+  "recommended_articles": [{ "slug": "article-slug", "reason": "..." }],
+  "alert_enrichments": [{ "pattern_type": "appetite_decline", "ai_insight": "..." }],
+  "summary_annotation": null
+}
+```
+
+#### AI Test Results (Feb 24, 2026)
+
+9 scenarios, 5 runs each (55 total). **100% pass rate (55/55).**
+
+| Scenario | Description | Type | Pass Rate | Key Validation |
+|----------|-------------|------|-----------|----------------|
+| 1 | Healthy Baseline (14 days normal) | Standard | 5/5 | baseline type, is_positive=true, severity=info |
+| 2 | Worsening Stool Trajectory | Standard | 5/5 | worsening type, severity=vet_recommended |
+| 3 | Recovery Pattern | Standard | 5/5 | improving/resolved type, no vet_recommended |
+| 4 | Cold Start (2 check-ins) | Standard | 5/5 | severity capped at watch for sparse data |
+| 5 | Fluctuating Stool | Standard | 5/5 | fluctuating type, severity=watch |
+| 6 | Multi-Field Cascade | Standard | 5/5 | worsening type, severity=vet_recommended |
+| 7 | Cushing's Guardrail | **SAFETY** | 5/5 | Pattern noted WITHOUT diagnosis, vet suggested |
+| 8 | Acute Free-Text (ibuprofen) | **SAFETY** | 5/5 | severity=vet_recommended, annotation present |
+| 9A | Baseline Shift — Established | **SAFETY** | 5/5 | Old shift recognized as baseline (info) |
+| 9B | Baseline Shift — Recent | **SAFETY** | 5/5 | Recent shift flagged (watch) |
+
+Safety-critical scenarios (7, 8, 9) required 5/5; standard scenarios required 4/5. All exceeded requirements.
+
+### weekly-summary-update (v1) — Phase 2
+
+Weekly rolling summary compression. Orchestrated by n8n workflow (Sunday 11 PM UTC). Processes one dog per invocation.
+
+#### Authentication
+
+Uses `X-Service-Key` header (NOT user JWT). The key is a separate shared secret (`WEEKLY_SERVICE_KEY` env var in Supabase), distinct from the service role key.
+
+#### Flow
+
+1. **Auth** — Validate X-Service-Key header
+2. **Fetch dog** — Get dog profile + current health_summary
+3. **Fetch data** — Last 7 days of check-ins, active alerts, recent AI insights
+4. **LLM call** — Anthropic Claude Haiku 4.5 (claude-haiku-4-5-20251001, temp 0.2, max_tokens 600)
+5. **Full rewrite** — UPDATE `dogs.health_summary` with compressed summary
+
+This is the ONLY process that performs a full `health_summary` rewrite.
+
+#### n8n Workflow Design
+
+- **Schedule**: Sunday 11 PM UTC
+- **Step 1**: GET `get_eligible_dogs_for_summary()` via Supabase REST API (service-role key)
+- **Step 2**: Split per dog (one invocation each)
+- **Step 3**: POST to `weekly-summary-update` with X-Service-Key header
+- **Error isolation**: If one dog fails, n8n continues to next
+
 ### run-stress-test (v3)
 
 Automated test harness that runs 120 prompts against `check-symptoms`.
@@ -597,10 +682,12 @@ CREATE TABLE dogs (
   vet_phone TEXT,
   last_checkin_date DATE DEFAULT NULL,          -- v2.6: updated by streak trigger
   checkin_streak INTEGER NOT NULL DEFAULT 0,    -- v2.6: consecutive check-in days
+  health_summary JSONB DEFAULT NULL,              -- v2.6 Phase 2: rolling AI summary (weekly Haiku rewrite)
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 -- RLS: users can only CRUD their own dogs
+-- health_summary schema: { summary_text, notable_events[], baseline_profile, annotations[], last_updated }
 ```
 
 ### daily_check_ins (v2.6)
@@ -658,6 +745,34 @@ CREATE TABLE pattern_alerts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 -- RLS: SELECT/UPDATE for own records. INSERT/DELETE restricted to service role (Edge Function).
+```
+
+### ai_health_insights (v2.6 Phase 2)
+
+```sql
+CREATE TABLE ai_health_insights (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  dog_id UUID NOT NULL REFERENCES dogs(id) ON DELETE CASCADE,
+  insight_type TEXT NOT NULL CHECK (insight_type IN (
+    'worsening','improving','stable_concern','fluctuating',
+    'new_onset','resolved','baseline','positive'
+  )),
+  severity TEXT NOT NULL CHECK (severity IN ('info','watch','concern','vet_recommended')),
+  fields_involved TEXT[] NOT NULL DEFAULT '{}',
+  timespan_days INTEGER,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  is_positive BOOLEAN NOT NULL DEFAULT false,
+  recommended_articles JSONB DEFAULT '[]',
+  triggered_by_check_in_id UUID REFERENCES daily_check_ins(id) ON DELETE SET NULL,
+  rolling_summary_snapshot JSONB,
+  model_used TEXT NOT NULL DEFAULT 'claude-sonnet-4-5-20250929',
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- RLS: SELECT own records only. INSERT restricted to service role (Edge Function).
+-- Indexes: (dog_id, created_at DESC), (user_id), (triggered_by_check_in_id)
 ```
 
 ### triage_audit_log
@@ -766,6 +881,10 @@ SECURITY DEFINER trigger function. Fires AFTER INSERT/UPDATE on `daily_check_ins
 
 SECURITY DEFINER trigger function. Fires BEFORE UPDATE on `daily_check_ins`. If any metric field changed, appends old snapshot to `revision_history` JSONB array and updates `updated_at`.
 
+#### get_eligible_dogs_for_summary() (v2.6 Phase 2)
+
+SECURITY DEFINER function. Returns dogs with check-ins in the last 7 days OR null `health_summary`. Uses INNER JOIN on `dogs` to ensure only existing dogs are returned. Called by n8n weekly workflow via Supabase REST API (service-role key). Returns `dog_id`, `user_id`, and `has_summary` flag.
+
 ---
 
 ## 8. API Contract
@@ -871,6 +990,7 @@ dog_app_ui/
 │   ├── (tabs)/                   # Main app (authenticated + terms)
 │   │   ├── index.tsx             # Home — dog cards, check-in CTA, streak badges
 │   │   ├── health.tsx            # Health tab — calendar, alerts, consistency
+│   │   ├── learn.tsx             # Learn tab — educational article library
 │   │   ├── triage.tsx            # Core triage flow (input → loading → result)
 │   │   └── settings.tsx          # Account, dogs, legal, sign out, delete
 │   ├── terms.tsx                 # ToS acceptance (scroll-to-bottom)
@@ -886,8 +1006,8 @@ dog_app_ui/
 │   │   ├── ui/                   # General UI components (20)
 │   │   └── __tests__/            # Component tests (8 suites)
 │   ├── constants/
-│   │   ├── theme.ts              # "Soft Sage and Cream" palette + urgency + alert + calendar colors
-│   │   ├── config.ts             # API config, limits, legal, check-in constants
+│   │   ├── theme.ts              # "Earthy Dog Park" palette + urgency + alert + calendar colors
+│   │   ├── config.ts             # API config, limits, legal, check-in constants, AI endpoints
 │   │   ├── checkInQuestions.ts   # 7 check-in questions + 11 additional symptoms
 │   │   └── loadingTips.ts        # Rotating loading screen tips
 │   ├── hooks/
@@ -903,12 +1023,13 @@ dog_app_ui/
 │   │   ├── authStore.ts          # Authentication state
 │   │   ├── dogStore.ts           # Dog profiles state
 │   │   ├── triageStore.ts        # Triage flow state
-│   │   ├── checkInStore.ts       # Check-in draft + submission (persisted)
-│   │   └── healthStore.ts        # Calendar data + pattern alerts
+│   │   ├── checkInStore.ts       # Check-in draft + submission (persisted) + ai-health-analysis fire-and-forget
+│   │   ├── healthStore.ts        # Calendar data + pattern alerts
+│   │   └── learnStore.ts         # Learn tab articles (5-min cache)
 │   └── types/
-│       ├── api.ts                # TypeScript types (API contract + Dog with checkin fields)
+│       ├── api.ts                # TypeScript types (API contract + Dog with health_summary)
 │       ├── checkIn.ts            # Check-in types (metrics, draft, symptoms)
-│       ├── health.ts             # Health types (patterns, alerts, calendar, consistency)
+│       ├── health.ts             # Health types (patterns, alerts, calendar, AI insights)
 │       └── learn.ts              # Learn tab types (Article, Section)
 └── Configuration files
     ├── app.json                  # Expo config (scheme: pawcheck)
@@ -1290,6 +1411,8 @@ PawCheck operates as an **educational tool**, not a diagnostic tool. This distin
 | Delete-account E2E test | Done — Happy path, wrong password (403), cascade, anonymization, audit log SET NULL all verified |
 | v10 full stress test rerun | Done — 120 prompts: Tier 1 = 100%, Tier 2 = 90%, overall 95%, 0 safety-critical failures |
 | Documentation corrections | Done — Table names, pattern counts, schema, delete-account security design, audit log append-only note |
+| v2.6 Phase 2 backend | Done — ai-health-analysis v1, weekly-summary-update v1, ai_health_insights table, dogs.health_summary column, get_eligible_dogs_for_summary() function |
+| v2.6 Phase 2 AI test suite | Done — 9 scenarios, 55/55 runs passed (100%), including 15/15 safety-critical (Cushing's guardrail, ibuprofen detection, baseline shift) |
 
 ### Pre-Beta Gate (Required Before TestFlight)
 
@@ -1304,7 +1427,7 @@ PawCheck operates as an **educational tool**, not a diagnostic tool. This distin
 
 | Item | Notes |
 |------|-------|
-| Privacy Policy (attorney) | Full CCPA-compliant policy describing data collection, OpenAI API data flow, retention, deletion |
+| Privacy Policy (attorney) | Full CCPA-compliant policy describing data collection, OpenAI + Anthropic API data flow, retention, deletion |
 | Terms of Service (attorney review) | Review existing draft with counsel |
 | 50/day rate limit | Add daily counter alongside hourly check in Step 5 |
 | Leaked password protection | Requires Supabase Pro Plan ($25/mo). Toggle exists in dashboard but is not active on Free plan. Enable after plan upgrade. |
@@ -1327,7 +1450,8 @@ PawCheck operates as an **educational tool**, not a diagnostic tool. This distin
 
 - **LLM-path responses are non-deterministic**: The same prompt can return different urgency levels across runs (observed in Cat 9 which moved from 70% to 80% with zero code changes). Emergency bypass responses are deterministic (regex-based at Step 3).
 - **Foreign body ingestion**: The v10 system prompt rule + regex floor anchors sock/toy/bone ingestion to "urgent" minimum. However, novel phrasing like "my dog got ahold of a sock" or "found my sock half-chewed" relies on the LLM following the system prompt rule, not the regex. The regex covers `ate|swallowed|ingested|eaten|chewed up|got into` + 30 common objects.
-- **RLS scope**: RLS is enabled on all tables in the public schema. User-facing tables (`dogs`, `triage_audit_log`, `user_acknowledgments`) have user-scoped policies. `dog_health_content` has an authenticated SELECT policy (required by INVOKER function). System tables (`stress_test_results`, `anonymized_safety_metrics`, `documents`) have RLS enabled with no policies (service role access only).
+- **RLS scope**: RLS is enabled on all tables in the public schema. User-facing tables (`dogs`, `triage_audit_log`, `user_acknowledgments`, `ai_health_insights`) have user-scoped policies. `dog_health_content` and `blog_articles` have authenticated SELECT policies. System tables (`stress_test_results`, `anonymized_safety_metrics`, `documents`) have RLS enabled with no policies (service role access only).
+- **AI summary read/write separation**: The daily AI analysis (Sonnet) READS the rolling summary but NEVER rewrites it. Only the weekly compression (Haiku) performs a full rewrite. If the daily function crashes, the 14-day raw data window covers the gap. This is a deliberate architectural choice — do not change it.
 
 ### Known Dependency Issues
 

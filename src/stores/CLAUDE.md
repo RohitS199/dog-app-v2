@@ -60,7 +60,7 @@ Queries `dogs` table ordered by `created_at`. Auto-selects first dog if none sel
 Queries `triage_audit_log` for all user's dogs, ordered by `created_at` descending. Iterates results and keeps only the most recent entry per dog. Used to display "Last checked today/yesterday/X days ago" on home screen cards.
 
 ### `addDog(dog)`
-Inserts into `dogs` table with `user_id: user.id` (fetched via `supabase.auth.getUser()`) and appends to local state. Auto-selects if no dog was previously selected. Returns the new Dog object. **Note**: The `user_id` must be included explicitly in the insert because the RLS INSERT policy requires `auth.uid() = user_id` and the column has no default. The Omit type excludes server-managed fields: `id`, `user_id`, `created_at`, `updated_at`, `last_checkin_date`, `checkin_streak`.
+Inserts into `dogs` table with `user_id: user.id` (fetched via `supabase.auth.getUser()`) and appends to local state. Auto-selects if no dog was previously selected. Returns the new Dog object. **Note**: The `user_id` must be included explicitly in the insert because the RLS INSERT policy requires `auth.uid() = user_id` and the column has no default. The Omit type excludes server-managed fields: `id`, `user_id`, `created_at`, `updated_at`, `last_checkin_date`, `checkin_streak`, `health_summary`.
 
 ### `updateDog(id, updates)`
 Updates `dogs` table and patches local state via `.map()`.

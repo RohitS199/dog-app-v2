@@ -33,12 +33,13 @@ src/
 3. **`stores/triageStore.ts`** — Triage submission with auto-retry, rate limit handling, cached results, triage nudge.
 4. **`lib/emergencyKeywords.ts`** — Client-side emergency detection. 35 single + 44 compound + 3 cluster patterns. Golden Rule's first line of defense.
 5. **`lib/patternRules.ts`** — 17 rule-based pattern detection rules (5 single-day, 12 trend).
-6. **`stores/dogStore.ts`** — Dog CRUD. `addDog()` must include `user_id` explicitly (RLS requirement). Omit type excludes server-managed fields (`last_checkin_date`, `checkin_streak`).
+6. **`stores/dogStore.ts`** — Dog CRUD. `addDog()` must include `user_id` explicitly (RLS requirement). Omit type excludes server-managed fields (`last_checkin_date`, `checkin_streak`, `health_summary`).
 7. **`stores/healthStore.ts`** — Calendar data with trailing window fetch (7 days before month start), active alerts, dismiss.
 8. **`stores/learnStore.ts`** — Learn tab articles with 5-min cache TTL, section grouping, slug lookup.
 9. **`stores/authStore.ts`** — Auth state. `changePassword()` uses `updateUser()` (NOT `resetPasswordForEmail`).
 10. **`constants/theme.ts`** — "Earthy Dog Park" palette. Urgency colors are safety-critical — do not change.
 11. **`components/legal/`** — All 5 components MUST appear on triage result screens. Legally required.
+12. **`types/health.ts`** — Health types including AI insight types: `InsightType` (8 types), `AIHealthInsight`, `ArticleRecommendation`, `AIInsightMetadata`, `AIHealthAnalysisResponse`.
 
 ## Testing
 
