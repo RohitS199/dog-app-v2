@@ -57,6 +57,26 @@ export interface Dog {
   updated_at: string;
   last_checkin_date: string | null;
   checkin_streak: number;
+  health_summary: HealthSummary | null;
+}
+
+export interface HealthSummary {
+  summary_text: string;
+  notable_events: string[];
+  baseline_profile: BaselineProfile;
+  annotations: string[];
+  last_updated: string;
+}
+
+export interface BaselineProfile {
+  typical_appetite: 'normal' | 'below_normal' | 'above_normal';
+  typical_water_intake: 'normal' | 'below_normal' | 'above_normal';
+  typical_energy: 'normal' | 'below_normal' | 'above_normal';
+  typical_stool: 'normal' | 'irregular';
+  typical_mobility: 'normal' | 'limited';
+  typical_mood: 'normal' | 'anxious' | 'quiet';
+  vomiting_history_note: string | null;
+  known_sensitivities: string[];
 }
 
 export interface UserAcknowledgment {

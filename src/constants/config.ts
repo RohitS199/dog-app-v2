@@ -6,6 +6,8 @@ export const API = {
   CHECK_SYMPTOMS_ENDPOINT: '/functions/v1/check-symptoms',
   DELETE_ACCOUNT_ENDPOINT: '/functions/v1/delete-account',
   ANALYZE_PATTERNS_ENDPOINT: '/functions/v1/analyze-patterns',
+  AI_HEALTH_ANALYSIS_ENDPOINT: '/functions/v1/ai-health-analysis',
+  WEEKLY_SUMMARY_UPDATE_ENDPOINT: '/functions/v1/weekly-summary-update',
 } as const;
 
 export const LIMITS = {

@@ -71,3 +71,58 @@ export interface AnalyzePatternsResponse {
     window: number;
   };
 }
+
+// AI Health Insights (v2.6 Phase 2)
+
+export type InsightType =
+  | 'worsening'
+  | 'improving'
+  | 'stable_concern'
+  | 'fluctuating'
+  | 'new_onset'
+  | 'resolved'
+  | 'baseline'
+  | 'positive';
+
+export interface AIHealthInsight {
+  id: string;
+  dog_id: string;
+  user_id: string;
+  insight_type: InsightType;
+  severity: AlertLevel;
+  fields_involved: string[];
+  timespan_days: number | null;
+  title: string;
+  message: string;
+  is_positive: boolean;
+  recommended_articles: ArticleRecommendation[];
+  triggered_by_check_in_id: string | null;
+  rolling_summary_snapshot: Record<string, unknown> | null;
+  model_used: string | null;
+  metadata: AIInsightMetadata;
+  created_at: string;
+}
+
+export interface ArticleRecommendation {
+  slug: string;
+  reason: string;
+}
+
+export interface AIInsightMetadata {
+  input_tokens: number;
+  output_tokens: number;
+  latency_ms: number;
+  json_parse_success: boolean;
+  observations_count: number;
+  max_severity: string;
+  articles_recommended: number;
+  had_annotation: boolean;
+}
+
+export interface AIHealthAnalysisResponse {
+  success: boolean;
+  observations: number;
+  max_severity: string;
+  articles_recommended: number;
+  had_annotation: boolean;
+}

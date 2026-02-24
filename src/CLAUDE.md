@@ -29,7 +29,7 @@ src/
 ## Key Files by Importance
 
 1. **`types/api.ts`** — API contract types. Urgency is `'monitor'` NOT `'low'`. Response discriminated by `type` field.
-2. **`stores/checkInStore.ts`** — Check-in draft with Zustand persist middleware (AsyncStorage). Handles UPSERT submission, rehydration guards, emergency flag detection. Awaits persist rehydration before checking draft.
+2. **`stores/checkInStore.ts`** — Check-in draft with Zustand persist middleware (AsyncStorage). Handles UPSERT submission, rehydration guards, emergency flag detection. Awaits persist rehydration before checking draft. Fires `ai-health-analysis` Edge Function (fire-and-forget) after submit.
 3. **`stores/triageStore.ts`** — Triage submission with auto-retry, rate limit handling, cached results, triage nudge.
 4. **`lib/emergencyKeywords.ts`** — Client-side emergency detection. 35 single + 44 compound + 3 cluster patterns. Golden Rule's first line of defense.
 5. **`lib/patternRules.ts`** — 17 rule-based pattern detection rules (5 single-day, 12 trend).

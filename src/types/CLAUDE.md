@@ -38,7 +38,11 @@ Returned for non-dog queries (cats, humans, etc.) or LLM-detected off-topic.
 
 ### Data Models
 
-**`Dog`**: Full dog profile with `id`, `user_id`, `name`, `breed`, `age_years` (NUMERIC), `weight_lbs`, `vet_phone` (nullable), `last_checkin_date` (DATE, nullable), `checkin_streak` (number), `created_at`, `updated_at`
+**`Dog`**: Full dog profile with `id`, `user_id`, `name`, `breed`, `age_years` (NUMERIC), `weight_lbs`, `vet_phone` (nullable), `last_checkin_date` (DATE, nullable), `checkin_streak` (number), `health_summary` (`HealthSummary | null`), `created_at`, `updated_at`
+
+**`HealthSummary`**: Rolling AI health summary (JSONB). Fields: `summary_text`, `notable_events[]`, `baseline_profile` (`BaselineProfile`), `annotations[]`, `last_updated`
+
+**`BaselineProfile`**: Per-dog baseline. Fields: `typical_appetite`, `typical_water_intake`, `typical_energy`, `typical_stool`, `typical_mobility`, `typical_mood`, `vomiting_history_note` (string|null), `known_sensitivities[]`
 
 **`UserAcknowledgment`**: Terms acceptance record with `id`, `user_id`, `terms_version`, `accepted_at`
 
@@ -49,6 +53,8 @@ Returned for non-dog queries (cats, humans, etc.) or LLM-detected off-topic.
 | `check-symptoms` | POST | Bearer JWT | Triage pipeline (v10) |
 | `analyze-patterns` | POST | Bearer JWT | Pattern detection (v1, 20/hr rate limit) |
 | `delete-account` | POST | Bearer JWT + password in body | Account deletion (v1) |
+| `ai-health-analysis` | POST | Bearer JWT | Daily AI analysis (v1, 20/hr rate limit) |
+| `weekly-summary-update` | POST | X-Service-Key | Weekly summary compression (v1, n8n orchestrated) |
 | `run-stress-test` | POST | Bearer JWT | Testing only (v3) |
 
 ### Critical Notes for Future Developers
@@ -95,6 +101,11 @@ Type aliases matching `daily_check_ins` CHECK constraints exactly:
 - **`ConsistencyScore`** — `{ score: number, matchCount: number, totalFields: number }`
 - **`DaySummary`** — `{ type: 'all_normal' | 'minor_notes' | 'attention_needed' | 'vet_recommended', title: string, message: string, abnormalities: string[] }`
 - **`AnalyzePatternsResponse`** — `{ patterns: PatternAlert[], summary: string, density: { logged: number, window: number } }`
+- **`InsightType`** — `'worsening' | 'improving' | 'stable_concern' | 'fluctuating' | 'new_onset' | 'resolved' | 'baseline' | 'positive'` (v2.6 Phase 2)
+- **`AIHealthInsight`** — Full `ai_health_insights` row: insight_type, severity, fields_involved, timespan_days, title, message, is_positive, recommended_articles, triggered_by_check_in_id, rolling_summary_snapshot, model_used, metadata
+- **`ArticleRecommendation`** — `{ slug: string, reason: string }`
+- **`AIInsightMetadata`** — Observability data: input_tokens, output_tokens, latency_ms, json_parse_success, observations_count, max_severity, articles_recommended, had_annotation
+- **`AIHealthAnalysisResponse`** — Edge Function response: success, observations count, max_severity, articles_recommended, had_annotation
 
 ---
 

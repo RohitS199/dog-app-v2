@@ -1,6 +1,6 @@
 # PawCheck — Complete Project Documentation
 
-> Last updated: February 22, 2026
+> Last updated: February 24, 2026
 
 ## Table of Contents
 
@@ -312,6 +312,43 @@ Replaced the "Soft Sage and Cream" palette with an "Earthy Dog Park" palette —
 
 All 215 tests pass.
 
+### v2.6 Phase 2: AI Pattern Analysis — Backend Only (COMPLETE, Feb 24, 2026)
+
+AI layer built ON TOP of the existing deterministic rules. Rules remain untouched.
+
+**New Edge Functions:**
+- `ai-health-analysis` v1 — Daily Sonnet 4.5 (claude-sonnet-4-5-20250929) analysis. Fire-and-forget after check-in. Temperature 0.3, max_tokens 1024. Rate limit: 20/hr. Reads: dog profile + rolling summary (READ-ONLY) + 14 days raw check-in data + active pattern alerts + full 22-article catalog. Produces: 1-3 observations, 0-2 article recommendations, alert enrichments, optional summary annotation. Saves to `ai_health_insights` table. Enriches `pattern_alerts.ai_insight` column.
+- `weekly-summary-update` v1 — Weekly Haiku 4.5 (claude-haiku-4-5-20251001) compression. One dog per invocation. Temperature 0.2, max_tokens 600. Authenticates via X-Service-Key (NOT user JWT). The ONLY process that performs a full `dogs.health_summary` rewrite.
+
+**New Database Objects:**
+- `ai_health_insights` table — Stores daily AI analysis. insight_type (8 types), severity (4 levels), fields_involved, title, message, recommended_articles JSONB, triggered_by_check_in_id, rolling_summary_snapshot, model_used, metadata JSONB (observability). RLS: SELECT own records. 3 indexes.
+- `dogs.health_summary` column (JSONB) — Rolling AI summary. Schema: summary_text, notable_events[], baseline_profile (7 fields + vomiting_history_note + known_sensitivities), annotations[], last_updated.
+- `get_eligible_dogs_for_summary()` function — SECURITY DEFINER. Returns dogs with check-ins in last 7 days OR null health_summary. INNER JOIN ensures only existing dogs.
+
+**Critical Architecture — Read/Write Separation:**
+- Daily Sonnet READS summary, NEVER rewrites it. Annotations are string appends only.
+- Weekly Haiku READS summary + raw data, WRITES compressed replacement.
+- Critical event annotation fires on vet_recommended OR acute free-text events.
+
+**n8n Workflow (Rohit configures):**
+- Schedule: Sunday 11 PM UTC
+- Step 1: GET `get_eligible_dogs_for_summary()` via Supabase REST API (service-role key)
+- Step 2: Split per dog
+- Step 3: POST to `weekly-summary-update` with X-Service-Key header
+- Error isolation: if one dog fails, n8n continues to next
+
+**App Code Changes:**
+- `checkInStore.ts`: fire-and-forget call to `ai-health-analysis` after submit (sends dog_id + check_in_id)
+- `types/api.ts`: `health_summary` field on Dog, HealthSummary, BaselineProfile types
+- `types/health.ts`: InsightType, AIHealthInsight, ArticleRecommendation, AIInsightMetadata, AIHealthAnalysisResponse
+- `config.ts`: AI_HEALTH_ANALYSIS_ENDPOINT, WEEKLY_SUMMARY_UPDATE_ENDPOINT
+
+**Cost Estimate:** ~$30-35/month for 50 DAU. Weekly compression negligible (~$0.30/month).
+
+**Environment Variables Required:**
+- `ANTHROPIC_API_KEY` — Supabase Edge Function secret (already set)
+- `WEEKLY_SERVICE_KEY` — Separate shared secret for weekly function auth (already set)
+
 ### Milestone 6: Beta Testing (NOT STARTED)
 
 - TestFlight / internal testing build
@@ -338,6 +375,8 @@ All Edge Functions are deployed with `verify_jwt: false` due to an ES256/HS256 J
 | `check-symptoms` | v10 | Core triage pipeline (16 steps + foreign body floor) |
 | `analyze-patterns` | v1 | Rule-based pattern detection (17 rules, 20/hr rate limit) |
 | `delete-account` | v1 | Account deletion with anonymization |
+| `ai-health-analysis` | v1 | Daily Sonnet 4.5 analysis — fire-and-forget, saves to `ai_health_insights`, 20/hr rate limit |
+| `weekly-summary-update` | v1 | Weekly Haiku 4.5 compression — n8n orchestrated, X-Service-Key auth |
 | `run-stress-test` | v3 | 120-prompt automated test harness |
 
 ### External APIs
@@ -1277,7 +1316,7 @@ PawCheck operates as an **educational tool**, not a diagnostic tool. This distin
 
 | Item | Notes |
 |------|-------|
-| v2.6 Phase 2 | AI-powered pattern insights + enhanced dashboard |
+| ~~v2.6 Phase 2~~ | DONE (backend only) — `ai-health-analysis` v1 (daily Sonnet 4.5), `weekly-summary-update` v1 (weekly Haiku 4.5), `ai_health_insights` table, `dogs.health_summary` column. Frontend dashboard not yet built. |
 | v2.6 Phase 3 | Enhanced triage v11 — integration with check-in history context |
 | Emergency vet locator API | Currently uses Google search link; proper API integration post-MVP |
 | Buddy mascot animation | Deferred — reanimated + svg installed but animation not built |

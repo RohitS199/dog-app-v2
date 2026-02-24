@@ -78,7 +78,7 @@ Multi-select chips: coughing, sneezing, scratching, eye_discharge, nasal_dischar
 
 ### API
 - `SUPABASE_URL` and `SUPABASE_ANON_KEY` — Read from `process.env.EXPO_PUBLIC_*` env vars (set in `.env` file)
-- `CHECK_SYMPTOMS_ENDPOINT`, `DELETE_ACCOUNT_ENDPOINT`, `ANALYZE_PATTERNS_ENDPOINT` — Edge Function paths (used for reference, actual calls go through `supabase.functions.invoke()`)
+- `CHECK_SYMPTOMS_ENDPOINT`, `DELETE_ACCOUNT_ENDPOINT`, `ANALYZE_PATTERNS_ENDPOINT`, `AI_HEALTH_ANALYSIS_ENDPOINT`, `WEEKLY_SUMMARY_UPDATE_ENDPOINT` — Edge Function paths (used for reference, actual calls go through `supabase.functions.invoke()`)
 
 ### CHECK_IN
 - `FREE_TEXT_MAX_CHARS: 500` — Max characters for free text field in daily check-in

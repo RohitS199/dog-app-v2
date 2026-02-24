@@ -283,6 +283,7 @@ export const useCheckInStore = create<CheckInState>()(
           // Fire post-save tasks in parallel (non-blocking)
           // 1. analyze-patterns Edge Function
           // 2. Re-fetch dogs for updated streak
+          // 3. ai-health-analysis Edge Function (fire-and-forget)
           const analyzePromise = supabase.functions
             .invoke('analyze-patterns', {
               body: { dog_id: draft.dog_id },
@@ -297,6 +298,16 @@ export const useCheckInStore = create<CheckInState>()(
             });
 
           const fetchDogsPromise = useDogStore.getState().fetchDogs().catch(() => {});
+
+          // Fire-and-forget: AI health analysis (Phase 2)
+          // Does not block UI. If it fails, next call covers the gap via 14-day window.
+          supabase.functions
+            .invoke('ai-health-analysis', {
+              body: { dog_id: draft.dog_id, check_in_id: result.id },
+            })
+            .catch(() => {
+              // Silent failure — AI analysis is non-critical
+            });
 
           // Don't await — these run in background
           Promise.all([analyzePromise, fetchDogsPromise]);

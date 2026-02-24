@@ -160,7 +160,7 @@ The check-in is a **full-screen modal** (`app/check-in.tsx`) with 9 steps:
 - After step 8: Review screen (tap any answer to edit)
 - After submit: Day summary card with 4 tiers (all_normal, minor_notes, attention_needed, vet_recommended)
 
-**Check-in data flow**: UPSERT directly to Supabase `daily_check_ins` table (no Edge Function). Sets `emergency_flagged` by running `detectEmergencyKeywords()` on free text. After save, fires `analyze-patterns` Edge Function and `fetchDogs()` in parallel (non-blocking). `handleSubmit` checks for errors before transitioning to summary (prevents dead state on failure).
+**Check-in data flow**: UPSERT directly to Supabase `daily_check_ins` table (no Edge Function). Sets `emergency_flagged` by running `detectEmergencyKeywords()` on free text. After save, fires `analyze-patterns` Edge Function, `ai-health-analysis` Edge Function (fire-and-forget), and `fetchDogs()` in parallel (non-blocking). `handleSubmit` checks for errors before transitioning to summary (prevents dead state on failure).
 
 **Draft persistence**: Zustand persist middleware with AsyncStorage. Only `draft` and `currentStep` are persisted. `startCheckIn` awaits persist rehydration before checking draft. Three rehydration guards discard stale drafts: (a) dogId no longer exists, (b) check_in_date has passed, (c) entry already exists for that dog+date. Dog switch mid-flow resets `flowState` to questions.
 
@@ -206,11 +206,13 @@ The backend is a Supabase project at `https://wwuwosuysoxihtbykwgh.supabase.co`.
 | `check-symptoms` | v10 | 16-step triage pipeline (emergency bypass, RAG, LLM, output filter, foreign body floor, audit log) |
 | `analyze-patterns` | v1 | 8-step rule-based pattern detection (17 rules, 20/hr rate limit, dedup, auto-resolve) |
 | `delete-account` | v1 | Password re-auth → anonymize triage data → admin delete user |
+| `ai-health-analysis` | v1 | Daily Sonnet 4.5 analysis — fire-and-forget after check-in, reads dog profile + rolling summary (READ-ONLY) + 14 days raw data + alerts + articles, saves to `ai_health_insights`, 20/hr rate limit |
+| `weekly-summary-update` | v1 | Weekly Haiku 4.5 compression — n8n orchestrated (one dog per invocation), X-Service-Key auth, the ONLY full `dogs.health_summary` rewriter |
 | `run-stress-test` | v3 | 120-prompt automated test harness (run per-category, not all at once) |
 
 ### Database Tables
 
-- **`dogs`** — Dog profiles + `last_checkin_date` + `checkin_streak`. FK to auth.users with CASCADE delete.
+- **`dogs`** — Dog profiles + `last_checkin_date` + `checkin_streak` + `health_summary` (JSONB, rolling AI summary). FK to auth.users with CASCADE delete.
 - **`daily_check_ins`** — Structured daily health logs (7 metrics + symptoms + free text). UNIQUE(dog_id, check_in_date). RLS: full CRUD for own records.
 - **`pattern_alerts`** — Rule-based pattern detection results (17 types, 4 severity levels). RLS: SELECT/UPDATE only (INSERT/DELETE service role).
 - **`triage_audit_log`** — Every triage result + `daily_log_id` FK + `history_context_included`. FK to auth.users with SET NULL.
@@ -219,6 +221,7 @@ The backend is a Supabase project at `https://wwuwosuysoxihtbykwgh.supabase.co`.
 - **`dog_health_content`** — 303 RAG chunks with pgvector embeddings.
 - **`blog_articles`** — Educational articles for Learn tab (22 rows, 6 sections). Columns: slug (UNIQUE), title, section (CHECK constraint), body (Markdown), summary (max 200 chars), read_time_minutes, image_url, published, published_at, sort_order, metadata (JSONB). RLS: authenticated SELECT.
 - **`stress_test_results`** — Automated test run results.
+- **`ai_health_insights`** — Daily AI analysis results (insight_type, severity, fields_involved, title, message, recommended_articles JSONB, triggered_by_check_in_id, model_used, metadata JSONB for observability). RLS: SELECT own records, INSERT via service role.
 - **`documents`** — Legacy (32 rows, unused). Will be dropped after RAG expansion.
 - **RLS policies** on all tables. User-facing tables are user-scoped. `dog_health_content` has authenticated SELECT. System tables have RLS with no policies (service role only).
 
@@ -233,6 +236,7 @@ The backend is a Supabase project at `https://wwuwosuysoxihtbykwgh.supabase.co`.
 - **`hybrid_search_dog_health(...)`** — RAG retrieval combining vector similarity + keyword search.
 - **`update_checkin_streak()`** — Trigger function for streak calculation on check-in insert/update.
 - **`append_checkin_revision()`** — Trigger function for revision history on check-in update.
+- **`get_eligible_dogs_for_summary()`** — SECURITY DEFINER. Returns dogs with check-ins in last 7 days OR null `health_summary`. Used by n8n weekly workflow.
 
 ### Backend Completion Status (ALL DONE — last updated Feb 20, 2026)
 
@@ -324,6 +328,7 @@ Do not remove or weaken these components. They are legally required.
 - **Milestone 5** (Testing + Polish): COMPLETE (accessibility audit done)
 - **Backend Completion**: COMPLETE — all tasks done, security hardened, stress test passed, delete-account verified
 - **v2.6 Phase 1** (Daily Check-Ins + Pattern Detection): COMPLETE — 215/215 tests pass, 17 suites, all 9 blocks implemented, 7-bug audit fix applied
+- **v2.6 Phase 2** (AI Pattern Analysis — backend only): COMPLETE — daily Sonnet 4.5 analysis, weekly Haiku 4.5 compression, `ai_health_insights` table, `dogs.health_summary`, n8n workflow documented
 - **Milestone 6** (Beta Testing): NOT STARTED — needs TestFlight build + real user testers
 
 ## Stress Test Results (Feb 19, 2026 — v10 full retest)
@@ -336,7 +341,7 @@ Full 120-prompt stress test against v10: **Tier 1 (safety) = 100% (60/60)**, **T
 2. ~~**Emergency regex gaps**~~ — DONE.
 3. ~~**CAT6-08 foreign body non-determinism**~~ — DONE.
 4. ~~**v2.6 Phase 1**~~ — DONE. Daily check-ins, pattern detection, health calendar, 4-tab navigation.
-5. **v2.6 Phase 2** (AI + Dashboard) — NOT STARTED. AI-powered pattern insights, enhanced dashboard.
+5. **v2.6 Phase 2** (AI Pattern Analysis — backend only) — COMPLETE. `ai-health-analysis` v1 (daily Sonnet 4.5), `weekly-summary-update` v1 (weekly Haiku 4.5), `ai_health_insights` table, `dogs.health_summary` column. Frontend dashboard NOT YET BUILT.
 6. **v2.6 Phase 3** (Enhanced Triage v11) — NOT STARTED. Triage integration with check-in history context.
 7. **Buddy mascot animation** — Deferred. `react-native-reanimated` and `react-native-svg` are installed but animation not implemented.
 8. **50/day rate limit** — Only 10/hour is implemented (check-symptoms). analyze-patterns has 20/hour.

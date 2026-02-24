@@ -11,7 +11,7 @@ interface DogState {
 
   fetchDogs: () => Promise<void>;
   fetchLastTriageDates: () => Promise<void>;
-  addDog: (dog: Omit<Dog, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'last_checkin_date' | 'checkin_streak'>) => Promise<Dog>;
+  addDog: (dog: Omit<Dog, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'last_checkin_date' | 'checkin_streak' | 'health_summary'>) => Promise<Dog>;
   updateDog: (id: string, updates: Partial<Pick<Dog, 'name' | 'breed' | 'age_years' | 'weight_lbs' | 'vet_phone'>>) => Promise<void>;
   deleteDog: (id: string) => Promise<void>;
   selectDog: (id: string) => void;

@@ -161,7 +161,8 @@ Navigation within 0-8 range.
 4. UPSERT: update if `existingCheckIn` exists, otherwise insert
 5. Generates client-side `daySummary` via `generateDaySummary()`
 6. Fires in parallel (non-blocking): `analyze-patterns` Edge Function + `fetchDogs()` for streak update
-7. On error: sets error message (caller checks error before transitioning)
+7. Fire-and-forget: `ai-health-analysis` Edge Function (sends dog_id + check_in_id, silent failure)
+8. On error: sets error message (caller checks error before transitioning)
 
 ### `clearDraft()` / `clearAll()`
 Resets all state. `clearAll` called on sign-out and account deletion.
