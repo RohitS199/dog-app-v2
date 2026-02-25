@@ -32,6 +32,13 @@ export function PatternAlertCard({ alert, onDismiss }: PatternAlertCardProps) {
       <Text style={styles.title}>{alert.title}</Text>
       <Text style={styles.message}>{alert.message}</Text>
 
+      {alert.ai_insight && (
+        <View style={styles.aiInsightSection}>
+          <Text style={styles.aiInsightLabel}>AI Analysis</Text>
+          <Text style={styles.aiInsightText}>{alert.ai_insight}</Text>
+        </View>
+      )}
+
       {isVetRecommended && (
         <View style={styles.vetBanner}>
           <Text style={styles.vetText}>Contact Your Vet</Text>
@@ -75,6 +82,24 @@ const styles = StyleSheet.create({
   message: {
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
+    lineHeight: 20,
+  },
+  aiInsightSection: {
+    marginTop: SPACING.sm,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.divider,
+    paddingTop: SPACING.sm,
+  },
+  aiInsightLabel: {
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
+  },
+  aiInsightText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
     lineHeight: 20,
   },
   vetBanner: {

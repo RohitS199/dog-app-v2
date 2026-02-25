@@ -5,6 +5,8 @@ beforeEach(() => {
   useHealthStore.setState({
     calendarData: {},
     activeAlerts: [],
+    aiInsights: [],
+    isLoadingInsights: false,
     selectedDate: null,
     isLoading: false,
     error: null,
@@ -20,6 +22,12 @@ describe('healthStore', () => {
       expect(state.selectedDate).toBeNull();
       expect(state.isLoading).toBe(false);
       expect(state.error).toBeNull();
+    });
+
+    it('starts with empty aiInsights', () => {
+      const state = useHealthStore.getState();
+      expect(state.aiInsights).toEqual([]);
+      expect(state.isLoadingInsights).toBe(false);
     });
   });
 
@@ -84,6 +92,13 @@ describe('healthStore', () => {
     });
   });
 
+  describe('fetchAIInsights', () => {
+    it('sets isLoadingInsights to false after fetch', async () => {
+      await useHealthStore.getState().fetchAIInsights('dog-1');
+      expect(useHealthStore.getState().isLoadingInsights).toBe(false);
+    });
+  });
+
   describe('clearHealth', () => {
     it('resets all health state', () => {
       useHealthStore.setState({
@@ -101,6 +116,18 @@ describe('healthStore', () => {
       expect(state.selectedDate).toBeNull();
       expect(state.isLoading).toBe(false);
       expect(state.error).toBeNull();
+    });
+
+    it('resets aiInsights to empty array', () => {
+      useHealthStore.setState({
+        aiInsights: [{ id: 'insight-1' } as any],
+        isLoadingInsights: true,
+      });
+
+      useHealthStore.getState().clearHealth();
+      const state = useHealthStore.getState();
+      expect(state.aiInsights).toEqual([]);
+      expect(state.isLoadingInsights).toBe(false);
     });
   });
 });

@@ -148,6 +148,27 @@ Pattern alert display with severity-colored left border and dismiss button.
 - **Props**: `alert: PatternAlert`, `onDismiss: (alertId) => void`
 - `vet_recommended` level shows "Contact Your Vet" prominently
 - Uses `ALERT_LEVEL_CONFIG` for colors/icons
+- Shows `ai_insight` text when available (between message and vet banner, with "AI Analysis" label, italic styling, divider separator)
+
+### AIInsightCard.tsx
+AI-generated health observation card with severity badge and article recommendations.
+- **Props**: `insight: AIHealthInsight`, `onArticlePress: (slug: string) => void`
+- Left border color: `COLORS.success` (green) if `is_positive`, else severity color from `ALERT_LEVEL_CONFIG`
+- Header: `AlertLevelBadge` + optional "Good sign" green pill badge (only when `is_positive`)
+- Title + message body
+- "Recommended Reading" section (only if `recommended_articles` non-empty): tappable rows with reason text + `>` arrow, `accessibilityRole="link"`, `MIN_TOUCH_TARGET` height
+- `onArticlePress(slug)` → routes to `/article/[slug]`
+
+### HealthSummaryCard.tsx
+Rolling AI health summary display with collapsible baseline profile.
+- **Props**: `summary: HealthSummary`, `dogName: string`
+- Header: "{dogName}'s Health Profile"
+- `summary_text` as main body
+- Latest annotation from `annotations[]` (if non-empty) with "Latest Note" label, italic text
+- Collapsible "View Baseline" / "Hide Baseline" toggle (via `useState`)
+  - Label-value pairs for each baseline field (Appetite, Water Intake, Energy, Stool, Mobility, Mood)
+  - Vomiting history note and known sensitivities (if present)
+- **"Last updated X days ago"** relative time indicator at bottom (today/yesterday/X days ago/date format)
 
 ### AlertLevelBadge.tsx
 Small pill badge for alert severity level.
@@ -162,7 +183,7 @@ Cold start onboarding card on home screen.
 
 ---
 
-## __tests__/ — Component Tests (8 suites, 59 tests)
+## __tests__/ — Component Tests (9 suites, 69 tests)
 
 All tests use Jest + React Native Testing Library. See `jest.setup.js` at project root for mock configuration.
 
@@ -184,8 +205,11 @@ Tests question rendering, option selection, selected state highlighting, yesterd
 ### CheckInReview.test.tsx (5 tests)
 Tests all answers rendered, tap-to-edit callback fires with correct step index.
 
-### PatternAlertCard.test.tsx (6 tests)
-Tests title/message rendering, severity badge, dismiss callback, vet_recommended shows "Contact Your Vet" CTA.
+### PatternAlertCard.test.tsx (8 tests)
+Tests title/message rendering, severity badge, dismiss callback, vet_recommended shows "Contact Your Vet" CTA, ai_insight display (present and null cases).
 
 ### CalendarGrid.test.tsx (8 tests)
 Tests correct cell count for month, status indicators (shape+color), date press callback, today cell highlighting.
+
+### AIInsightCard.test.tsx (8 tests)
+Tests title rendering, message rendering, correct severity badge, "Good sign" badge for positive insights, no "Good sign" for negative, article recommendation links, onArticlePress callback with correct slug, hidden "Recommended Reading" when no articles.

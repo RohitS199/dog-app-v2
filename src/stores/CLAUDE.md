@@ -178,11 +178,13 @@ Resets all state. `clearAll` called on sign-out and account deletion.
 
 ---
 
-## healthStore.ts — Calendar Data + Pattern Alerts (v2.6)
+## healthStore.ts — Calendar Data + Pattern Alerts + AI Insights (v2.6)
 
 **State:**
 - `calendarData: Record<string, DailyCheckIn>` — Date string → check-in. Includes 7 days before month start for trailing window.
 - `activeAlerts: PatternAlert[]` — Currently active pattern alerts
+- `aiInsights: AIHealthInsight[]` — Recent AI-generated observations (up to 10, newest first)
+- `isLoadingInsights: boolean` — True during AI insights fetch (separate from main `isLoading`)
 - `selectedDate: string | null` — Selected date for detail sheet
 - `isLoading: boolean` — True during data fetch
 - `error: string | null`
@@ -195,16 +197,22 @@ Fetches check-ins from **7 days before month start** through end of month. This 
 ### `fetchActiveAlerts(dogId)`
 Queries `pattern_alerts` WHERE `is_active = true`, ordered by `created_at` descending.
 
+### `fetchAIInsights(dogId)`
+Queries `ai_health_insights` for the dog, ordered by `created_at` descending, limit 10. Uses **explicit column selection** (excludes `rolling_summary_snapshot` and `metadata` — large JSONB not needed on mobile). Silent failure — AI insights are supplementary; deterministic alerts remain primary. Has its own `isLoadingInsights` flag (doesn't trigger main loading spinner).
+
+**Important**: In `health.tsx`, this is in a **separate `useEffect`** with `[selectedDogId]` dependency only — NOT in the month-dependent useEffect. AI insights are dog-scoped, not month-scoped. Month navigation must not re-fetch them. Also re-fetches on tab focus to cover the fire-and-forget timing gap after check-in submission.
+
 ### `dismissAlert(alertId)`
 Updates `dismissed_by_user = true` and `is_active = false` in database, then removes from local state.
 
 ### `setSelectedDate(date)` / `clearHealth()`
-Simple setters. `clearHealth` resets all state. Called on sign-out and account deletion.
+Simple setters. `clearHealth` resets all state including `aiInsights: []` and `isLoadingInsights: false`. Called on sign-out and account deletion.
 
 ### Test Coverage
 
-8 tests in `__tests__/healthStore.test.ts`:
+11 tests in `__tests__/healthStore.test.ts`:
 - fetchMonthData, dismissAlert, clearHealth
+- Initial aiInsights state, fetchAIInsights loading, clearHealth resets AI state
 
 ---
 

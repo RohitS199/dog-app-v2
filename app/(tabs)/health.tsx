@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useNavigation } from 'expo-router';
 import { useDogStore } from '../../src/stores/dogStore';
 import { useHealthStore } from '../../src/stores/healthStore';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
@@ -10,6 +11,8 @@ import { DayDetailSheet } from '../../src/components/ui/DayDetailSheet';
 import { StreakCounter } from '../../src/components/ui/StreakCounter';
 import { ConsistencyCard } from '../../src/components/ui/ConsistencyCard';
 import { PatternAlertCard } from '../../src/components/ui/PatternAlertCard';
+import { AIInsightCard } from '../../src/components/ui/AIInsightCard';
+import { HealthSummaryCard } from '../../src/components/ui/HealthSummaryCard';
 import { DogSelector } from '../../src/components/ui/DogSelector';
 import type { CalendarDayStatus } from '../../src/types/health';
 import type { DailyCheckIn } from '../../src/types/checkIn';
@@ -23,6 +26,7 @@ export default function HealthScreen() {
   const { dogs, selectedDogId } = useDogStore();
   const selectedDog = dogs.find((d) => d.id === selectedDogId);
   const [showDogSelector, setShowDogSelector] = useState(false);
+  const router = useRouter();
 
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -32,10 +36,12 @@ export default function HealthScreen() {
   const {
     calendarData,
     activeAlerts,
+    aiInsights,
     isLoading,
     error: healthError,
     fetchMonthData,
     fetchActiveAlerts,
+    fetchAIInsights,
     dismissAlert,
   } = useHealthStore();
 
@@ -45,6 +51,29 @@ export default function HealthScreen() {
       fetchActiveAlerts(selectedDogId);
     }
   }, [selectedDogId, viewYear, viewMonth]);
+
+  // AI insights are dog-scoped, not month-scoped — separate useEffect
+  useEffect(() => {
+    if (selectedDogId) {
+      fetchAIInsights(selectedDogId);
+    }
+  }, [selectedDogId]);
+
+  // Re-fetch AI insights + alerts on tab focus (covers fire-and-forget timing gap)
+  const navigation = useNavigation();
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (selectedDogId) {
+        fetchAIInsights(selectedDogId);
+        fetchActiveAlerts(selectedDogId);
+      }
+    });
+    return unsubscribe;
+  }, [navigation, selectedDogId]);
+
+  const handleArticlePress = useCallback((slug: string) => {
+    router.push(`/article/${slug}` as any);
+  }, [router]);
 
   const todayString = getTodayString();
 
@@ -206,6 +235,30 @@ export default function HealthScreen() {
         {consistencyScore && (
           <View style={styles.section}>
             <ConsistencyCard score={consistencyScore} />
+          </View>
+        )}
+
+        {/* Health summary */}
+        {selectedDog.health_summary && (
+          <View style={styles.section}>
+            <HealthSummaryCard
+              summary={selectedDog.health_summary}
+              dogName={selectedDog.name}
+            />
+          </View>
+        )}
+
+        {/* AI Insights */}
+        {aiInsights.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>AI Insights</Text>
+            {aiInsights.slice(0, 5).map((insight) => (
+              <AIInsightCard
+                key={insight.id}
+                insight={insight}
+                onArticlePress={handleArticlePress}
+              />
+            ))}
           </View>
         )}
 

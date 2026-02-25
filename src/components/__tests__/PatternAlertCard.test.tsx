@@ -76,4 +76,23 @@ describe('PatternAlertCard', () => {
     );
     expect(queryByText('Contact Your Vet')).toBeNull();
   });
+
+  it('shows AI insight text when ai_insight is present', () => {
+    const alertWithInsight: PatternAlert = {
+      ...mockAlert,
+      ai_insight: 'The declining appetite pattern correlates with reduced energy levels.',
+    };
+    const { getByText } = render(
+      <PatternAlertCard alert={alertWithInsight} onDismiss={mockOnDismiss} />
+    );
+    expect(getByText('AI Analysis')).toBeTruthy();
+    expect(getByText('The declining appetite pattern correlates with reduced energy levels.')).toBeTruthy();
+  });
+
+  it('does NOT show "AI Analysis" when ai_insight is null', () => {
+    const { queryByText } = render(
+      <PatternAlertCard alert={mockAlert} onDismiss={mockOnDismiss} />
+    );
+    expect(queryByText('AI Analysis')).toBeNull();
+  });
 });

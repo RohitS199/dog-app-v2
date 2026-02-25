@@ -73,16 +73,20 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 - Empty state with "Add Your Dog" CTA
 - `fetchDogs()` and `fetchLastTriageDates()` called on mount
 
-### (tabs)/health.tsx (Health Calendar)
+### (tabs)/health.tsx (Health Calendar + AI Insights Dashboard)
 - Dog selector row at top (same pattern as triage screen)
 - Streak counter: "{N}-day check-in streak!"
 - Month navigation with `< February 2026 >` arrows
 - `CalendarGrid` component — 7-column grid, 6 status states with shape+color per WCAG AA
 - Loading indicator + error display during data fetch
 - Consistency score card (when >= 5 days history)
-- Active alerts section (list of `PatternAlertCard` with dismiss)
+- `HealthSummaryCard` — rolling AI health profile with collapsible baseline and "Last updated X days ago" (conditional on `selectedDog.health_summary` existing)
+- AI Insights section — up to 5 `AIInsightCard` components showing AI observations with severity badges, positive/negative indicators, and tappable article recommendation links (routes to `/article/[slug]`)
+- Active alerts section (list of `PatternAlertCard` with dismiss) — now enhanced with `ai_insight` text display
 - `DayDetailSheet` bottom sheet on date tap — full check-in data + previous day comparison
 - Uses `useHealthStore` — fetches 7 days before month start for trailing window consistency scoring
+- AI insights use a **separate `useEffect`** with `[selectedDogId]` only (not month-dependent) to avoid unnecessary re-fetches on month navigation
+- **Tab focus listener** re-fetches AI insights and active alerts on navigation focus (covers fire-and-forget timing gap after check-in submission)
 - Clears stale calendar data when switching dogs
 
 ### (tabs)/learn.tsx (Learn Tab)

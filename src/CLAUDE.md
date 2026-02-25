@@ -8,14 +8,14 @@ All non-screen source code lives here. Screens are in `app/` (Expo Router), but 
 src/
 ├── components/
 │   ├── legal/       # Safety-critical legal/compliance components (5)
-│   ├── ui/          # General UI components (20)
-│   └── __tests__/   # Component tests (8 suites, 59 tests)
+│   ├── ui/          # General UI components (22)
+│   └── __tests__/   # Component tests (9 suites, 69 tests)
 ├── constants/       # Theme tokens, config, loading tips, check-in questions
 ├── hooks/           # useAppState, useNetworkStatus
 ├── lib/             # Supabase client, emergency keywords, pattern rules, consistency score, day summary
 │   └── __tests__/   # Lib tests (5 suites, 105 tests)
 ├── stores/          # Zustand state management (auth, dog, triage, checkIn, health, learn)
-│   └── __tests__/   # Store tests (4 suites, 51 tests)
+│   └── __tests__/   # Store tests (4 suites, 54 tests)
 └── types/           # TypeScript type definitions (api, checkIn, health, learn)
 ```
 
@@ -43,4 +43,4 @@ src/
 
 ## Testing
 
-215 tests across 17 suites, all passing. Run with `npm test` or `npx jest --no-cache`.
+228 tests across 18 suites, all passing. Run with `npm test` or `npx jest --no-cache`.

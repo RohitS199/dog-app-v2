@@ -1,17 +1,20 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { DailyCheckIn } from '../types/checkIn';
-import type { PatternAlert } from '../types/health';
+import type { PatternAlert, AIHealthInsight } from '../types/health';
 
 interface HealthState {
   calendarData: Record<string, DailyCheckIn>; // date string -> check-in
   activeAlerts: PatternAlert[];
+  aiInsights: AIHealthInsight[];
+  isLoadingInsights: boolean;
   selectedDate: string | null;
   isLoading: boolean;
   error: string | null;
 
   fetchMonthData: (dogId: string, year: number, month: number) => Promise<void>;
   fetchActiveAlerts: (dogId: string) => Promise<void>;
+  fetchAIInsights: (dogId: string) => Promise<void>;
   dismissAlert: (alertId: string) => Promise<void>;
   setSelectedDate: (date: string | null) => void;
   clearHealth: () => void;
@@ -20,6 +23,8 @@ interface HealthState {
 export const useHealthStore = create<HealthState>((set, get) => ({
   calendarData: {},
   activeAlerts: [],
+  aiInsights: [],
+  isLoadingInsights: false,
   selectedDate: null,
   isLoading: false,
   error: null,
@@ -81,6 +86,22 @@ export const useHealthStore = create<HealthState>((set, get) => ({
     }
   },
 
+  fetchAIInsights: async (dogId) => {
+    set({ isLoadingInsights: true });
+    try {
+      const { data, error } = await supabase
+        .from('ai_health_insights')
+        .select('id, dog_id, user_id, insight_type, severity, fields_involved, timespan_days, title, message, is_positive, recommended_articles, triggered_by_check_in_id, model_used, created_at')
+        .eq('dog_id', dogId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      set({ aiInsights: (data ?? []) as AIHealthInsight[], isLoadingInsights: false });
+    } catch {
+      set({ aiInsights: [], isLoadingInsights: false });
+    }
+  },
+
   dismissAlert: async (alertId) => {
     try {
       const { error } = await supabase
@@ -106,6 +127,8 @@ export const useHealthStore = create<HealthState>((set, get) => ({
     set({
       calendarData: {},
       activeAlerts: [],
+      aiInsights: [],
+      isLoadingInsights: false,
       selectedDate: null,
       isLoading: false,
       error: null,

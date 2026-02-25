@@ -34,7 +34,7 @@ Every feature, every component, every urgency color choice exists in service of 
 - **@react-native-async-storage/async-storage** — Zustand persist middleware for check-in draft
 - **react-native-reanimated v4** + **react-native-svg** — Installed for future Buddy mascot animation (not yet implemented)
 - **react-native-markdown-display** — Markdown renderer for Learn tab article body
-- **Jest 29** + **React Native Testing Library** — 215 tests across 17 suites
+- **Jest 29** + **React Native Testing Library** — 228 tests across 18 suites
 
 ## Project Structure
 
@@ -50,7 +50,7 @@ dog_app_ui/
 │   ├── (tabs)/                   # Main app (authenticated + terms accepted)
 │   │   ├── _layout.tsx           # Bottom tab navigator (Home, Health, Learn, Triage, Settings)
 │   │   ├── index.tsx             # Home — dog cards, check-in CTA, streak badges
-│   │   ├── health.tsx            # Health tab — calendar, alerts, consistency score
+│   │   ├── health.tsx            # Health tab — calendar, alerts, AI insights, health summary
 │   │   ├── learn.tsx             # Learn tab — educational article library by section
 │   │   ├── triage.tsx            # Core triage flow — input → loading → result
 │   │   └── settings.tsx          # Account, dogs, legal, sign out, delete
@@ -65,8 +65,8 @@ dog_app_ui/
 ├── src/
 │   ├── components/
 │   │   ├── legal/                # Safety-critical legal components (5)
-│   │   ├── ui/                   # General UI components (20)
-│   │   └── __tests__/            # Component tests (8 suites)
+│   │   ├── ui/                   # General UI components (22)
+│   │   └── __tests__/            # Component tests (9 suites)
 │   ├── constants/                # Theme, config, loading tips, check-in questions
 │   ├── hooks/                    # useAppState, useNetworkStatus
 │   ├── lib/                      # Supabase client, emergency keywords, pattern rules, consistency score
@@ -183,6 +183,10 @@ The check-in is a **full-screen modal** (`app/check-in.tsx`) with 9 steps:
 - Health store fetches 7 days before month start for trailing window at boundaries
 - Loading indicator + error display during data fetch
 - Calendar data cleared on dog switch (prevents stale data from previous dog)
+- **AI Insights section** — displays up to 5 recent AI-generated observations per dog (severity badge, positive/negative indicator, article recommendations with deep links)
+- **Health Summary card** — rolling AI health profile with collapsible baseline, latest annotation, and "Last updated X days ago" relative timestamp
+- **Pattern alert AI enrichment** — `PatternAlertCard` now shows `ai_insight` text when available
+- Tab focus listener re-fetches AI insights and alerts (covers fire-and-forget timing gap after check-in submission)
 
 ### Learn Tab
 
@@ -283,11 +287,11 @@ npx expo start
 ## Running Tests
 
 ```bash
-npm test          # Runs all 215 tests
+npm test          # Runs all 228 tests
 npx jest --no-cache  # If you encounter stale cache issues
 ```
 
-**17 test suites:**
+**18 test suites:**
 
 *Lib tests (5 suites, 105 tests):*
 - `emergencyKeywords.test.ts` — 39 tests (pattern matching, normalization, clusters, v9/v10 compound patterns)
@@ -296,21 +300,22 @@ npx jest --no-cache  # If you encounter stale cache issues
 - `daySummary.test.ts` — 10 tests (4 tiers, blood in stool, dry heaving, multiple abnormals)
 - `patternRules.test.ts` — 25 tests (all 17 rules, density gating, composite priority)
 
-*Store tests (4 suites, 51 tests):*
+*Store tests (4 suites, 54 tests):*
 - `triageStore.test.ts` — 13 tests (symptoms, char limits, nudge tracking)
 - `checkInStore.test.ts` — 20 tests (startCheckIn, setAnswer, step navigation, toggleSymptom, free text limit, rehydration guards)
-- `healthStore.test.ts` — 8 tests (fetchMonthData, dismissAlert, clearHealth)
+- `healthStore.test.ts` — 11 tests (fetchMonthData, dismissAlert, clearHealth, aiInsights state, fetchAIInsights)
 - `learnStore.test.ts` — 10 tests (fetchArticles, cache, getArticleBySlug, sections assembly, clearLearn)
 
-*Component tests (8 suites, 59 tests):*
+*Component tests (9 suites, 69 tests):*
 - `UrgencyBadge.test.tsx` — 7 tests (all urgency levels, accessibility)
 - `TriageResult.test.tsx` — 10 tests (triage, emergency bypass, sources, vet phone)
 - `LegalComponents.test.tsx` — 9 tests (disclaimer, call banner, source citation)
 - `EmergencyAlert.test.tsx` — 3 tests (rendering, dismiss callback)
 - `CheckInCard.test.tsx` — 8 tests (renders question, options, selected state, yesterday hint, inline alert)
 - `CheckInReview.test.tsx` — 5 tests (renders all answers, tap-to-edit callback)
-- `PatternAlertCard.test.tsx` — 6 tests (title/message, badge, dismiss, vet_recommended CTA)
+- `PatternAlertCard.test.tsx` — 8 tests (title/message, badge, dismiss, vet_recommended CTA, ai_insight display)
 - `CalendarGrid.test.tsx` — 8 tests (cell count, status indicators, date press, today highlight)
+- `AIInsightCard.test.tsx` — 8 tests (title, message, severity badge, positive/negative, article links, onArticlePress)
 
 ## Accessibility
 
@@ -340,8 +345,8 @@ Do not remove or weaken these components. They are legally required.
 - **Milestone 4** (Settings + Account Management): COMPLETE
 - **Milestone 5** (Testing + Polish): COMPLETE (accessibility audit done)
 - **Backend Completion**: COMPLETE — all tasks done, security hardened, stress test passed, delete-account verified
-- **v2.6 Phase 1** (Daily Check-Ins + Pattern Detection): COMPLETE — 215/215 tests pass, 17 suites, all 9 blocks implemented, 7-bug audit fix applied
-- **v2.6 Phase 2** (AI Pattern Analysis — backend only): COMPLETE — daily Sonnet 4.5 analysis, weekly Haiku 4.5 compression, `ai_health_insights` table, `dogs.health_summary`, n8n workflow documented
+- **v2.6 Phase 1** (Daily Check-Ins + Pattern Detection): COMPLETE — all 9 blocks implemented, 7-bug audit fix applied
+- **v2.6 Phase 2** (AI Pattern Analysis): COMPLETE — backend (daily Sonnet 4.5, weekly Haiku 4.5, `ai_health_insights` table, `dogs.health_summary`, n8n workflow) + **frontend dashboard** (AIInsightCard, HealthSummaryCard, PatternAlertCard AI enrichment, tab focus refresh). 228/228 tests pass, 18 suites.
 - **Milestone 6** (Beta Testing): NOT STARTED — needs TestFlight build + real user testers
 
 ## Stress Test Results (Feb 19, 2026 — v10 full retest)
@@ -354,7 +359,7 @@ Full 120-prompt stress test against v10: **Tier 1 (safety) = 100% (60/60)**, **T
 2. ~~**Emergency regex gaps**~~ — DONE.
 3. ~~**CAT6-08 foreign body non-determinism**~~ — DONE.
 4. ~~**v2.6 Phase 1**~~ — DONE. Daily check-ins, pattern detection, health calendar, 4-tab navigation.
-5. ~~**v2.6 Phase 2**~~ (AI Pattern Analysis — backend only) — COMPLETE. `ai-health-analysis` v1 (daily Sonnet 4.5), `weekly-summary-update` v1 (weekly Haiku 4.5), `ai_health_insights` table, `dogs.health_summary` column. AI test suite 55/55 (100%). Frontend dashboard NOT YET BUILT.
+5. ~~**v2.6 Phase 2**~~ (AI Pattern Analysis) — COMPLETE. Backend: `ai-health-analysis` v1 (daily Sonnet 4.5), `weekly-summary-update` v1 (weekly Haiku 4.5), `ai_health_insights` table, `dogs.health_summary` column, AI test suite 55/55 (100%). Frontend: AIInsightCard, HealthSummaryCard, PatternAlertCard AI enrichment, healthStore extended with `fetchAIInsights()`, tab focus refresh.
 6. **v2.6 Phase 3** (Enhanced Triage v11) — NOT STARTED. Triage integration with check-in history context.
 7. **Buddy mascot animation** — Deferred. `react-native-reanimated` and `react-native-svg` are installed but animation not implemented.
 8. **50/day rate limit** — Only 10/hour is implemented (check-symptoms). analyze-patterns has 20/hour.
