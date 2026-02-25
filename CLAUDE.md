@@ -386,12 +386,25 @@ Claude Code has installed skills that MUST be used when working on relevant task
 | `react-native-best-practices` | React Native coding patterns and conventions |
 | `supabase-postgres-best-practices` | Database operations (duplicate of user-level) |
 
+### Superpowers Plugin (obra/superpowers)
+
+The **gold standard** development methodology plugin with 20+ battle-tested skills. Enforces a disciplined brainstorm → plan → implement workflow.
+
+**Commands**: `/brainstorm`, `/write-plan`, `/execute-plan`
+
+**Auto-activating skills**: TDD, systematic debugging, git worktrees, verification before completion, subagent-driven development (independent sub-agents handle tasks with code review checkpoints), dispatching parallel agents, receiving/requesting code review.
+
+**Installed at**: `~/.claude/plugins/marketplaces/superpowers-marketplace/plugins/superpowers/`
+
+**When to use**: For any significant feature or multi-file change. Start with `/brainstorm` to think through the approach, `/write-plan` to create an implementation plan, then `/execute-plan` to implement with TDD and verification.
+
 ### Rules
 
 1. **Always invoke the relevant skill** before starting work in that domain. For example, invoke `supabase-postgres-best-practices` before writing a migration, or `accessibility-compliance` before building a new UI component.
-2. **Search for new skills** (`npx skills find "<query>"`) when encountering a domain not covered by installed skills.
-3. **Install useful skills** (`npx skills add <owner/repo@skill> -g -y`) when a high-quality skill (1K+ installs) is found.
-4. **Do not guess** — if a skill exists for the task, use it instead of relying on general knowledge.
+2. **Use Superpowers workflow** for significant features: `/brainstorm` → `/write-plan` → `/execute-plan`. Do not rush into code without thinking through the design first.
+3. **Search for new skills** (`npx skills find "<query>"`) when encountering a domain not covered by installed skills.
+4. **Install useful skills** (`npx skills add <owner/repo@skill> -g -y`) when a high-quality skill (1K+ installs) is found.
+5. **Do not guess** — if a skill exists for the task, use it instead of relying on general knowledge.
 
 ## Full Documentation
 

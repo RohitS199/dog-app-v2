@@ -1540,12 +1540,29 @@ The project uses Claude Code skills — specialized knowledge packages that MUST
 | `react-native-best-practices` | RN coding patterns |
 | `supabase-postgres-best-practices` | Database operations |
 
+### Superpowers Plugin (obra/superpowers)
+
+The gold standard development methodology — a complete workflow with 20+ battle-tested skills. Enforces a disciplined brainstorm → plan → implement workflow that prevents rushing into code without thinking.
+
+**Commands**: `/brainstorm`, `/write-plan`, `/execute-plan`
+
+**Auto-activating skills**: TDD, systematic debugging, git worktrees, verification before completion, subagent-driven development (independent sub-agents handle tasks with code review checkpoints), dispatching parallel agents, code review.
+
+**Why it matters**: Forces Claude to slow down, explain reasoning, get sign-off on designs before writing code, and follow a structured process. Like having a senior engineer's discipline baked in.
+
+**Installation**:
+```bash
+/plugin marketplace add obra/superpowers-marketplace
+/plugin install superpowers@superpowers-marketplace
+```
+
 ### Usage Rules
 
 1. Always invoke the relevant skill before starting domain-specific work
-2. Search for new skills (`npx skills find "<query>"`) when encountering unfamiliar domains
-3. Install useful skills (`npx skills add <owner/repo@skill> -g -y`) when high-quality options exist
-4. Do not guess — if a skill exists for the task, use it
+2. Use Superpowers workflow for significant features: `/brainstorm` → `/write-plan` → `/execute-plan`
+3. Search for new skills (`npx skills find "<query>"`) when encountering unfamiliar domains
+4. Install useful skills (`npx skills add <owner/repo@skill> -g -y`) when high-quality options exist
+5. Do not guess — if a skill exists for the task, use it
 
 ---
 
