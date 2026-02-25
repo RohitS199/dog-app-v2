@@ -138,7 +138,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   scroll: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
   },
   fieldRow: {
     paddingVertical: SPACING.sm,

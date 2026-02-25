@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCheckInStore } from '../src/stores/checkInStore';
@@ -115,7 +115,13 @@ export default function CheckInScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+      >
         {/* Header */}
         <View style={styles.header}>
           {flowState === 'summary' ? (
@@ -223,7 +229,7 @@ export default function CheckInScreen() {
             </Pressable>
           </View>
         )}
-      </View>
+      </ScrollView>
 
       <DogSelector
         visible={showDogSelector}
@@ -240,6 +246,9 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     padding: SPACING.md,
   },
   header: {

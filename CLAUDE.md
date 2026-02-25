@@ -153,7 +153,7 @@ If the user runs 3+ triage checks within 7 days, a blue info card appears: "If y
 
 ### Daily Check-In Flow (v2.6)
 
-The check-in is a **full-screen modal** (`app/check-in.tsx`) with 9 steps:
+The check-in is a **full-screen modal** (`app/check-in.tsx`) with 9 steps. Supports iOS swipe-back gesture and swipe-down-to-dismiss keyboard (via `ScrollView` with `keyboardDismissMode="on-drag"`).
 - Steps 0-6: Single-select questions (appetite, water, energy, stool, vomiting, mobility, mood)
 - Step 7: Multi-select additional symptoms (11 options, "None" deselects all others)
 - Step 8: Free text (500 char max) with emergency keyword detection

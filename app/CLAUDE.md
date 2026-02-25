@@ -22,7 +22,7 @@ Session + terms → /(tabs)
 
 This works by watching `useSegments()` and checking auth state from `useAuthStore`. The `useAppState()` hook is also mounted here to handle app foreground/background transitions (session validation, auto-refresh toggling).
 
-**How it renders:** Uses `<Slot />` (not `<Stack />`) to render child routes. This is intentional — it lets the auth redirect logic work without Stack animations on redirects.
+**How it renders:** Uses `<Stack screenOptions={{ headerShown: false }} />` to render child routes. This provides native iOS swipe-back gestures on pushed screens (check-in, add-dog, etc.). Auth redirects use `router.replace()` which doesn't animate, so no unwanted transitions on redirect.
 
 ## File Descriptions
 
@@ -31,6 +31,7 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 - Watches `session`, `isLoading`, `hasAcceptedTerms`, and `segments` to decide routing
 - Shows a centered `ActivityIndicator` while loading
 - Mounts `useAppState()` which manages session refresh on foreground/background
+- Uses `<Stack screenOptions={{ headerShown: false }} />` — enables native swipe-back gestures on iOS
 
 ### (auth)/_layout.tsx
 - Simple `Stack` with `headerShown: false` and themed background color
@@ -157,8 +158,9 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 - Shows success alert and navigates back
 
 ### check-in.tsx (Daily Check-In Flow)
-- Full-screen modal launched via `router.push('/check-in')`
+- Full-screen modal launched via `router.push('/check-in')`, supports iOS swipe-back gesture
 - 3 flow states: `questions` → `review` → `summary`
+- `ScrollView` with `keyboardDismissMode="on-drag"` — swipe down to dismiss keyboard on free text step
 - Steps 0-6: `CheckInCard` — single-select questions (appetite, water, energy, stool, vomiting, mobility, mood)
 - Step 7: `AdditionalSymptomsCard` — multi-select chips (11 options, "None" deselects all)
 - Step 8: `FreeTextCard` — TextInput (500 chars) + emergency keyword detection

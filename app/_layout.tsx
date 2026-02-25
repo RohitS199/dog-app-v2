@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../src/stores/authStore';
 import { useAppState } from '../src/hooks/useAppState';
@@ -52,7 +52,7 @@ export default function RootLayout() {
 
   return (
     <>
-      <Slot />
+      <Stack screenOptions={{ headerShown: false }} />
       <StatusBar style="auto" />
     </>
   );
