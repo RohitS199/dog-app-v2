@@ -1,0 +1,55 @@
+{
+  "name": "PawCheck Weekly Summary — Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "error-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "notes": "Fires when the main workflow fails at a level NOT caught by Continue on Fail. This covers: RPC failures (Supabase downtime), credential expiration, network timeouts, and any pre-batch errors. Without this, a total workflow failure is completely silent."
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@pawcheck.app",
+        "toEmail": "rsandur19@gmail.com",
+        "subject": "PawCheck Weekly Summary — Workflow FAILED",
+        "text": "=CRITICAL: The PawCheck Weekly Summary workflow failed entirely.\n\nThis means ZERO dogs were processed this week.\n\nWorkflow: {{ $json.workflow?.name || 'PawCheck Weekly Summary' }}\nFailed Node: {{ $json.execution?.lastNodeExecuted || 'Unknown' }}\nError: {{ $json.execution?.error?.message || 'Unknown error' }}\nTimestamp: {{ $now.format('EEEE MMM d, yyyy h:mm a z') }}\n\nCommon causes:\n1. Supabase service role key expired or rotated\n2. WEEKLY_SERVICE_KEY mismatch between n8n and Supabase\n3. Supabase downtime\n4. n8n credential configuration issue\n\nAction needed: Check n8n execution log and Supabase status.",
+        "options": {}
+      },
+      "id": "send-error-email",
+      "name": "Send Error Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [300, 0],
+      "notes": "Sends critical failure notification. This is the catastrophic failure path — entire workflow failed before batch loop."
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send Error Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Chicago"
+  },
+  "tags": [
+    {
+      "name": "PawCheck"
+    },
+    {
+      "name": "Error Handler"
+    }
+  ],
+  "pinData": {}
+}

@@ -1,0 +1,274 @@
+{
+  "name": "PawCheck Weekly Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 3,
+              "triggerAtMinute": 0,
+              "triggerAtDay": 1
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "notes": "Monday 3:00 AM Central Time. Safely past Sunday evening check-ins, well before Monday morning check-ins."
+    },
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 200],
+      "notes": "Use this to test the full workflow on-demand without waiting for Monday 3 AM."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://wwuwosuysoxihtbykwgh.supabase.co/rest/v1/rpc/get_eligible_dogs_for_summary",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.supabaseServiceRoleKey }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $credentials.supabaseServiceRoleKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "get-eligible-dogs",
+      "name": "Get Eligible Dogs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 100],
+      "notes": "Calls get_eligible_dogs_for_summary() RPC. Returns dogs with check-ins in last 7 days OR null health_summary. Requires BOTH apikey AND Authorization: Bearer headers (dual-header pattern for Supabase RPC). Response format set to JSON explicitly.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-batches",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [550, 100],
+      "notes": "Batch size 1: process one dog at a time to respect Anthropic API rate limits."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://wwuwosuysoxihtbykwgh.supabase.co/functions/v1/weekly-summary-update",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-service-key",
+              "value": "={{ $credentials.weeklyServiceKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ dog_id: $json.dog_id }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "call-weekly-summary",
+      "name": "Call Weekly Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 100],
+      "continueOnFail": true,
+      "notes": "Calls weekly-summary-update Edge Function for each dog. Continue on Fail is CRITICAL — without it, one dog's failure halts all remaining dogs. Response format set to JSON explicitly.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        }
+      },
+      "id": "check-failures",
+      "name": "Check for Failures",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1050, 100],
+      "notes": "Routes to failure email if any dog had an error. NOTE: The condition checks for an 'error' property in the output. If your n8n version uses a different error object shape, adjust this condition. Test with an invalid dog_id to verify the error path works."
+    },
+    {
+      "parameters": {},
+      "id": "no-failures",
+      "name": "All Succeeded",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1300, 0],
+      "notes": "All dogs processed successfully. No action needed."
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@pawcheck.app",
+        "toEmail": "rsandur19@gmail.com",
+        "subject": "PawCheck Weekly Summary — Partial Failure",
+        "text": "=Weekly Summary Run: {{ $now.format('EEEE MMM d, yyyy h:mm a') }}\n\nAt least one dog's summary update failed.\n\nFailed item details:\n- Dog ID: {{ $json.dog_id || 'unknown' }}\n- Error: {{ $json.error || $json.message || 'Unknown error' }}\n- Status: {{ $json.statusCode || 'N/A' }}\n\nThe failed dog will be retried on the next weekly run.\nCheck Supabase Edge Function logs for details.",
+        "options": {}
+      },
+      "id": "send-failure-email",
+      "name": "Send Failure Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1300, 200],
+      "notes": "Sends failure notification to rsandur19@gmail.com. Requires email credentials configured in n8n (SMTP or built-in)."
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Eligible Dogs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Eligible Dogs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Eligible Dogs": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "Call Weekly Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check for Failures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Weekly Summary": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Failures": {
+      "main": [
+        [
+          {
+            "node": "All Succeeded",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Failure Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Chicago"
+  },
+  "tags": [
+    {
+      "name": "PawCheck"
+    },
+    {
+      "name": "Weekly"
+    }
+  ],
+  "pinData": {}
+}
