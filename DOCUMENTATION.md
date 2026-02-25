@@ -20,6 +20,8 @@
 14. [Legal & Compliance](#14-legal--compliance)
 15. [Known Issues & Remaining Work](#15-known-issues--remaining-work)
 16. [Environment Setup](#16-environment-setup)
+17. [Claude Code Skills](#17-claude-code-skills)
+18. [Repository Migration](#18-repository-migration)
 
 ---
 
@@ -1514,7 +1516,40 @@ npx jest --verbose      # See individual test results
 
 ---
 
-## 17. Repository Migration
+## 17. Claude Code Skills
+
+The project uses Claude Code skills — specialized knowledge packages that MUST be invoked when working on domain-specific tasks.
+
+### Installed Skills
+
+**User-level (`~/.claude/skills/`):**
+
+| Skill | Installs | Domain |
+|-------|----------|--------|
+| `supabase-postgres-best-practices` | 23.8K | SQL, schema, queries, RLS, indexes |
+| `react-native-architecture` | 3.2K | Mobile architecture, navigation, offline patterns |
+| `accessibility-compliance` | 3.1K | WCAG 2.2, ARIA, touch targets, screen readers |
+| `supabase-edge-functions` | — | Edge Function deployment, Deno runtime |
+| `anthropic-sdk` | 89 | Anthropic API, Claude models, streaming |
+
+**Project-level (`.claude/skills/`):**
+
+| Skill | Domain |
+|-------|--------|
+| `find-skills` | Searching for new skills |
+| `react-native-best-practices` | RN coding patterns |
+| `supabase-postgres-best-practices` | Database operations |
+
+### Usage Rules
+
+1. Always invoke the relevant skill before starting domain-specific work
+2. Search for new skills (`npx skills find "<query>"`) when encountering unfamiliar domains
+3. Install useful skills (`npx skills add <owner/repo@skill> -g -y`) when high-quality options exist
+4. Do not guess — if a skill exists for the task, use it
+
+---
+
+## 18. Repository Migration
 
 **Date:** February 21, 2026
 

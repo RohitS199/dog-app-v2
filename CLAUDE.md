@@ -364,6 +364,35 @@ Full 120-prompt stress test against v10: **Tier 1 (safety) = 100% (60/60)**, **T
 12. **LLC formation + E&O insurance** — Business prerequisites before launch.
 13. **Tier 2 RAG gaps** — Cat 12 needs dog_health_content expansion (post-beta).
 
+## Skills — Always Use
+
+Claude Code has installed skills that MUST be used when working on relevant tasks. Do not ignore them.
+
+### Installed Skills (user-level, `~/.claude/skills/`)
+
+| Skill | When to Use |
+|-------|-------------|
+| `supabase-postgres-best-practices` | Writing/reviewing SQL, schema changes, query optimization, RLS policies, indexes |
+| `supabase-edge-functions` | Deploying, debugging, or writing Edge Functions (Deno runtime) |
+| `react-native-architecture` | Architecting screens, navigation, native modules, offline patterns |
+| `accessibility-compliance` | Auditing or implementing WCAG 2.2, ARIA, touch targets, screen reader support |
+| `anthropic-sdk` | Integrating Anthropic API, Claude models, streaming, tool use |
+
+### Installed Skills (project-level, `.claude/skills/`)
+
+| Skill | When to Use |
+|-------|-------------|
+| `find-skills` | Searching for new skills when encountering unfamiliar domains |
+| `react-native-best-practices` | React Native coding patterns and conventions |
+| `supabase-postgres-best-practices` | Database operations (duplicate of user-level) |
+
+### Rules
+
+1. **Always invoke the relevant skill** before starting work in that domain. For example, invoke `supabase-postgres-best-practices` before writing a migration, or `accessibility-compliance` before building a new UI component.
+2. **Search for new skills** (`npx skills find "<query>"`) when encountering a domain not covered by installed skills.
+3. **Install useful skills** (`npx skills add <owner/repo@skill> -g -y`) when a high-quality skill (1K+ installs) is found.
+4. **Do not guess** — if a skill exists for the task, use it instead of relying on general knowledge.
+
 ## Full Documentation
 
 See `DOCUMENTATION.md` in the project root for comprehensive documentation including:
