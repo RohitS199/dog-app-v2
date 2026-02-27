@@ -1,6 +1,6 @@
 # PawCheck — Complete Project Documentation
 
-> Last updated: February 24, 2026
+> Last updated: February 26, 2026
 
 ## Table of Contents
 
@@ -84,7 +84,7 @@ Mobile App (Expo/React Native)
          ├── check-symptoms (v10) — 16-step triage pipeline
          ├── analyze-patterns (v1) — 8-step rule-based pattern detection
          ├── ai-health-analysis (v1) — Daily Sonnet 4.5 analysis (fire-and-forget)
-         ├── weekly-summary-update (v1) — Weekly Haiku 4.5 compression (n8n orchestrated)
+         ├── weekly-summary-update (v1) — Weekly Haiku 4.5 compression (orchestrated externally)
          ├── delete-account (v1) — Account deletion with anonymization
          └── run-stress-test (v3) — 120-prompt test harness
               |
@@ -140,7 +140,7 @@ Six Zustand stores manage all app state:
 | Animation | react-native-reanimated | v4 | Installed, not yet used |
 | SVG | react-native-svg | - | Installed, not yet used |
 | Markdown | react-native-markdown-display | - | Article body rendering (Learn tab) |
-| Testing | Jest + RNTL | v29 | 215 tests across 17 suites |
+| Testing | Jest + RNTL | v29 | 228 tests across 18 suites |
 
 ### Key Dependencies
 
@@ -326,7 +326,7 @@ Replaced the "Soft Sage and Cream" palette with an "Earthy Dog Park" palette —
 
 All 215 tests pass.
 
-### v2.6 Phase 2: AI Pattern Analysis — Backend Only (COMPLETE, Feb 24, 2026)
+### v2.6 Phase 2: AI Pattern Analysis (COMPLETE, Feb 25, 2026)
 
 AI layer built ON TOP of the existing deterministic rules. Rules remain untouched.
 
@@ -344,12 +344,23 @@ AI layer built ON TOP of the existing deterministic rules. Rules remain untouche
 - Weekly Haiku READS summary + raw data, WRITES compressed replacement.
 - Critical event annotation fires on vet_recommended OR acute free-text events.
 
-**n8n Workflow (Rohit configures):**
-- Schedule: Sunday 11 PM UTC
-- Step 1: GET `get_eligible_dogs_for_summary()` via Supabase REST API (service-role key)
-- Step 2: Split per dog
+**Frontend Dashboard (Feb 25, 2026):**
+- `AIInsightCard` — Displays AI observations with severity badge, positive/negative indicator, article recommendation links (deep links to `/article/[slug]`)
+- `HealthSummaryCard` — Rolling AI health profile with collapsible baseline, latest annotation, "Last updated X days ago" relative timestamp. Conditional on `selectedDog.health_summary` existing.
+- `PatternAlertCard` — Enhanced with `ai_insight` text display when available
+- `healthStore.ts` — Extended with `fetchAIInsights()`, explicit column selection (excludes `rolling_summary_snapshot` and `metadata`), separate `useEffect` with `[selectedDogId]` only (not month-dependent)
+- Tab focus listener re-fetches AI insights + active alerts on navigation focus (covers fire-and-forget timing gap after check-in submission)
+- 228/228 tests passing across 18 suites (13 new tests: 8 AIInsightCard + 3 healthStore + 2 PatternAlertCard)
+
+**Weekly Summary Orchestration:**
+- n8n workflow JSON files created (`n8n/weekly-summary-workflow.json`, `n8n/weekly-summary-error-workflow.json`) with setup guide (`n8n/SETUP.md`)
+- GitHub Actions workflow also started (`.github/workflows/weekly-summary.yml`) as an alternative orchestration approach
+- **Status: NOT YET RUNNING** — orchestration needs to be finalized and activated. `health_summary` is currently null for eligible dogs.
+- Schedule: Monday 3:00 AM Central Time
+- Step 1: POST `get_eligible_dogs_for_summary()` via Supabase REST API (service-role key, dual-header auth)
+- Step 2: Split per dog (one invocation each, 2s delay for rate limit safety)
 - Step 3: POST to `weekly-summary-update` with X-Service-Key header
-- Error isolation: if one dog fails, n8n continues to next
+- Error isolation: if one dog fails, continues to next
 
 **App Code Changes:**
 - `checkInStore.ts`: fire-and-forget call to `ai-health-analysis` after submit (sends dog_id + check_in_id)
@@ -390,7 +401,7 @@ All Edge Functions are deployed with `verify_jwt: false` due to an ES256/HS256 J
 | `analyze-patterns` | v1 | Rule-based pattern detection (17 rules, 20/hr rate limit) |
 | `delete-account` | v1 | Account deletion with anonymization |
 | `ai-health-analysis` | v1 | Daily Sonnet 4.5 analysis — fire-and-forget, saves to `ai_health_insights`, 20/hr rate limit |
-| `weekly-summary-update` | v1 | Weekly Haiku 4.5 compression — n8n orchestrated, X-Service-Key auth |
+| `weekly-summary-update` | v1 | Weekly Haiku 4.5 compression — externally orchestrated, X-Service-Key auth |
 | `run-stress-test` | v3 | 120-prompt automated test harness |
 
 ### External APIs
@@ -581,7 +592,7 @@ Safety-critical scenarios (7, 8, 9) required 5/5; standard scenarios required 4/
 
 ### weekly-summary-update (v1) — Phase 2
 
-Weekly rolling summary compression. Orchestrated by n8n workflow (Sunday 11 PM UTC). Processes one dog per invocation.
+Weekly rolling summary compression. Processes one dog per invocation. Orchestrated externally (n8n workflow JSON or GitHub Actions — see `n8n/SETUP.md` and `.github/workflows/weekly-summary.yml`).
 
 #### Authentication
 
@@ -597,13 +608,23 @@ Uses `X-Service-Key` header (NOT user JWT). The key is a separate shared secret 
 
 This is the ONLY process that performs a full `health_summary` rewrite.
 
-#### n8n Workflow Design
+#### Orchestration Options
 
-- **Schedule**: Sunday 11 PM UTC
-- **Step 1**: GET `get_eligible_dogs_for_summary()` via Supabase REST API (service-role key)
-- **Step 2**: Split per dog (one invocation each)
-- **Step 3**: POST to `weekly-summary-update` with X-Service-Key header
-- **Error isolation**: If one dog fails, n8n continues to next
+Two orchestration approaches are available (choose one):
+
+**Option A: n8n** (`n8n/` directory)
+- `weekly-summary-workflow.json` — Importable into n8n cloud instance
+- `weekly-summary-error-workflow.json` — Error handler workflow
+- `SETUP.md` — Credential setup, import steps, testing guide
+- Requires manual UI setup for credentials and node wiring
+
+**Option B: GitHub Actions** (`.github/workflows/weekly-summary.yml`)
+- Version controlled, no external service needed
+- Requires 3 repository secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `WEEKLY_SERVICE_KEY`
+- Cron schedule: Monday 3:00 AM Central (9:00 AM UTC)
+- Manual trigger via `workflow_dispatch`
+
+**Status: NOT YET ACTIVE** — orchestration needs to be finalized and activated.
 
 ### run-stress-test (v3)
 
@@ -885,7 +906,7 @@ SECURITY DEFINER trigger function. Fires BEFORE UPDATE on `daily_check_ins`. If 
 
 #### get_eligible_dogs_for_summary() (v2.6 Phase 2)
 
-SECURITY DEFINER function. Returns dogs with check-ins in the last 7 days OR null `health_summary`. Uses INNER JOIN on `dogs` to ensure only existing dogs are returned. Called by n8n weekly workflow via Supabase REST API (service-role key). Returns `dog_id`, `user_id`, and `has_summary` flag.
+SECURITY DEFINER function. Returns dogs with check-ins in the last 7 days OR null `health_summary`. Uses INNER JOIN on `dogs` to ensure only existing dogs are returned. Called by weekly orchestration (n8n or GitHub Actions) via Supabase REST API (service-role key). Returns `dog_id`, `user_id`, and `has_summary` flag.
 
 ---
 
@@ -1415,6 +1436,9 @@ PawCheck operates as an **educational tool**, not a diagnostic tool. This distin
 | Documentation corrections | Done — Table names, pattern counts, schema, delete-account security design, audit log append-only note |
 | v2.6 Phase 2 backend | Done — ai-health-analysis v1, weekly-summary-update v1, ai_health_insights table, dogs.health_summary column, get_eligible_dogs_for_summary() function |
 | v2.6 Phase 2 AI test suite | Done — 9 scenarios, 55/55 runs passed (100%), including 15/15 safety-critical (Cushing's guardrail, ibuprofen detection, baseline shift) |
+| v2.6 Phase 2 frontend | Done — AIInsightCard, HealthSummaryCard, PatternAlertCard AI enrichment, healthStore fetchAIInsights(), tab focus refresh. 228/228 tests, 18 suites. |
+| n8n workflow files | Done — weekly-summary-workflow.json, error-workflow.json, SETUP.md created |
+| GitHub Actions workflow | Done — .github/workflows/weekly-summary.yml created as alternative to n8n |
 
 ### Pre-Beta Gate (Required Before TestFlight)
 
@@ -1424,6 +1448,7 @@ PawCheck operates as an **educational tool**, not a diagnostic tool. This distin
 | E&O insurance | Pending | Professional liability coverage; requires LLC first |
 | Tester consent form | **Done** | `BETA_TESTER_CONSENT.md` — 1-page acknowledgment: educational only, not vet advice, report dangerous results |
 | Apple Developer enrollment | Pending | Enroll as LLC entity, not personal account |
+| Weekly summary orchestration | Pending | Activate n8n or GitHub Actions to trigger `weekly-summary-update`. Without this, `health_summary` stays null and daily AI analysis is degraded. |
 
 ### Post-Beta, Pre-Launch
 
@@ -1441,7 +1466,7 @@ PawCheck operates as an **educational tool**, not a diagnostic tool. This distin
 
 | Item | Notes |
 |------|-------|
-| ~~v2.6 Phase 2~~ | DONE (backend only) — `ai-health-analysis` v1 (daily Sonnet 4.5), `weekly-summary-update` v1 (weekly Haiku 4.5), `ai_health_insights` table, `dogs.health_summary` column. Frontend dashboard not yet built. |
+| ~~v2.6 Phase 2~~ | DONE — Backend (daily Sonnet 4.5, weekly Haiku 4.5) + Frontend dashboard (AIInsightCard, HealthSummaryCard, PatternAlertCard AI enrichment). 228/228 tests, 18 suites. Weekly orchestration files created but **not yet active** — needs secret configuration and activation. |
 | v2.6 Phase 3 | Enhanced triage v11 — integration with check-in history context |
 | Emergency vet locator API | Currently uses Google search link; proper API integration post-MVP |
 | Buddy mascot animation | Deferred — reanimated + svg installed but animation not built |

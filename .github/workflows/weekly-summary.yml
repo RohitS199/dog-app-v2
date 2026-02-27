@@ -1,0 +1,90 @@
+name: PawCheck Weekly Summary
+
+on:
+  schedule:
+    # Monday 3:00 AM Central Time (9:00 AM UTC during CST, 8:00 AM UTC during CDT)
+    # Using 9 AM UTC = 3 AM CST. Adjust to 8 AM UTC during daylight saving if needed.
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Manual trigger for testing
+
+jobs:
+  weekly-summary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Get eligible dogs
+        id: get-dogs
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/get_eligible_dogs_for_summary" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::RPC call failed with status $HTTP_CODE: $BODY"
+            exit 1
+          fi
+
+          DOG_COUNT=$(echo "$BODY" | jq length)
+          echo "Found $DOG_COUNT eligible dogs"
+          echo "dogs=$BODY" >> "$GITHUB_OUTPUT"
+          echo "dog_count=$DOG_COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Process each dog
+        if: steps.get-dogs.outputs.dog_count != '0'
+        run: |
+          DOGS='${{ steps.get-dogs.outputs.dogs }}'
+          TOTAL=$(echo "$DOGS" | jq length)
+          SUCCEEDED=0
+          FAILED=0
+          FAILURES=""
+
+          for i in $(seq 0 $((TOTAL - 1))); do
+            DOG_ID=$(echo "$DOGS" | jq -r ".[$i].dog_id")
+            echo "Processing dog $((i + 1))/$TOTAL: $DOG_ID"
+
+            RESPONSE=$(curl -s -w "\n%{http_code}" \
+              -X POST \
+              "${{ secrets.SUPABASE_URL }}/functions/v1/weekly-summary-update" \
+              -H "x-service-key: ${{ secrets.WEEKLY_SERVICE_KEY }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"dog_id\": \"$DOG_ID\"}")
+
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | sed '$d')
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "  ✓ Success: $BODY"
+              SUCCEEDED=$((SUCCEEDED + 1))
+            else
+              echo "  ✗ Failed (HTTP $HTTP_CODE): $BODY"
+              FAILED=$((FAILED + 1))
+              FAILURES="$FAILURES\n- Dog $DOG_ID: HTTP $HTTP_CODE — $BODY"
+            fi
+
+            # Rate limit safety: wait 2 seconds between dogs
+            if [ $i -lt $((TOTAL - 1)) ]; then
+              sleep 2
+            fi
+          done
+
+          echo ""
+          echo "=== Summary ==="
+          echo "Total: $TOTAL | Succeeded: $SUCCEEDED | Failed: $FAILED"
+
+          if [ $FAILED -gt 0 ]; then
+            echo "::warning::$FAILED dog(s) failed processing"
+            echo -e "Failed dogs:$FAILURES"
+            exit 1
+          fi
+
+      - name: No eligible dogs
+        if: steps.get-dogs.outputs.dog_count == '0'
+        run: echo "No eligible dogs found. Nothing to process."

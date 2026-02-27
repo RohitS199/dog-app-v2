@@ -78,6 +78,13 @@ dog_app_ui/
 ├── jest.setup.js                 # Mocks for Supabase, Expo modules, Linking
 ├── app.json                      # Expo config (scheme: pawcheck)
 ├── tsconfig.json                 # Extends expo/tsconfig.base, strict: true
+├── n8n/                          # Weekly summary orchestration (n8n option)
+│   ├── weekly-summary-workflow.json    # Main workflow — importable into n8n
+│   ├── weekly-summary-error-workflow.json  # Error handler workflow
+│   └── SETUP.md                  # Credential setup + import instructions
+├── .github/
+│   └── workflows/
+│       └── weekly-summary.yml    # Weekly summary orchestration (GitHub Actions option)
 ├── index.ts                      # Entry point: import 'expo-router/entry'
 └── .env.example                  # Required env vars template
 ```
@@ -205,7 +212,7 @@ AI layer built on TOP of deterministic rules. Rules remain untouched — AI adds
 
 **Daily Analysis** (`ai-health-analysis`): Fire-and-forget after each check-in. Sonnet 4.5 reads dog profile + rolling summary (READ-ONLY) + 14 days raw data + alerts + article catalog. Produces 1-3 observations, 0-2 article recommendations, alert enrichments, and optional summary annotation (for critical events only).
 
-**Weekly Compression** (`weekly-summary-update`): Haiku 4.5 compresses raw data into rolling summary. One dog per invocation, n8n orchestrated (Sunday 11 PM UTC). The ONLY process that performs a full `dogs.health_summary` rewrite.
+**Weekly Compression** (`weekly-summary-update`): Haiku 4.5 compresses raw data into rolling summary. One dog per invocation, externally orchestrated (Monday 3 AM Central). The ONLY process that performs a full `dogs.health_summary` rewrite. Two orchestration options exist: n8n workflow (`n8n/`) and GitHub Actions (`.github/workflows/weekly-summary.yml`). **Neither is active yet** — needs secret configuration and activation.
 
 **Read/Write Separation**: Daily Sonnet READS summary, NEVER rewrites. Weekly Haiku is the ONLY rewriter. This prevents daily overwrites from losing long-term context. The 14-day raw data window covers gaps.
 
@@ -223,7 +230,7 @@ The backend is a Supabase project at `https://wwuwosuysoxihtbykwgh.supabase.co`.
 | `analyze-patterns` | v1 | 8-step rule-based pattern detection (17 rules, 20/hr rate limit, dedup, auto-resolve) |
 | `delete-account` | v1 | Password re-auth → anonymize triage data → admin delete user |
 | `ai-health-analysis` | v1 | Daily Sonnet 4.5 analysis — fire-and-forget after check-in, reads dog profile + rolling summary (READ-ONLY) + 14 days raw data + alerts + articles, saves to `ai_health_insights`, 20/hr rate limit |
-| `weekly-summary-update` | v1 | Weekly Haiku 4.5 compression — n8n orchestrated (one dog per invocation), X-Service-Key auth, the ONLY full `dogs.health_summary` rewriter |
+| `weekly-summary-update` | v1 | Weekly Haiku 4.5 compression — externally orchestrated (one dog per invocation), X-Service-Key auth, the ONLY full `dogs.health_summary` rewriter |
 | `run-stress-test` | v3 | 120-prompt automated test harness (run per-category, not all at once) |
 
 ### Database Tables
@@ -252,7 +259,7 @@ The backend is a Supabase project at `https://wwuwosuysoxihtbykwgh.supabase.co`.
 - **`hybrid_search_dog_health(...)`** — RAG retrieval combining vector similarity + keyword search.
 - **`update_checkin_streak()`** — Trigger function for streak calculation on check-in insert/update.
 - **`append_checkin_revision()`** — Trigger function for revision history on check-in update.
-- **`get_eligible_dogs_for_summary()`** — SECURITY DEFINER. Returns dogs with check-ins in last 7 days OR null `health_summary`. Used by n8n weekly workflow.
+- **`get_eligible_dogs_for_summary()`** — SECURITY DEFINER. Returns dogs with check-ins in last 7 days OR null `health_summary`. Used by weekly orchestration (n8n or GitHub Actions).
 
 ### Backend Completion Status (ALL DONE — last updated Feb 24, 2026)
 
@@ -346,7 +353,7 @@ Do not remove or weaken these components. They are legally required.
 - **Milestone 5** (Testing + Polish): COMPLETE (accessibility audit done)
 - **Backend Completion**: COMPLETE — all tasks done, security hardened, stress test passed, delete-account verified
 - **v2.6 Phase 1** (Daily Check-Ins + Pattern Detection): COMPLETE — all 9 blocks implemented, 7-bug audit fix applied
-- **v2.6 Phase 2** (AI Pattern Analysis): COMPLETE — backend (daily Sonnet 4.5, weekly Haiku 4.5, `ai_health_insights` table, `dogs.health_summary`, n8n workflow) + **frontend dashboard** (AIInsightCard, HealthSummaryCard, PatternAlertCard AI enrichment, tab focus refresh). 228/228 tests pass, 18 suites.
+- **v2.6 Phase 2** (AI Pattern Analysis): COMPLETE — backend (daily Sonnet 4.5, weekly Haiku 4.5, `ai_health_insights` table, `dogs.health_summary`) + **frontend dashboard** (AIInsightCard, HealthSummaryCard, PatternAlertCard AI enrichment, tab focus refresh) + **orchestration files** (n8n workflow JSON + GitHub Actions YAML, not yet active). 228/228 tests pass, 18 suites.
 - **Milestone 6** (Beta Testing): NOT STARTED — needs TestFlight build + real user testers
 
 ## Stress Test Results (Feb 19, 2026 — v10 full retest)
@@ -359,15 +366,16 @@ Full 120-prompt stress test against v10: **Tier 1 (safety) = 100% (60/60)**, **T
 2. ~~**Emergency regex gaps**~~ — DONE.
 3. ~~**CAT6-08 foreign body non-determinism**~~ — DONE.
 4. ~~**v2.6 Phase 1**~~ — DONE. Daily check-ins, pattern detection, health calendar, 4-tab navigation.
-5. ~~**v2.6 Phase 2**~~ (AI Pattern Analysis) — COMPLETE. Backend: `ai-health-analysis` v1 (daily Sonnet 4.5), `weekly-summary-update` v1 (weekly Haiku 4.5), `ai_health_insights` table, `dogs.health_summary` column, AI test suite 55/55 (100%). Frontend: AIInsightCard, HealthSummaryCard, PatternAlertCard AI enrichment, healthStore extended with `fetchAIInsights()`, tab focus refresh.
-6. **v2.6 Phase 3** (Enhanced Triage v11) — NOT STARTED. Triage integration with check-in history context.
-7. **Buddy mascot animation** — Deferred. `react-native-reanimated` and `react-native-svg` are installed but animation not implemented.
-8. **50/day rate limit** — Only 10/hour is implemented (check-symptoms). analyze-patterns has 20/hour.
-9. **Leaked password protection** — Requires Supabase Pro Plan. Not active on Free plan.
-10. **Emergency vet locator** — Post-MVP. Currently opens Google search.
-11. **Privacy Policy** — Needs attorney drafting (outlined in legal compliance docs).
-12. **LLC formation + E&O insurance** — Business prerequisites before launch.
-13. **Tier 2 RAG gaps** — Cat 12 needs dog_health_content expansion (post-beta).
+5. ~~**v2.6 Phase 2**~~ (AI Pattern Analysis) — COMPLETE. Backend + frontend + orchestration files. See Milestone Status above.
+6. **Weekly summary orchestration** — NOT YET ACTIVE. n8n workflow JSON (`n8n/`) and GitHub Actions (`.github/workflows/weekly-summary.yml`) are created but neither is activated. Needs repository secrets configured and workflow enabled. Without this, `health_summary` stays null and daily Sonnet analysis is degraded.
+7. **v2.6 Phase 3** (Enhanced Triage v11) — NOT STARTED. Triage integration with check-in history context.
+8. **Buddy mascot animation** — Deferred. `react-native-reanimated` and `react-native-svg` are installed but animation not implemented.
+9. **50/day rate limit** — Only 10/hour is implemented (check-symptoms). analyze-patterns has 20/hour.
+10. **Leaked password protection** — Requires Supabase Pro Plan. Not active on Free plan.
+11. **Emergency vet locator** — Post-MVP. Currently opens Google search.
+12. **Privacy Policy** — Needs attorney drafting (outlined in legal compliance docs).
+13. **LLC formation + E&O insurance** — Business prerequisites before launch.
+14. **Tier 2 RAG gaps** — Cat 12 needs dog_health_content expansion (post-beta).
 
 ## Skills — Always Use
 
