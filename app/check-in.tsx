@@ -4,9 +4,10 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCheckInStore } from '../src/stores/checkInStore';
 import { useDogStore } from '../src/stores/dogStore';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../src/constants/theme';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../src/constants/theme';
 import { CHECK_IN_QUESTIONS } from '../src/constants/checkInQuestions';
 import { CHECK_IN } from '../src/constants/config';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ProgressDots } from '../src/components/ui/ProgressDots';
 import { CheckInCard } from '../src/components/ui/CheckInCard';
 import { AdditionalSymptomsCard } from '../src/components/ui/AdditionalSymptomsCard';
@@ -14,6 +15,7 @@ import { FreeTextCard } from '../src/components/ui/FreeTextCard';
 import { CheckInReview } from '../src/components/ui/CheckInReview';
 import { DaySummaryCard } from '../src/components/ui/DaySummaryCard';
 import { DogSelector } from '../src/components/ui/DogSelector';
+import { Button } from '../src/components/ui/Button';
 import type { MetricField } from '../src/types/checkIn';
 
 type FlowState = 'questions' | 'review' | 'summary';
@@ -133,9 +135,11 @@ export default function CheckInScreen() {
               accessibilityRole="button"
               accessibilityLabel={flowState === 'review' ? 'Back to questions' : currentStep === 0 ? 'Cancel check-in' : 'Previous question'}
             >
-              <Text style={styles.headerButtonText}>
-                {currentStep === 0 && flowState === 'questions' ? 'Cancel' : 'Back'}
-              </Text>
+              {currentStep === 0 && flowState === 'questions' ? (
+                <Text style={styles.headerButtonText}>Cancel</Text>
+              ) : (
+                <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.textPrimary} />
+              )}
             </Pressable>
           )}
 
@@ -214,19 +218,11 @@ export default function CheckInScreen() {
         {/* Navigation buttons - only during questions */}
         {flowState === 'questions' && (
           <View style={styles.footer}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.nextButton,
-                pressed && styles.buttonPressed,
-              ]}
+            <Button
+              title={currentStep === 8 ? 'Review' : 'Next'}
               onPress={handleNext}
-              accessibilityRole="button"
-              accessibilityLabel={currentStep === 8 ? 'Review check-in' : 'Next question'}
-            >
-              <Text style={styles.nextText}>
-                {currentStep === 8 ? 'Review' : 'Next'}
-              </Text>
-            </Pressable>
+              icon="arrow-right"
+            />
           </View>
         )}
       </ScrollView>
@@ -261,10 +257,12 @@ const styles = StyleSheet.create({
     width: 60,
     minHeight: MIN_TOUCH_TARGET,
     justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   headerButtonText: {
-    color: COLORS.primary,
+    color: COLORS.textPrimary,
     fontSize: FONT_SIZES.md,
+    fontWeight: '500',
   },
   headerCenter: {
     flex: 1,
@@ -274,8 +272,8 @@ const styles = StyleSheet.create({
     width: 60,
   },
   dogName: {
+    fontFamily: FONTS.heading,
     fontSize: FONT_SIZES.lg,
-    fontWeight: '700',
     color: COLORS.textPrimary,
   },
   content: {
@@ -290,22 +288,6 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingTop: SPACING.md,
-  },
-  nextButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    alignItems: 'center',
-    minHeight: MIN_TOUCH_TARGET,
-    justifyContent: 'center',
-  },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-  nextText: {
-    color: '#FFFFFF',
-    fontSize: FONT_SIZES.md,
-    fontWeight: '600',
   },
   centered: {
     flex: 1,

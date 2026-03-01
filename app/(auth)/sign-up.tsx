@@ -10,9 +10,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Link } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
+import { InputField } from '../../src/components/ui/InputField';
+import { Button } from '../../src/components/ui/Button';
+import { StepperDots } from '../../src/components/ui/StepperDots';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
 import { LIMITS } from '../../src/constants/config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -26,7 +30,14 @@ function calculateAge(dob: Date): number {
   return age;
 }
 
+const STATS = [
+  { value: '2 min', label: 'Daily Check-In', icon: 'clock-outline' as const },
+  { value: '5 days', label: 'See Trends', icon: 'chart-line' as const },
+  { value: '30 sec', label: 'Symptom Check', icon: 'stethoscope' as const },
+];
+
 export default function SignUp() {
+  const [showWelcome, setShowWelcome] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -98,6 +109,61 @@ export default function SignUp() {
     }
   };
 
+  // Welcome state
+  if (showWelcome) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScrollView contentContainerStyle={styles.welcomeScroll}>
+          {/* Hero section */}
+          <View style={styles.hero}>
+            <View style={styles.heroDecorLeft} />
+            <View style={styles.heroDecorRight} />
+            <View style={[styles.heroLogo, SHADOWS.elevated]}>
+              <MaterialCommunityIcons name="paw" size={48} color="#FFFFFF" />
+            </View>
+          </View>
+
+          <View style={styles.welcomeContent}>
+            <Text style={styles.welcomeTitle}>
+              Your Dog's Daily Health Companion
+            </Text>
+
+            {/* Stat cards */}
+            <View style={styles.statsRow}>
+              {STATS.map((stat) => (
+                <View key={stat.label} style={[styles.statCard, SHADOWS.card]}>
+                  <View style={styles.statIconContainer}>
+                    <MaterialCommunityIcons
+                      name={stat.icon}
+                      size={18}
+                      color={COLORS.accent}
+                    />
+                  </View>
+                  <Text style={styles.statValue}>{stat.value}</Text>
+                  <Text style={styles.statLabel}>{stat.label}</Text>
+                </View>
+              ))}
+            </View>
+
+            <Button
+              title="Get Started"
+              onPress={() => setShowWelcome(false)}
+              icon="arrow-right"
+            />
+
+            <View style={styles.signInRow}>
+              <Text style={styles.signInText}>Already have an account? </Text>
+              <Pressable onPress={() => router.back()} accessibilityRole="link">
+                <Text style={styles.signInLink}>Sign In</Text>
+              </Pressable>
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // Sign-up form
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
@@ -108,19 +174,29 @@ export default function SignUp() {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>
-            Join PawCheck to get educational health guidance for your dog
-          </Text>
+          {/* Header with back button and stepper */}
+          <View style={styles.headerRow}>
+            <Pressable
+              style={[styles.backCircle, SHADOWS.subtle]}
+              onPress={() => setShowWelcome(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Go back to welcome"
+            >
+              <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.textPrimary} />
+            </Pressable>
+          </View>
+
+          <StepperDots totalSteps={2} currentStep={0} label="Step 1 of 2" />
+
+          <Text style={styles.subtitle}>Create Account</Text>
+          <Text style={styles.heading}>Join the Pack!</Text>
 
           <View style={styles.form}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="email-outline"
+              placeholder="Email address"
               value={email}
               onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor={COLORS.textDisabled}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -128,69 +204,72 @@ export default function SignUp() {
               accessibilityLabel="Email address"
             />
 
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="lock-outline"
+              placeholder="Password (8+ characters)"
               value={password}
               onChangeText={setPassword}
-              placeholder="At least 8 characters"
-              placeholderTextColor={COLORS.textDisabled}
               secureTextEntry
+              eyeToggle
               autoComplete="new-password"
               textContentType="newPassword"
               accessibilityLabel="Password"
             />
 
-            <Text style={styles.label}>Confirm Password</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="lock-outline"
+              placeholder="Confirm password"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              placeholder="Re-enter your password"
-              placeholderTextColor={COLORS.textDisabled}
               secureTextEntry
+              eyeToggle
               textContentType="newPassword"
               accessibilityLabel="Confirm password"
             />
 
-            <Text style={styles.label}>Date of Birth</Text>
+            <Text style={styles.fieldLabel}>Date of Birth</Text>
             <Text style={styles.hint}>
-              You must be at least {LIMITS.COPPA_MIN_AGE} years old to use this
-              app
+              You must be at least {LIMITS.COPPA_MIN_AGE} years old
             </Text>
             <View style={styles.dobRow}>
-              <TextInput
-                style={[styles.input, styles.dobInput]}
-                value={dobMonth}
-                onChangeText={(t) => setDobMonth(t.replace(/\D/g, '').slice(0, 2))}
-                placeholder="MM"
-                placeholderTextColor={COLORS.textDisabled}
-                keyboardType="number-pad"
-                maxLength={2}
-                accessibilityLabel="Birth month"
-              />
+              <View style={styles.dobField}>
+                <TextInput
+                  style={styles.dobInput}
+                  value={dobMonth}
+                  onChangeText={(t) => setDobMonth(t.replace(/\D/g, '').slice(0, 2))}
+                  placeholder="MM"
+                  placeholderTextColor={COLORS.textDisabled}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  accessibilityLabel="Birth month"
+                />
+              </View>
               <Text style={styles.dobSeparator}>/</Text>
-              <TextInput
-                style={[styles.input, styles.dobInput]}
-                value={dobDay}
-                onChangeText={(t) => setDobDay(t.replace(/\D/g, '').slice(0, 2))}
-                placeholder="DD"
-                placeholderTextColor={COLORS.textDisabled}
-                keyboardType="number-pad"
-                maxLength={2}
-                accessibilityLabel="Birth day"
-              />
+              <View style={styles.dobField}>
+                <TextInput
+                  style={styles.dobInput}
+                  value={dobDay}
+                  onChangeText={(t) => setDobDay(t.replace(/\D/g, '').slice(0, 2))}
+                  placeholder="DD"
+                  placeholderTextColor={COLORS.textDisabled}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  accessibilityLabel="Birth day"
+                />
+              </View>
               <Text style={styles.dobSeparator}>/</Text>
-              <TextInput
-                style={[styles.input, styles.dobYearInput]}
-                value={dobYear}
-                onChangeText={(t) => setDobYear(t.replace(/\D/g, '').slice(0, 4))}
-                placeholder="YYYY"
-                placeholderTextColor={COLORS.textDisabled}
-                keyboardType="number-pad"
-                maxLength={4}
-                accessibilityLabel="Birth year"
-              />
+              <View style={[styles.dobField, styles.dobYearField]}>
+                <TextInput
+                  style={styles.dobInput}
+                  value={dobYear}
+                  onChangeText={(t) => setDobYear(t.replace(/\D/g, '').slice(0, 4))}
+                  placeholder="YYYY"
+                  placeholderTextColor={COLORS.textDisabled}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  accessibilityLabel="Birth year"
+                />
+              </View>
             </View>
 
             {error ? (
@@ -199,30 +278,22 @@ export default function SignUp() {
               </Text>
             ) : null}
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.button,
-                pressed && styles.buttonPressed,
-                isSubmitting && styles.buttonDisabled,
-              ]}
-              onPress={handleSignUp}
-              disabled={isSubmitting}
-              accessibilityRole="button"
-            >
-              <Text style={styles.buttonText}>
-                {isSubmitting ? 'Creating Account...' : 'Create Account'}
-              </Text>
-            </Pressable>
+            <View style={styles.buttonContainer}>
+              <Button
+                title="Continue"
+                onPress={handleSignUp}
+                loading={isSubmitting}
+                disabled={isSubmitting}
+                icon="arrow-right"
+              />
+            </View>
 
-            <Pressable
-              style={styles.backButton}
-              onPress={() => router.back()}
-              accessibilityRole="button"
-            >
-              <Text style={styles.backText}>
-                Already have an account? Sign In
-              </Text>
-            </Pressable>
+            <View style={styles.signInRow}>
+              <Text style={styles.signInText}>Already have an account? </Text>
+              <Pressable onPress={() => router.back()} accessibilityRole="link">
+                <Text style={styles.signInLink}>Sign In</Text>
+              </Pressable>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -238,58 +309,167 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scroll: {
+  // Welcome styles
+  welcomeScroll: {
     flexGrow: 1,
-    padding: SPACING.lg,
-    paddingTop: SPACING.xxl,
   },
-  title: {
-    fontSize: FONT_SIZES.xxl,
+  hero: {
+    height: 260,
+    backgroundColor: COLORS.primary,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  heroDecorLeft: {
+    position: 'absolute',
+    top: -40,
+    left: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  heroDecorRight: {
+    position: 'absolute',
+    bottom: -20,
+    right: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  heroLogo: {
+    width: 96,
+    height: 96,
+    borderRadius: 24,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  welcomeContent: {
+    padding: SPACING.lg,
+    paddingTop: SPACING.xl,
+  },
+  welcomeTitle: {
+    fontFamily: FONTS.heading,
+    fontSize: 28,
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+    marginBottom: SPACING.xl,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.xl,
+    gap: SPACING.sm,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.md,
+    alignItems: 'center',
+  },
+  statIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.accentLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.sm,
+  },
+  statValue: {
+    fontSize: FONT_SIZES.lg,
     fontWeight: '700',
     color: COLORS.textPrimary,
   },
-  subtitle: {
-    fontSize: FONT_SIZES.md,
+  statLabel: {
+    fontSize: 11,
     color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
+    marginTop: 2,
+  },
+  signInRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: SPACING.lg,
+    minHeight: MIN_TOUCH_TARGET,
+    alignItems: 'center',
+  },
+  signInText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+  },
+  signInLink: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.accent,
+    fontWeight: '700',
+  },
+  // Form styles
+  scroll: {
+    flexGrow: 1,
+    padding: SPACING.lg,
+  },
+  headerRow: {
+    marginBottom: SPACING.md,
+  },
+  backCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subtitle: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
+  },
+  heading: {
+    fontFamily: FONTS.heading,
+    fontSize: 28,
+    color: COLORS.textPrimary,
     marginBottom: SPACING.lg,
   },
   form: {
     width: '100%',
   },
-  label: {
+  fieldLabel: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
     color: COLORS.textPrimary,
     marginBottom: SPACING.xs,
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
   },
   hint: {
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
     marginBottom: SPACING.sm,
   },
-  input: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textPrimary,
-    minHeight: MIN_TOUCH_TARGET,
-  },
   dobRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  dobInput: {
+  dobField: {
     flex: 1,
-    textAlign: 'center',
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: BORDER_RADIUS.xxl,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    minHeight: MIN_TOUCH_TARGET,
   },
-  dobYearInput: {
+  dobYearField: {
     flex: 1.5,
+  },
+  dobInput: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
     textAlign: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: SPACING.sm,
   },
   dobSeparator: {
     fontSize: FONT_SIZES.lg,
@@ -300,35 +480,9 @@ const styles = StyleSheet.create({
     color: COLORS.error,
     fontSize: FONT_SIZES.sm,
     marginTop: SPACING.sm,
+    marginLeft: SPACING.md,
   },
-  button: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    alignItems: 'center',
+  buttonContainer: {
     marginTop: SPACING.lg,
-    minHeight: MIN_TOUCH_TARGET,
-    justifyContent: 'center',
-  },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: FONT_SIZES.md,
-    fontWeight: '600',
-  },
-  backButton: {
-    alignItems: 'center',
-    padding: SPACING.md,
-    minHeight: MIN_TOUCH_TARGET,
-    justifyContent: 'center',
-  },
-  backText: {
-    color: COLORS.primary,
-    fontSize: FONT_SIZES.sm,
   },
 });

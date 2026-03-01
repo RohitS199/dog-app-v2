@@ -1,22 +1,30 @@
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
 import { useLearnStore } from '../../src/stores/learnStore';
 import { DisclaimerFooter } from '../../src/components/legal';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
 
 const markdownStyles = StyleSheet.create({
+  heading1: {
+    fontFamily: FONTS.heading,
+    fontSize: FONT_SIZES.xxl,
+    color: COLORS.textPrimary,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.sm,
+  },
   heading2: {
+    fontFamily: FONTS.heading,
     fontSize: FONT_SIZES.lg,
-    fontWeight: '700',
     color: COLORS.textPrimary,
     marginTop: SPACING.lg,
     marginBottom: SPACING.sm,
   },
   heading3: {
     fontSize: FONT_SIZES.md,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.textPrimary,
     marginTop: SPACING.md,
     marginBottom: SPACING.xs,
@@ -100,18 +108,20 @@ export default function ArticleDetail() {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable
-          style={styles.backButton}
+          style={[styles.backCircle, SHADOWS.subtle]}
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Text style={styles.backButtonText}>{'\u2190'} Back</Text>
+          <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.textPrimary} />
         </Pressable>
 
         {sectionMeta && (
-          <Text style={[styles.sectionLabel, { color: sectionMeta.accentColor }]}>
-            {sectionMeta.title}
-          </Text>
+          <View style={[styles.sectionBadge, { backgroundColor: sectionMeta.accentColor + '1A' }]}>
+            <Text style={[styles.sectionBadgeText, { color: sectionMeta.accentColor }]}>
+              {sectionMeta.title}
+            </Text>
+          </View>
         )}
 
         <Text style={styles.title}>{article.title}</Text>
@@ -166,6 +176,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.lg,
   },
+  backCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.md,
+  },
   backButton: {
     alignSelf: 'flex-start',
     padding: SPACING.sm,
@@ -182,16 +201,22 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: SPACING.md,
   },
-  sectionLabel: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: '600',
+  sectionBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: BORDER_RADIUS.full,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    marginBottom: SPACING.sm,
+  },
+  sectionBadgeText: {
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: SPACING.xs,
   },
   title: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: '700',
+    fontFamily: FONTS.heading,
+    fontSize: 28,
     color: COLORS.textPrimary,
     marginBottom: SPACING.sm,
   },
@@ -216,8 +241,9 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.xs,
   },
   accentDivider: {
-    height: 2,
-    borderRadius: 1,
+    width: 40,
+    height: 3,
+    borderRadius: 1.5,
     marginBottom: SPACING.lg,
   },
   footerSpacing: {

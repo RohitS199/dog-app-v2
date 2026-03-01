@@ -33,7 +33,7 @@ export const COLORS = {
   error: '#D32F2F',
   success: '#388E3C',
   warning: '#F57C00',
-  info: '#FF6F00',         // Orange Collar — info accent
+  info: '#1976D2',         // Blue — standard info color
 
   // Overlay
   overlay: 'rgba(62, 39, 35, 0.5)', // Dark Loam overlay
@@ -92,7 +92,46 @@ export const BORDER_RADIUS = {
   md: 8,
   lg: 12,
   xl: 16,
+  xxl: 20,
+  xxxl: 28,
+  round: 32,
   full: 9999,
+} as const;
+
+export const FONTS = {
+  heading: 'DMSerifDisplay_400Regular',
+  body: undefined, // system font
+} as const;
+
+export const SHADOWS = {
+  subtle: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  card: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  elevated: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  tab: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 10,
+    elevation: 5,
+  },
 } as const;
 
 // Minimum touch target for accessibility (48dp)

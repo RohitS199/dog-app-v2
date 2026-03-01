@@ -7,13 +7,15 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../src/stores/authStore';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../src/constants/theme';
+import { InputField } from '../src/components/ui/InputField';
+import { Button } from '../src/components/ui/Button';
+import { COLORS, FONT_SIZES, SPACING, SHADOWS, FONTS } from '../src/constants/theme';
 
 export default function ChangePassword() {
   const [newPassword, setNewPassword] = useState('');
@@ -60,16 +62,14 @@ export default function ChangePassword() {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.header}>
-            <Pressable
-              style={styles.backButton}
-              onPress={() => router.back()}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <Text style={styles.backText}>← Back</Text>
-            </Pressable>
-          </View>
+          <Pressable
+            style={[styles.backCircle, SHADOWS.subtle]}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.textPrimary} />
+          </Pressable>
 
           <Text style={styles.title}>Change Password</Text>
           <Text style={styles.subtitle}>
@@ -77,27 +77,25 @@ export default function ChangePassword() {
           </Text>
 
           <View style={styles.form}>
-            <Text style={styles.label}>New Password</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="lock-outline"
+              placeholder="New password (8+ characters)"
               value={newPassword}
               onChangeText={setNewPassword}
-              placeholder="At least 8 characters"
-              placeholderTextColor={COLORS.textDisabled}
               secureTextEntry
+              eyeToggle
               autoComplete="new-password"
               textContentType="newPassword"
               accessibilityLabel="New password"
             />
 
-            <Text style={styles.label}>Confirm New Password</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="lock-outline"
+              placeholder="Confirm new password"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              placeholder="Re-enter new password"
-              placeholderTextColor={COLORS.textDisabled}
               secureTextEntry
+              eyeToggle
               textContentType="newPassword"
               accessibilityLabel="Confirm new password"
             />
@@ -108,20 +106,14 @@ export default function ChangePassword() {
               </Text>
             ) : null}
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.button,
-                pressed && styles.buttonPressed,
-                isSubmitting && styles.buttonDisabled,
-              ]}
-              onPress={handleChange}
-              disabled={isSubmitting}
-              accessibilityRole="button"
-            >
-              <Text style={styles.buttonText}>
-                {isSubmitting ? 'Updating...' : 'Update Password'}
-              </Text>
-            </Pressable>
+            <View style={styles.buttonContainer}>
+              <Button
+                title="Update Password"
+                onPress={handleChange}
+                loading={isSubmitting}
+                disabled={isSubmitting}
+              />
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -141,73 +133,36 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: SPACING.lg,
   },
-  header: {
-    marginBottom: SPACING.md,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    padding: SPACING.sm,
-    minHeight: MIN_TOUCH_TARGET,
+  backCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
     justifyContent: 'center',
-  },
-  backText: {
-    color: COLORS.primary,
-    fontSize: FONT_SIZES.md,
+    marginBottom: SPACING.lg,
   },
   title: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: '700',
+    fontFamily: FONTS.heading,
+    fontSize: 28,
     color: COLORS.textPrimary,
+    marginBottom: SPACING.xs,
   },
   subtitle: {
     fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
     marginBottom: SPACING.lg,
   },
   form: {
     width: '100%',
   },
-  label: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
-    marginTop: SPACING.md,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textPrimary,
-    minHeight: MIN_TOUCH_TARGET,
-  },
   error: {
     color: COLORS.error,
     fontSize: FONT_SIZES.sm,
     marginTop: SPACING.sm,
+    marginLeft: SPACING.md,
   },
-  button: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    alignItems: 'center',
-    marginTop: SPACING.xl,
-    minHeight: MIN_TOUCH_TARGET,
-    justifyContent: 'center',
-  },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: FONT_SIZES.md,
-    fontWeight: '600',
+  buttonContainer: {
+    marginTop: SPACING.lg,
   },
 });

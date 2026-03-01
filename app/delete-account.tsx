@@ -7,10 +7,10 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../src/stores/authStore';
 import { useDogStore } from '../src/stores/dogStore';
@@ -19,7 +19,9 @@ import { useCheckInStore } from '../src/stores/checkInStore';
 import { useHealthStore } from '../src/stores/healthStore';
 import { useLearnStore } from '../src/stores/learnStore';
 import { supabase } from '../src/lib/supabase';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../src/constants/theme';
+import { InputField } from '../src/components/ui/InputField';
+import { Button } from '../src/components/ui/Button';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../src/constants/theme';
 
 export default function DeleteAccount() {
   const [password, setPassword] = useState('');
@@ -45,7 +47,6 @@ export default function DeleteAccount() {
     setIsSubmitting(true);
 
     try {
-      // Verify password by re-authenticating
       const { error: authError } = await supabase.auth.signInWithPassword({
         email: user.email ?? '',
         password,
@@ -57,7 +58,6 @@ export default function DeleteAccount() {
         return;
       }
 
-      // Call delete-account Edge Function
       const { error: deleteError } = await supabase.functions.invoke(
         'delete-account',
         { body: {} }
@@ -65,15 +65,12 @@ export default function DeleteAccount() {
 
       if (deleteError) throw deleteError;
 
-      // Clear all local state
       clearDogs();
       clearAll();
       clearCheckIn();
       clearHealth();
       clearLearn();
       await signOut();
-
-      // The auth state change will redirect to sign-in
     } catch (err) {
       setError(
         err instanceof Error
@@ -110,51 +107,56 @@ export default function DeleteAccount() {
           keyboardShouldPersistTaps="handled"
         >
           <Pressable
-            style={styles.backButton}
+            style={[styles.backCircle, SHADOWS.subtle]}
             onPress={() => router.back()}
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Text style={styles.backText}>← Back</Text>
+            <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.textPrimary} />
           </Pressable>
 
           <Text style={styles.title}>Delete Account</Text>
 
           <View style={styles.warningCard} accessibilityRole="alert">
-            <Text style={styles.warningTitle}>This action is permanent</Text>
-            <Text style={styles.warningText}>
-              Deleting your account will permanently remove:{'\n\n'}
-              • Your account and login credentials{'\n'}
-              • All dog profiles{'\n'}
-              • All triage history{'\n'}
-              • Your terms acceptance record{'\n\n'}
-              This cannot be undone.
-            </Text>
+            <MaterialCommunityIcons name="alert-circle" size={24} color={COLORS.error} />
+            <View style={styles.warningContent}>
+              <Text style={styles.warningTitle}>This action is permanent</Text>
+              <Text style={styles.warningText}>
+                Deleting your account will permanently remove:
+              </Text>
+              {[
+                'Your account and login credentials',
+                'All dog profiles',
+                'All triage history',
+                'All check-in history',
+                'Your terms acceptance record',
+              ].map((item, i) => (
+                <View key={i} style={styles.warningItem}>
+                  <Text style={styles.warningBullet}>{'\u2022'}</Text>
+                  <Text style={styles.warningItemText}>{item}</Text>
+                </View>
+              ))}
+            </View>
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.label}>Enter your password</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="lock-outline"
+              placeholder="Your current password"
               value={password}
               onChangeText={setPassword}
-              placeholder="Your current password"
-              placeholderTextColor={COLORS.textDisabled}
               secureTextEntry
+              eyeToggle
               autoComplete="password"
               textContentType="password"
               accessibilityLabel="Current password to confirm deletion"
             />
 
-            <Text style={styles.label}>
-              Type DELETE to confirm
-            </Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="keyboard-outline"
+              placeholder='Type "DELETE" to confirm'
               value={confirmText}
               onChangeText={setConfirmText}
-              placeholder="DELETE"
-              placeholderTextColor={COLORS.textDisabled}
               autoCapitalize="characters"
               accessibilityLabel="Type DELETE to confirm account deletion"
             />
@@ -165,22 +167,15 @@ export default function DeleteAccount() {
               </Text>
             ) : null}
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.deleteButton,
-                pressed && canDelete && styles.buttonPressed,
-                !canDelete && styles.buttonDisabled,
-              ]}
-              onPress={handleConfirmDelete}
-              disabled={!canDelete || isSubmitting}
-              accessibilityRole="button"
-            >
-              <Text style={styles.deleteButtonText}>
-                {isSubmitting
-                  ? 'Deleting Account...'
-                  : 'Permanently Delete Account'}
-              </Text>
-            </Pressable>
+            <View style={styles.buttonContainer}>
+              <Button
+                title={isSubmitting ? 'Deleting Account...' : 'Permanently Delete Account'}
+                onPress={handleConfirmDelete}
+                variant="danger-outline"
+                disabled={!canDelete || isSubmitting}
+                loading={isSubmitting}
+              />
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -200,30 +195,33 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: SPACING.lg,
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    padding: SPACING.sm,
-    marginBottom: SPACING.md,
-    minHeight: MIN_TOUCH_TARGET,
+  backCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
     justifyContent: 'center',
-  },
-  backText: {
-    color: COLORS.primary,
-    fontSize: FONT_SIZES.md,
+    marginBottom: SPACING.lg,
   },
   title: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: '700',
+    fontFamily: FONTS.heading,
+    fontSize: 28,
     color: COLORS.error,
     marginBottom: SPACING.lg,
   },
   warningCard: {
     backgroundColor: '#FFEBEE',
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.error,
     marginBottom: SPACING.lg,
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  warningContent: {
+    flex: 1,
   },
   warningTitle: {
     fontSize: FONT_SIZES.md,
@@ -234,51 +232,31 @@ const styles = StyleSheet.create({
   warningText: {
     fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
-    lineHeight: 22,
+    marginBottom: SPACING.sm,
+  },
+  warningItem: {
+    flexDirection: 'row',
+    marginBottom: 2,
+  },
+  warningBullet: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
+    marginRight: SPACING.sm,
+  },
+  warningItemText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textPrimary,
   },
   form: {
     width: '100%',
-  },
-  label: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
-    marginTop: SPACING.md,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textPrimary,
-    minHeight: MIN_TOUCH_TARGET,
   },
   error: {
     color: COLORS.error,
     fontSize: FONT_SIZES.sm,
     marginTop: SPACING.sm,
+    marginLeft: SPACING.md,
   },
-  deleteButton: {
-    backgroundColor: COLORS.error,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    alignItems: 'center',
-    marginTop: SPACING.xl,
-    minHeight: MIN_TOUCH_TARGET,
-    justifyContent: 'center',
-  },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-  buttonDisabled: {
-    opacity: 0.4,
-  },
-  deleteButtonText: {
-    color: '#FFFFFF',
-    fontSize: FONT_SIZES.md,
-    fontWeight: '700',
+  buttonContainer: {
+    marginTop: SPACING.lg,
   },
 });

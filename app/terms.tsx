@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import {
+  Animated,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,10 +10,13 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../src/stores/authStore';
 import { supabase } from '../src/lib/supabase';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../src/constants/theme';
+import { Button } from '../src/components/ui/Button';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, FONTS, MIN_TOUCH_TARGET } from '../src/constants/theme';
 import { LEGAL } from '../src/constants/config';
+import { useEffect } from 'react';
 
 const TOS_TEXT = `TERMS OF SERVICE — PawCheck
 
@@ -71,9 +75,22 @@ export default function Terms() {
   const [isChecked, setIsChecked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const bounceAnim = useRef(new Animated.Value(0)).current;
 
   const user = useAuthStore((s) => s.user);
   const checkTermsAcceptance = useAuthStore((s) => s.checkTermsAcceptance);
+
+  // Bounce animation for scroll hint chevron
+  useEffect(() => {
+    if (!hasScrolledToBottom) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(bounceAnim, { toValue: 6, duration: 600, useNativeDriver: true }),
+          Animated.timing(bounceAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+        ])
+      ).start();
+    }
+  }, [hasScrolledToBottom]);
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
@@ -115,18 +132,37 @@ export default function Terms() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <Text style={styles.header}>Terms of Service</Text>
-        <Text style={styles.scrollHint}>
-          Please read and scroll to the bottom
-        </Text>
+        <Text style={styles.versionLabel}>Version {LEGAL.TERMS_VERSION}</Text>
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          onScroll={handleScroll}
-          scrollEventThrottle={200}
-        >
-          <Text style={styles.tosText}>{TOS_TEXT}</Text>
-        </ScrollView>
+        {/* Warning banner */}
+        <View style={styles.warningBanner}>
+          <MaterialCommunityIcons name="alert-outline" size={18} color="#7B6200" />
+          <Text style={styles.warningText}>
+            PawCheck is an educational tool, not a substitute for veterinary care.
+          </Text>
+        </View>
+
+        {/* ToS content in white card */}
+        <View style={styles.tosCard}>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            onScroll={handleScroll}
+            scrollEventThrottle={200}
+          >
+            <Text style={styles.tosText}>{TOS_TEXT}</Text>
+          </ScrollView>
+        </View>
+
+        {/* Scroll hint */}
+        {!hasScrolledToBottom && (
+          <View style={styles.scrollHintRow}>
+            <Text style={styles.scrollHintText}>Scroll to bottom to continue</Text>
+            <Animated.View style={{ transform: [{ translateY: bounceAnim }] }}>
+              <MaterialCommunityIcons name="chevron-down" size={18} color={COLORS.textSecondary} />
+            </Animated.View>
+          </View>
+        )}
 
         <View style={styles.footer}>
           <Pressable
@@ -144,7 +180,9 @@ export default function Terms() {
                 !hasScrolledToBottom && styles.checkboxDisabled,
               ]}
             >
-              {isChecked && <Text style={styles.checkmark}>✓</Text>}
+              {isChecked && (
+                <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />
+              )}
             </View>
             <Text
               style={[
@@ -162,21 +200,12 @@ export default function Terms() {
             </Text>
           ) : null}
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.acceptButton,
-              pressed && canAccept && styles.buttonPressed,
-              !canAccept && styles.buttonDisabled,
-            ]}
+          <Button
+            title="I Agree & Continue"
             onPress={handleAccept}
             disabled={!canAccept || isSubmitting}
-            accessibilityRole="button"
-            accessibilityLabel="Accept terms of service"
-          >
-            <Text style={styles.acceptText}>
-              {isSubmitting ? 'Accepting...' : 'I Agree'}
-            </Text>
-          </Pressable>
+            loading={isSubmitting}
+          />
         </View>
       </View>
     </SafeAreaView>
@@ -193,24 +222,43 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
   header: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: '700',
+    fontFamily: FONTS.heading,
+    fontSize: 28,
     color: COLORS.textPrimary,
     textAlign: 'center',
     marginBottom: SPACING.xs,
   },
-  scrollHint: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
+  versionLabel: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textDisabled,
     textAlign: 'center',
     marginBottom: SPACING.md,
   },
-  scrollView: {
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E1',
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    gap: SPACING.sm,
+  },
+  warningText: {
     flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.md,
+    fontSize: FONT_SIZES.sm,
+    color: '#7B6200',
+    lineHeight: 20,
+  },
+  tosCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
     borderColor: COLORS.border,
+    overflow: 'hidden',
+  },
+  scrollView: {
+    flex: 1,
   },
   scrollContent: {
     padding: SPACING.md,
@@ -219,6 +267,17 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.textPrimary,
     lineHeight: 22,
+  },
+  scrollHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  scrollHintText: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
   },
   footer: {
     paddingTop: SPACING.md,
@@ -230,8 +289,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   checkbox: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     borderRadius: BORDER_RADIUS.sm,
     borderWidth: 2,
     borderColor: COLORS.primary,
@@ -240,15 +299,11 @@ const styles = StyleSheet.create({
     marginRight: SPACING.sm,
   },
   checkboxChecked: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
   },
   checkboxDisabled: {
     borderColor: COLORS.textDisabled,
-  },
-  checkmark: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
   },
   checkboxLabel: {
     flex: 1,
@@ -262,24 +317,5 @@ const styles = StyleSheet.create({
     color: COLORS.error,
     fontSize: FONT_SIZES.sm,
     marginBottom: SPACING.sm,
-  },
-  acceptButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    alignItems: 'center',
-    minHeight: MIN_TOUCH_TARGET,
-    justifyContent: 'center',
-  },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-  buttonDisabled: {
-    opacity: 0.4,
-  },
-  acceptText: {
-    color: '#FFFFFF',
-    fontSize: FONT_SIZES.md,
-    fontWeight: '600',
   },
 });

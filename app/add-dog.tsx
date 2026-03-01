@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDogStore } from '../src/stores/dogStore';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../src/constants/theme';
+import { InputField } from '../src/components/ui/InputField';
+import { Button } from '../src/components/ui/Button';
+import { StepperDots } from '../src/components/ui/StepperDots';
+import { COLORS, FONT_SIZES, SPACING, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../src/constants/theme';
 import { LIMITS } from '../src/constants/config';
 
 export default function AddDog() {
@@ -81,76 +83,72 @@ export default function AddDog() {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.header}>
+          {/* Header */}
+          <View style={styles.headerRow}>
             <Pressable
-              style={styles.cancelButton}
+              style={[styles.backCircle, SHADOWS.subtle]}
               onPress={() => router.back()}
               accessibilityRole="button"
               accessibilityLabel="Cancel and go back"
             >
-              <Text style={styles.cancelText}>Cancel</Text>
+              <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.textPrimary} />
             </Pressable>
-            <Text style={styles.title}>Add Dog</Text>
-            <View style={styles.cancelButton} />
           </View>
 
+          <StepperDots totalSteps={2} currentStep={1} label="Step 2 of 2" />
+
+          <Text style={styles.subtitle}>Almost there!</Text>
+          <Text style={styles.heading}>Tell Us About Your Dog</Text>
+
           <View style={styles.form}>
-            <Text style={styles.label}>Name *</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="paw"
+              placeholder="Dog's name"
               value={name}
               onChangeText={setName}
-              placeholder="e.g., Buddy"
-              placeholderTextColor={COLORS.textDisabled}
               autoCapitalize="words"
               accessibilityLabel="Dog's name"
             />
 
-            <Text style={styles.label}>Breed *</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="dog"
+              placeholder="Breed (e.g., Golden Retriever)"
               value={breed}
               onChangeText={setBreed}
-              placeholder="e.g., Golden Retriever or Mixed"
-              placeholderTextColor={COLORS.textDisabled}
               autoCapitalize="words"
               accessibilityLabel="Dog's breed"
             />
 
             <View style={styles.row}>
               <View style={styles.halfField}>
-                <Text style={styles.label}>Age (years) *</Text>
-                <TextInput
-                  style={styles.input}
+                <InputField
+                  icon="calendar-outline"
+                  placeholder="Age"
                   value={age}
                   onChangeText={(t) => setAge(t.replace(/[^0-9.]/g, ''))}
-                  placeholder="e.g., 3.5"
-                  placeholderTextColor={COLORS.textDisabled}
                   keyboardType="decimal-pad"
+                  rightText="years"
                   accessibilityLabel="Dog's age in years"
                 />
               </View>
               <View style={styles.halfField}>
-                <Text style={styles.label}>Weight (lbs) *</Text>
-                <TextInput
-                  style={styles.input}
+                <InputField
+                  icon="scale-bathroom"
+                  placeholder="Weight"
                   value={weight}
                   onChangeText={(t) => setWeight(t.replace(/[^0-9.]/g, ''))}
-                  placeholder="e.g., 65"
-                  placeholderTextColor={COLORS.textDisabled}
                   keyboardType="decimal-pad"
+                  rightText="lbs"
                   accessibilityLabel="Dog's weight in pounds"
                 />
               </View>
             </View>
 
-            <Text style={styles.label}>Vet Phone (optional)</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="phone-outline"
+              placeholder="Vet phone (optional)"
               value={vetPhone}
               onChangeText={setVetPhone}
-              placeholder="e.g., 555-123-4567"
-              placeholderTextColor={COLORS.textDisabled}
               keyboardType="phone-pad"
               textContentType="telephoneNumber"
               accessibilityLabel="Veterinarian phone number"
@@ -165,21 +163,15 @@ export default function AddDog() {
               </Text>
             ) : null}
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.saveButton,
-                pressed && styles.buttonPressed,
-                isSubmitting && styles.buttonDisabled,
-              ]}
-              onPress={handleSave}
-              disabled={isSubmitting}
-              accessibilityRole="button"
-              accessibilityLabel={isSubmitting ? 'Saving dog profile' : 'Save dog profile'}
-            >
-              <Text style={styles.saveText}>
-                {isSubmitting ? 'Saving...' : 'Save Dog'}
-              </Text>
-            </Pressable>
+            <View style={styles.buttonContainer}>
+              <Button
+                title="Continue"
+                onPress={handleSave}
+                loading={isSubmitting}
+                disabled={isSubmitting}
+                icon="arrow-right"
+              />
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -197,83 +189,54 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
-    padding: SPACING.md,
+    padding: SPACING.lg,
   },
-  header: {
-    flexDirection: 'row',
+  headerRow: {
+    marginBottom: SPACING.md,
+  },
+  backCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.lg,
-  },
-  cancelButton: {
-    width: 60,
-    minHeight: MIN_TOUCH_TARGET,
     justifyContent: 'center',
   },
-  cancelText: {
-    color: COLORS.primary,
-    fontSize: FONT_SIZES.md,
+  subtitle: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
   },
-  title: {
-    fontSize: FONT_SIZES.xl,
-    fontWeight: '700',
+  heading: {
+    fontFamily: FONTS.heading,
+    fontSize: 28,
     color: COLORS.textPrimary,
+    marginBottom: SPACING.lg,
   },
   form: {
     width: '100%',
   },
-  label: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
-    marginTop: SPACING.md,
+  row: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
   },
-  input: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textPrimary,
-    minHeight: MIN_TOUCH_TARGET,
+  halfField: {
+    flex: 1,
   },
   hint: {
     fontSize: FONT_SIZES.xs,
     color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-  },
-  halfField: {
-    flex: 1,
+    marginTop: -SPACING.xs,
+    marginLeft: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   error: {
     color: COLORS.error,
     fontSize: FONT_SIZES.sm,
     marginTop: SPACING.sm,
+    marginLeft: SPACING.md,
   },
-  saveButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    alignItems: 'center',
-    marginTop: SPACING.xl,
-    minHeight: MIN_TOUCH_TARGET,
-    justifyContent: 'center',
-  },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  saveText: {
-    color: '#FFFFFF',
-    fontSize: FONT_SIZES.md,
-    fontWeight: '600',
+  buttonContainer: {
+    marginTop: SPACING.lg,
   },
 });

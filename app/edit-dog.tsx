@@ -7,13 +7,15 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDogStore } from '../src/stores/dogStore';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../src/constants/theme';
+import { InputField } from '../src/components/ui/InputField';
+import { Button } from '../src/components/ui/Button';
+import { COLORS, FONT_SIZES, SPACING, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../src/constants/theme';
 import { LIMITS } from '../src/constants/config';
 
 export default function EditDog() {
@@ -129,76 +131,68 @@ export default function EditDog() {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.header}>
+          <View style={styles.headerRow}>
             <Pressable
-              style={styles.cancelButton}
+              style={[styles.backCircle, SHADOWS.subtle]}
               onPress={() => router.back()}
               accessibilityRole="button"
               accessibilityLabel="Cancel and go back"
             >
-              <Text style={styles.cancelText}>Cancel</Text>
+              <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.textPrimary} />
             </Pressable>
             <Text style={styles.title}>Edit Dog</Text>
-            <View style={styles.cancelButton} />
+            <View style={{ width: 44 }} />
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.label}>Name *</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="paw"
+              placeholder="Dog's name"
               value={name}
               onChangeText={setName}
-              placeholder="e.g., Buddy"
-              placeholderTextColor={COLORS.textDisabled}
               autoCapitalize="words"
               accessibilityLabel="Dog's name"
             />
 
-            <Text style={styles.label}>Breed *</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="dog"
+              placeholder="Breed"
               value={breed}
               onChangeText={setBreed}
-              placeholder="e.g., Golden Retriever or Mixed"
-              placeholderTextColor={COLORS.textDisabled}
               autoCapitalize="words"
               accessibilityLabel="Dog's breed"
             />
 
             <View style={styles.row}>
               <View style={styles.halfField}>
-                <Text style={styles.label}>Age (years) *</Text>
-                <TextInput
-                  style={styles.input}
+                <InputField
+                  icon="calendar-outline"
+                  placeholder="Age"
                   value={age}
                   onChangeText={(t) => setAge(t.replace(/[^0-9.]/g, ''))}
-                  placeholder="e.g., 3.5"
-                  placeholderTextColor={COLORS.textDisabled}
                   keyboardType="decimal-pad"
-                  accessibilityLabel="Dog's age in years"
+                  rightText="years"
+                  accessibilityLabel="Dog's age"
                 />
               </View>
               <View style={styles.halfField}>
-                <Text style={styles.label}>Weight (lbs) *</Text>
-                <TextInput
-                  style={styles.input}
+                <InputField
+                  icon="scale-bathroom"
+                  placeholder="Weight"
                   value={weight}
                   onChangeText={(t) => setWeight(t.replace(/[^0-9.]/g, ''))}
-                  placeholder="e.g., 65"
-                  placeholderTextColor={COLORS.textDisabled}
                   keyboardType="decimal-pad"
-                  accessibilityLabel="Dog's weight in pounds"
+                  rightText="lbs"
+                  accessibilityLabel="Dog's weight"
                 />
               </View>
             </View>
 
-            <Text style={styles.label}>Vet Phone (optional)</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="phone-outline"
+              placeholder="Vet phone (optional)"
               value={vetPhone}
               onChangeText={setVetPhone}
-              placeholder="e.g., 555-123-4567"
-              placeholderTextColor={COLORS.textDisabled}
               keyboardType="phone-pad"
               textContentType="telephoneNumber"
               accessibilityLabel="Veterinarian phone number"
@@ -210,32 +204,22 @@ export default function EditDog() {
               </Text>
             ) : null}
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.saveButton,
-                pressed && styles.buttonPressed,
-                isSubmitting && styles.buttonDisabled,
-              ]}
-              onPress={handleSave}
-              disabled={isSubmitting}
-              accessibilityRole="button"
-            >
-              <Text style={styles.saveText}>
-                {isSubmitting ? 'Saving...' : 'Save Changes'}
-              </Text>
-            </Pressable>
+            <View style={styles.buttonContainer}>
+              <Button
+                title="Save Changes"
+                onPress={handleSave}
+                loading={isSubmitting}
+                disabled={isSubmitting}
+              />
+            </View>
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.deleteButton,
-                pressed && styles.buttonPressed,
-              ]}
-              onPress={handleDelete}
-              accessibilityRole="button"
-              accessibilityLabel={`Delete ${dog.name}`}
-            >
-              <Text style={styles.deleteText}>Delete {dog.name}</Text>
-            </Pressable>
+            <View style={styles.deleteContainer}>
+              <Button
+                title={`Delete ${dog.name}`}
+                onPress={handleDelete}
+                variant="danger-outline"
+              />
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -253,7 +237,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
-    padding: SPACING.md,
+    padding: SPACING.lg,
   },
   centered: {
     flex: 1,
@@ -271,52 +255,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backLinkText: {
-    color: COLORS.primary,
+    color: COLORS.accent,
     fontSize: FONT_SIZES.md,
+    fontWeight: '600',
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: SPACING.lg,
   },
-  cancelButton: {
-    width: 60,
-    minHeight: MIN_TOUCH_TARGET,
+  backCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelText: {
-    color: COLORS.primary,
-    fontSize: FONT_SIZES.md,
-  },
   title: {
-    fontSize: FONT_SIZES.xl,
-    fontWeight: '700',
+    fontFamily: FONTS.heading,
+    fontSize: 22,
     color: COLORS.textPrimary,
   },
   form: {
     width: '100%',
   },
-  label: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
-    marginTop: SPACING.md,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textPrimary,
-    minHeight: MIN_TOUCH_TARGET,
-  },
   row: {
     flexDirection: 'row',
-    gap: SPACING.md,
+    gap: SPACING.sm,
   },
   halfField: {
     flex: 1,
@@ -325,40 +292,12 @@ const styles = StyleSheet.create({
     color: COLORS.error,
     fontSize: FONT_SIZES.sm,
     marginTop: SPACING.sm,
+    marginLeft: SPACING.md,
   },
-  saveButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    alignItems: 'center',
-    marginTop: SPACING.xl,
-    minHeight: MIN_TOUCH_TARGET,
-    justifyContent: 'center',
+  buttonContainer: {
+    marginTop: SPACING.lg,
   },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  saveText: {
-    color: '#FFFFFF',
-    fontSize: FONT_SIZES.md,
-    fontWeight: '600',
-  },
-  deleteButton: {
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    alignItems: 'center',
+  deleteContainer: {
     marginTop: SPACING.md,
-    minHeight: MIN_TOUCH_TARGET,
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.error,
-  },
-  deleteText: {
-    color: COLORS.error,
-    fontSize: FONT_SIZES.md,
-    fontWeight: '600',
   },
 });

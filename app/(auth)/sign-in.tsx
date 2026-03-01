@@ -6,12 +6,14 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Link } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
+import { InputField } from '../../src/components/ui/InputField';
+import { Button } from '../../src/components/ui/Button';
+import { COLORS, FONT_SIZES, SPACING, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SignIn() {
@@ -51,21 +53,22 @@ export default function SignIn() {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>PawCheck</Text>
-            <Text style={styles.subtitle}>
-              Educational health guidance for your dog
-            </Text>
+          {/* Logo Section */}
+          <View style={styles.logoSection}>
+            <View style={[styles.logoBox, SHADOWS.elevated]}>
+              <MaterialCommunityIcons name="paw" size={40} color="#FFFFFF" />
+            </View>
+            <Text style={styles.appName}>PawCheck</Text>
+            <Text style={styles.tagline}>KNOW BEFORE THE VET</Text>
           </View>
 
+          {/* Form */}
           <View style={styles.form}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="email-outline"
+              placeholder="Email address"
               value={email}
               onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor={COLORS.textDisabled}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -73,14 +76,13 @@ export default function SignIn() {
               accessibilityLabel="Email address"
             />
 
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="lock-outline"
+              placeholder="Password"
               value={password}
               onChangeText={setPassword}
-              placeholder="Enter your password"
-              placeholderTextColor={COLORS.textDisabled}
               secureTextEntry
+              eyeToggle
               autoComplete="password"
               textContentType="password"
               accessibilityLabel="Password"
@@ -92,51 +94,31 @@ export default function SignIn() {
               </Text>
             ) : null}
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.button,
-                pressed && styles.buttonPressed,
-                isSubmitting && styles.buttonDisabled,
-              ]}
-              onPress={handleSignIn}
-              disabled={isSubmitting}
-              accessibilityRole="button"
-              accessibilityLabel="Sign in"
-            >
-              <Text style={styles.buttonText}>
-                {isSubmitting ? 'Signing In...' : 'Sign In'}
-              </Text>
-            </Pressable>
-
             <Link href="/(auth)/forgot-password" asChild>
               <Pressable
-                style={styles.linkButton}
+                style={styles.forgotLink}
                 accessibilityRole="link"
               >
-                <Text style={styles.linkText}>Forgot Password?</Text>
+                <Text style={styles.forgotText}>Forgot Password?</Text>
               </Pressable>
             </Link>
 
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
+            <Button
+              title="Sign In"
+              onPress={handleSignIn}
+              loading={isSubmitting}
+              disabled={isSubmitting}
+              icon="arrow-right"
+            />
+
+            <View style={styles.signUpRow}>
+              <Text style={styles.signUpText}>Don't have an account? </Text>
+              <Link href="/(auth)/sign-up" asChild>
+                <Pressable accessibilityRole="link">
+                  <Text style={styles.signUpLink}>Sign Up</Text>
+                </Pressable>
+              </Link>
             </View>
-
-            <Link href="/(auth)/sign-up" asChild>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.secondaryButton,
-                  pressed && styles.buttonPressed,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Create an account"
-              >
-                <Text style={styles.secondaryButtonText}>
-                  Create an Account
-                </Text>
-              </Pressable>
-            </Link>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -157,103 +139,67 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: SPACING.lg,
   },
-  header: {
+  logoSection: {
     alignItems: 'center',
     marginBottom: SPACING.xxl,
+    paddingTop: 80,
   },
-  title: {
-    fontSize: FONT_SIZES.xxxl,
-    fontWeight: '700',
-    color: COLORS.primary,
+  logoBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.md,
   },
-  subtitle: {
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
-    textAlign: 'center',
+  appName: {
+    fontFamily: FONTS.heading,
+    fontSize: 28,
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  tagline: {
+    fontSize: 11,
+    color: COLORS.textDisabled,
+    letterSpacing: 2.5,
+    fontWeight: '500',
   },
   form: {
     width: '100%',
   },
-  label: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
-    marginTop: SPACING.md,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textPrimary,
-    minHeight: MIN_TOUCH_TARGET,
-  },
   error: {
     color: COLORS.error,
     fontSize: FONT_SIZES.sm,
-    marginTop: SPACING.sm,
+    marginBottom: SPACING.sm,
+    marginLeft: SPACING.md,
   },
-  button: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    alignItems: 'center',
+  forgotLink: {
+    alignSelf: 'flex-end',
+    marginBottom: SPACING.lg,
+    minHeight: MIN_TOUCH_TARGET,
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.xs,
+  },
+  forgotText: {
+    color: COLORS.accent,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  signUpRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     marginTop: SPACING.lg,
     minHeight: MIN_TOUCH_TARGET,
-    justifyContent: 'center',
-  },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: FONT_SIZES.md,
-    fontWeight: '600',
-  },
-  linkButton: {
     alignItems: 'center',
-    padding: SPACING.md,
-    minHeight: MIN_TOUCH_TARGET,
-    justifyContent: 'center',
   },
-  linkText: {
-    color: COLORS.primary,
+  signUpText: {
     fontSize: FONT_SIZES.sm,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: SPACING.md,
-  },
-  dividerLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: COLORS.border,
-  },
-  dividerText: {
     color: COLORS.textSecondary,
-    paddingHorizontal: SPACING.md,
+  },
+  signUpLink: {
     fontSize: FONT_SIZES.sm,
-  },
-  secondaryButton: {
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    alignItems: 'center',
-    minHeight: MIN_TOUCH_TARGET,
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: COLORS.primary,
-    fontSize: FONT_SIZES.md,
-    fontWeight: '600',
+    color: COLORS.accent,
+    fontWeight: '700',
   },
 });

@@ -4,7 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useNavigation } from 'expo-router';
 import { useDogStore } from '../../src/stores/dogStore';
 import { useHealthStore } from '../../src/stores/healthStore';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, FONTS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
+
+const TAB_BAR_HEIGHT = 100;
 import { calculateConsistencyScore } from '../../src/lib/consistencyScore';
 import { CalendarGrid } from '../../src/components/ui/CalendarGrid';
 import { DayDetailSheet } from '../../src/components/ui/DayDetailSheet';
@@ -301,7 +303,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: SPACING.md,
-    paddingBottom: SPACING.xxl,
+    paddingBottom: TAB_BAR_HEIGHT,
   },
   dogRow: {
     flexDirection: 'row',
@@ -346,8 +348,8 @@ const styles = StyleSheet.create({
     marginTop: SPACING.lg,
   },
   sectionTitle: {
+    fontFamily: FONTS.heading,
     fontSize: FONT_SIZES.lg,
-    fontWeight: '700',
     color: COLORS.textPrimary,
     marginBottom: SPACING.sm,
   },

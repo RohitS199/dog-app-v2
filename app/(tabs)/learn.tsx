@@ -14,7 +14,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLearnStore } from '../../src/stores/learnStore';
 import type { Article, Section } from '../../src/types/learn';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
+
+const TAB_BAR_HEIGHT = 100;
 
 function ArticleCard({ article, onPress }: { article: Article; onPress: () => void }) {
   return (
@@ -174,7 +176,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingVertical: SPACING.md,
-    paddingBottom: SPACING.xxl,
+    paddingBottom: TAB_BAR_HEIGHT,
   },
   centered: {
     flex: 1,
@@ -183,8 +185,8 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   pageTitle: {
+    fontFamily: FONTS.heading,
     fontSize: FONT_SIZES.xxl,
-    fontWeight: '700',
     color: COLORS.textPrimary,
     paddingHorizontal: SPACING.md,
     marginBottom: SPACING.xs,
@@ -229,12 +231,11 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   articleCard: {
-    width: 200,
+    width: 170,
     backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    ...SHADOWS.card,
   },
   articleCardPressed: {
     opacity: 0.8,

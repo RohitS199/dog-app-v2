@@ -1,14 +1,17 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useDogStore } from '../../src/stores/dogStore';
 import { useTriageStore } from '../../src/stores/triageStore';
 import { useCheckInStore } from '../../src/stores/checkInStore';
 import { useHealthStore } from '../../src/stores/healthStore';
 import { useLearnStore } from '../../src/stores/learnStore';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
 import { LEGAL } from '../../src/constants/config';
+
+const TAB_BAR_HEIGHT = 100;
 
 function SettingsRow({
   label,
@@ -42,7 +45,7 @@ function SettingsRow({
           {value}
         </Text>
       ) : onPress ? (
-        <Text style={styles.rowArrow} accessibilityElementsHidden>→</Text>
+        <MaterialCommunityIcons name="chevron-right" size={20} color={COLORS.textDisabled} />
       ) : null}
     </Pressable>
   );
@@ -69,11 +72,13 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.content}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_HEIGHT }]}>
+        <Text style={styles.pageTitle}>Settings</Text>
+
         {/* Account Section */}
         <Text style={styles.sectionHeader}>Account</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, SHADOWS.card]}>
           <SettingsRow label="Email" value={user?.email ?? ''} />
           <View style={styles.separator} />
           <SettingsRow
@@ -84,33 +89,45 @@ export default function SettingsScreen() {
 
         {/* Dogs Section */}
         <Text style={styles.sectionHeader}>Dogs</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, SHADOWS.card]}>
           {dogs.length === 0 ? (
             <SettingsRow label="No dogs added" />
           ) : (
             dogs.map((dog, index) => (
               <View key={dog.id}>
                 {index > 0 && <View style={styles.separator} />}
-                <SettingsRow
-                  label={dog.name}
-                  value={`${dog.breed} · ${dog.age_years}y`}
-                  onPress={() =>
-                    router.push({ pathname: '/edit-dog', params: { id: dog.id } })
-                  }
-                />
+                <Pressable
+                  style={({ pressed }) => [styles.dogRow, pressed && styles.rowPressed]}
+                  onPress={() => router.push({ pathname: '/edit-dog', params: { id: dog.id } })}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Edit ${dog.name}`}
+                >
+                  <View style={styles.dogAvatar}>
+                    <MaterialCommunityIcons name="paw" size={16} color={COLORS.accent} />
+                  </View>
+                  <View style={styles.dogInfo}>
+                    <Text style={styles.dogName}>{dog.name}</Text>
+                    <Text style={styles.dogBreed}>{dog.breed} · {dog.age_years}y</Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color={COLORS.textDisabled} />
+                </Pressable>
               </View>
             ))
           )}
           <View style={styles.separator} />
-          <SettingsRow
-            label="Add Dog"
+          <Pressable
+            style={({ pressed }) => [styles.settingsRow, pressed && styles.rowPressed]}
             onPress={() => router.push('/add-dog')}
-          />
+            accessibilityRole="button"
+            accessibilityLabel="Add a new dog"
+          >
+            <Text style={styles.addDogText}>Add Dog</Text>
+          </Pressable>
         </View>
 
         {/* Legal Section */}
         <Text style={styles.sectionHeader}>Legal</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, SHADOWS.card]}>
           <View style={styles.legalContent}>
             <Text style={styles.legalText}>
               PawCheck provides educational information only. It is not a
@@ -125,7 +142,7 @@ export default function SettingsScreen() {
 
         {/* About Section */}
         <Text style={styles.sectionHeader}>About</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, SHADOWS.card]}>
           <SettingsRow label="Version" value="1.0.0" />
         </View>
 
@@ -133,6 +150,7 @@ export default function SettingsScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.signOutButton,
+            SHADOWS.subtle,
             pressed && styles.buttonPressed,
           ]}
           onPress={handleSignOut}
@@ -166,7 +184,12 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: SPACING.md,
-    paddingBottom: SPACING.xxl,
+  },
+  pageTitle: {
+    fontFamily: FONTS.heading,
+    fontSize: 34,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.sm,
   },
   sectionHeader: {
     fontSize: FONT_SIZES.xs,
@@ -180,9 +203,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
   },
   settingsRow: {
@@ -209,14 +230,42 @@ const styles = StyleSheet.create({
     maxWidth: '50%',
     textAlign: 'right',
   },
-  rowArrow: {
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textDisabled,
-  },
   separator: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: COLORS.divider,
     marginLeft: SPACING.md,
+  },
+  dogRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    minHeight: 56,
+  },
+  dogAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.accentLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.sm,
+  },
+  dogInfo: {
+    flex: 1,
+  },
+  dogName: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  dogBreed: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+  },
+  addDogText: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.accent,
+    fontWeight: '600',
   },
   legalContent: {
     padding: SPACING.md,
@@ -233,11 +282,9 @@ const styles = StyleSheet.create({
   },
   signOutButton: {
     backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.md,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
     minHeight: MIN_TOUCH_TARGET,
     justifyContent: 'center',
     marginTop: SPACING.lg,
@@ -251,7 +298,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   deleteAccountButton: {
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.md,
     alignItems: 'center',
     minHeight: MIN_TOUCH_TARGET,

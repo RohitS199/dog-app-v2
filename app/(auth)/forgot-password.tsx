@@ -1,24 +1,26 @@
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
+import { InputField } from '../../src/components/ui/InputField';
+import { Button } from '../../src/components/ui/Button';
+import { COLORS, FONT_SIZES, SPACING, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const resetPassword = useAuthStore((s) => s.resetPassword);
   const router = useRouter();
 
@@ -33,11 +35,7 @@ export default function ForgotPassword() {
 
     try {
       await resetPassword(email.trim().toLowerCase());
-      Alert.alert(
-        'Check Your Email',
-        'If an account exists with that email, we sent password reset instructions.',
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+      setEmailSent(true);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to send reset email.'
@@ -46,6 +44,29 @@ export default function ForgotPassword() {
       setIsSubmitting(false);
     }
   };
+
+  if (emailSent) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.successContainer}>
+          <View style={styles.successCircle}>
+            <MaterialCommunityIcons name="check" size={40} color="#FFFFFF" />
+          </View>
+          <Text style={styles.successTitle}>Check Your Email</Text>
+          <Text style={styles.successText}>
+            If an account exists with that email, we sent password reset instructions.
+          </Text>
+          <Pressable
+            style={styles.backToSignIn}
+            onPress={() => router.back()}
+            accessibilityRole="link"
+          >
+            <Text style={styles.backToSignInText}>Back to Sign In</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -58,28 +79,26 @@ export default function ForgotPassword() {
           keyboardShouldPersistTaps="handled"
         >
           <Pressable
-            style={styles.backButton}
+            style={[styles.backCircle, SHADOWS.subtle]}
             onPress={() => router.back()}
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Text style={styles.backText}>← Back</Text>
+            <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.textPrimary} />
           </Pressable>
 
           <Text style={styles.title}>Reset Password</Text>
           <Text style={styles.subtitle}>
-            Enter your email and we'll send you instructions to reset your
-            password.
+            Enter your email address and we'll send you instructions to reset your password.
           </Text>
 
           <View style={styles.form}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              icon="email-outline"
+              placeholder="Email address"
               value={email}
               onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor={COLORS.textDisabled}
+              error={error || undefined}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -87,26 +106,14 @@ export default function ForgotPassword() {
               accessibilityLabel="Email address"
             />
 
-            {error ? (
-              <Text style={styles.error} accessibilityRole="alert">
-                {error}
-              </Text>
-            ) : null}
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.button,
-                pressed && styles.buttonPressed,
-                isSubmitting && styles.buttonDisabled,
-              ]}
-              onPress={handleReset}
-              disabled={isSubmitting}
-              accessibilityRole="button"
-            >
-              <Text style={styles.buttonText}>
-                {isSubmitting ? 'Sending...' : 'Send Reset Link'}
-              </Text>
-            </Pressable>
+            <View style={styles.buttonContainer}>
+              <Button
+                title="Reset Password"
+                onPress={handleReset}
+                loading={isSubmitting}
+                disabled={isSubmitting}
+              />
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -125,72 +132,71 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     padding: SPACING.lg,
-    paddingTop: SPACING.xxl,
+    paddingTop: SPACING.xl,
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    padding: SPACING.sm,
-    marginBottom: SPACING.md,
-    minHeight: MIN_TOUCH_TARGET,
+  backCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
     justifyContent: 'center',
-  },
-  backText: {
-    color: COLORS.primary,
-    fontSize: FONT_SIZES.md,
+    marginBottom: SPACING.lg,
   },
   title: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: '700',
+    fontFamily: FONTS.heading,
+    fontSize: 28,
     color: COLORS.textPrimary,
+    marginBottom: SPACING.xs,
   },
   subtitle: {
     fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
     marginBottom: SPACING.lg,
+    lineHeight: 22,
   },
   form: {
     width: '100%',
   },
-  label: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
+  buttonContainer: {
+    marginTop: SPACING.md,
   },
-  input: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    fontSize: FONT_SIZES.md,
-    color: COLORS.textPrimary,
-    minHeight: MIN_TOUCH_TARGET,
-  },
-  error: {
-    color: COLORS.error,
-    fontSize: FONT_SIZES.sm,
-    marginTop: SPACING.sm,
-  },
-  button: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
+  // Success state
+  successContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: SPACING.lg,
+    padding: SPACING.xl,
+  },
+  successCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: COLORS.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.lg,
+  },
+  successTitle: {
+    fontFamily: FONTS.heading,
+    fontSize: 24,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.sm,
+  },
+  successText: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: SPACING.xl,
+  },
+  backToSignIn: {
     minHeight: MIN_TOUCH_TARGET,
     justifyContent: 'center',
   },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#FFFFFF',
+  backToSignInText: {
     fontSize: FONT_SIZES.md,
+    color: COLORS.accent,
     fontWeight: '600',
   },
 });
