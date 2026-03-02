@@ -78,6 +78,8 @@ dog_app_ui/
 ├── jest.setup.js                 # Mocks for Supabase, Expo modules, Linking
 ├── app.json                      # Expo config (scheme: pawcheck)
 ├── tsconfig.json                 # Extends expo/tsconfig.base, strict: true
+├── scripts/
+│   └── seed-data.sql             # Test data seed script (2 dogs, 51 check-ins, alerts, insights)
 ├── n8n/                          # Weekly summary orchestration (n8n option)
 │   ├── weekly-summary-workflow.json    # Main workflow — importable into n8n
 │   ├── weekly-summary-error-workflow.json  # Error handler workflow
@@ -376,6 +378,44 @@ Full 120-prompt stress test against v10: **Tier 1 (safety) = 100% (60/60)**, **T
 12. **Privacy Policy** — Needs attorney drafting (outlined in legal compliance docs).
 13. **LLC formation + E&O insurance** — Business prerequisites before launch.
 14. **Tier 2 RAG gaps** — Cat 12 needs dog_health_content expansion (post-beta).
+
+## Seed Data for Testing
+
+A SQL seed script is available at `scripts/seed-data.sql` for populating realistic test data.
+
+### How to Use
+
+1. Sign up through the PawCheck app and accept Terms of Service
+2. Copy your `user_id` from Supabase Auth dashboard (Dashboard → Authentication → Users → click user → copy UUID)
+3. Replace `YOUR_USER_ID_HERE` in `scripts/seed-data.sql` with your UUID
+4. Run the script in the Supabase SQL Editor (Dashboard → SQL Editor)
+
+### What It Creates
+
+| Data | Count | Details |
+|------|-------|---------|
+| Dogs | 2 | Luna (4yo Golden Retriever, healthy) + Bear (8yo German Shepherd, senior trends) |
+| Check-ins | 51 | 26 Luna + 25 Bear, spanning 28 days with realistic gaps |
+| Pattern alerts | 3 | 1 resolved (Luna digestive), 2 active (Bear energy + mobility) |
+| AI insights | 5 | 2 Luna (improving, positive) + 3 Bear (worsening, stable_concern, positive) |
+| Health summaries | 2 | JSONB on both dogs matching `HealthSummary` interface |
+
+### Health Narratives
+
+- **Luna**: Healthy dog with a self-limiting digestive episode 10-14 days ago (soft stool → diarrhea → recovery). Fully recovered. Occasional scratching (seasonal allergies). 7-day streak.
+- **Bear**: Senior dog with gradual energy decline over 2 weeks. Intermittent mobility issues (morning stiffness, occasional reluctance). Appetite stays normal. Owner scheduling vet. 6-day streak.
+
+### To Reset
+
+Run these DELETE statements before re-running the seed script:
+```sql
+DELETE FROM ai_health_insights WHERE user_id = 'YOUR_USER_ID_HERE';
+DELETE FROM pattern_alerts WHERE user_id = 'YOUR_USER_ID_HERE';
+DELETE FROM daily_check_ins WHERE user_id = 'YOUR_USER_ID_HERE';
+DELETE FROM dogs WHERE user_id = 'YOUR_USER_ID_HERE';
+```
+
+**Important**: The script must be run in the Supabase SQL Editor (service role) because `pattern_alerts` and `ai_health_insights` have INSERT restricted to service role via RLS.
 
 ## Skills — Always Use
 
