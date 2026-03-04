@@ -117,8 +117,8 @@ export default function ArticleDetail() {
         </Pressable>
 
         {sectionMeta && (
-          <View style={[styles.sectionBadge, { backgroundColor: sectionMeta.accentColor + '1A' }]}>
-            <Text style={[styles.sectionBadgeText, { color: sectionMeta.accentColor }]}>
+          <View style={[styles.sectionBadge, { backgroundColor: sectionMeta.accentColor }]}>
+            <Text style={styles.sectionBadgeText}>
               {sectionMeta.title}
             </Text>
           </View>
@@ -213,6 +213,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    color: '#FFFFFF',
   },
   title: {
     fontFamily: FONTS.heading,

@@ -1,6 +1,6 @@
 # PawCheck
 
-**AI-powered dog health triage for pet owners.** Describe your dog's symptoms and get an educational urgency classification — Emergency, Urgent, Soon, or Low Urgency — along with what to tell your vet and veterinary source citations.
+**Proactive dog health tracking with AI-powered pattern analysis.** Daily structured check-ins, rule-based pattern detection, AI health insights, educational triage, and a veterinary article library — all in one app.
 
 > **Important:** PawCheck provides educational health guidance only. It is **not** a substitute for professional veterinary advice, diagnosis, or treatment. Always consult your veterinarian.
 
@@ -12,14 +12,33 @@ Every feature in PawCheck exists in service of this principle.
 
 ## Features
 
-- **Symptom Triage** — Describe symptoms in plain language, get an AI-generated urgency assessment with color-coded results
-- **Real-Time Emergency Detection** — Client-side keyword engine flags potential emergencies *before* you even submit, with immediate emergency vet resources
-- **Dog Profiles** — Store multiple dogs with breed, age, weight, and vet phone number
-- **Veterinary Source Citations** — Every triage result includes tiered references from veterinary institutions
-- **What to Tell Your Vet** — Actionable bullet points to prepare for your vet visit
-- **Account Management** — Change password, delete account (with full data anonymization)
-- **Offline Awareness** — Detects network status and gracefully handles offline scenarios
-- **Accessibility** — WCAG AA compliant with 48dp touch targets, screen reader support, and proper contrast ratios
+### Daily Health Check-Ins (v2.6)
+- **9-question structured logging** — appetite, water intake, energy, stool quality, vomiting, mobility, mood, additional symptoms, free text
+- **Rule-based pattern detection** — 17 pattern rules detect trends like appetite decline, energy changes, digestive issues, and mobility problems
+- **AI health insights** — Daily Sonnet 4.5 analysis produces 1-3 observations with severity badges, article recommendations, and alert enrichments
+- **Health calendar** — Monthly grid with color-coded day indicators (green/amber/red), consistency scoring, and day-detail bottom sheet
+- **Rolling health summary** — Weekly Haiku 4.5 compression of raw data into a persistent health profile per dog
+- **Streak tracking** — Consecutive check-in streaks with visual badges
+
+### Symptom Triage
+- **Free-text symptom input** — Describe symptoms in plain language, get an AI-generated urgency classification
+- **Real-time emergency detection** — Client-side keyword engine (35 single + 44 compound + 3 cluster patterns) flags emergencies *before* submission
+- **4 urgency levels** — Emergency (red), Urgent (orange), Soon (amber), Low Urgency (teal)
+- **Veterinary source citations** — Every result includes tiered references from veterinary institutions
+- **What to tell your vet** — Actionable bullet points for vet visit preparation
+
+### Learn Tab
+- **22 educational articles** across 6 sections (Know Your Dog, When to Worry, Safety & First Aid, Nutrition & Diet, Behavior & Wellness, Puppy & New Dog)
+- **Markdown rendering** with PawCheck theme
+- **5-minute client cache** with pull-to-refresh
+- **Deep links from AI insights** — article recommendations link directly to relevant content
+
+### Additional Features
+- **Multi-dog profiles** — Store multiple dogs with breed, age, weight, and vet phone
+- **Offline awareness** — Detects network status and gracefully handles offline scenarios
+- **WCAG AA accessibility** — 48dp touch targets, screen reader support, proper contrast ratios
+- **Account management** — Change password, delete account with full data anonymization
+- **COPPA compliance** — 13+ age gate on sign-up
 
 ## Tech Stack
 
@@ -27,26 +46,28 @@ Every feature in PawCheck exists in service of this principle.
 |-------|-----------|
 | Framework | React Native 0.81 (Expo SDK 54, TypeScript strict) |
 | Navigation | Expo Router v6 (file-based routing) |
-| State | Zustand v5 (3 stores: auth, dog, triage) |
+| State | Zustand v5 (6 stores: auth, dog, triage, checkIn, health, learn) |
 | Backend | Supabase (Auth, Postgres, Edge Functions, pgvector RAG) |
+| AI | Claude Sonnet 4.5 (daily analysis), Claude Haiku 4.5 (weekly compression) |
 | Auth Storage | expo-secure-store (device secure enclave) |
-| Testing | Jest 29 + React Native Testing Library (103 tests, 7 suites) |
+| Animations | react-native-reanimated v4 + react-native-svg |
+| Testing | Jest 29 + React Native Testing Library (228 tests, 18 suites) |
 
 ## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
+- npm
 - Expo CLI (`npx expo`)
-- iOS Simulator (macOS) or Android Emulator
+- Expo Go app on iOS or Android
 
 ### Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/RohitS199/dog-app-ui.git
-cd dog-app-ui
+git clone https://github.com/RohitS199/dog-app-v2.git
+cd dog_app_ui
 
 # Install dependencies
 npm install
@@ -64,63 +85,94 @@ npx expo start
 ### Running Tests
 
 ```bash
-npm test              # Run all 103 tests
+npm test              # Run all 228 tests
 npx jest --no-cache   # Clear cache and run
 ```
+
+### Seed Data for Testing
+
+A SQL seed script at `scripts/seed-data.sql` creates realistic test data (2 dogs, 51 check-ins, pattern alerts, AI insights, health summaries). See [CLAUDE.md](CLAUDE.md#seed-data-for-testing) for usage instructions.
 
 ## Project Structure
 
 ```
 dog_app_ui/
-├── app/                    # Expo Router screens
-│   ├── (auth)/             # Sign in, sign up, forgot password
-│   ├── (tabs)/             # Home, triage, settings
-│   ├── terms.tsx           # Terms of Service acceptance
-│   ├── add-dog.tsx         # Add dog profile
-│   ├── edit-dog.tsx        # Edit/delete dog profile
-│   ├── emergency.tsx       # Emergency resources
-│   ├── change-password.tsx # Change password
-│   └── delete-account.tsx  # Account deletion
+├── app/                          # Expo Router screens (file-based routing)
+│   ├── (auth)/                   # Sign in, sign up, forgot password
+│   ├── (tabs)/                   # Home, Health, Learn, Triage, Settings
+│   ├── check-in.tsx              # 9-step daily check-in flow
+│   ├── article/[slug].tsx        # Article detail with Markdown
+│   ├── emergency.tsx             # Emergency vet resources
+│   └── ...                       # Terms, add-dog, edit-dog, etc.
 ├── src/
 │   ├── components/
-│   │   ├── legal/          # Safety-critical components (5)
-│   │   └── ui/             # General UI components (7)
-│   ├── constants/          # Theme, config, loading tips
-│   ├── hooks/              # useAppState, useNetworkStatus
-│   ├── lib/                # Supabase client, emergency keywords
-│   ├── stores/             # Zustand stores
-│   └── types/              # TypeScript API contract types
-├── DOCUMENTATION.md        # Comprehensive project docs
-└── CLAUDE.md               # AI assistant instructions
+│   │   ├── legal/                # Safety-critical components (5)
+│   │   └── ui/                   # General UI components (22)
+│   ├── constants/                # Theme, config, check-in questions
+│   ├── hooks/                    # useAppState, useNetworkStatus
+│   ├── lib/                      # Supabase client, emergency keywords, pattern rules
+│   ├── stores/                   # Zustand stores (6)
+│   └── types/                    # TypeScript type definitions
+├── scripts/
+│   └── seed-data.sql             # Test data seed script
+├── n8n/                          # Weekly summary orchestration (n8n option)
+├── .github/workflows/            # Weekly summary orchestration (GitHub Actions option)
+├── CLAUDE.md                     # AI assistant instructions
+└── DOCUMENTATION.md              # Comprehensive project documentation
 ```
 
-## How Triage Works
+## How It Works
+
+### Daily Check-In Flow
+
+```
+Daily Check-In (9 questions)
+         │
+         ▼
+  UPSERT to Supabase ──► analyze-patterns Edge Function
+         │                        │
+         │                 17 rule-based pattern
+         │                 detection rules
+         │
+         ▼
+  ai-health-analysis Edge Function (fire-and-forget)
+         │
+         ▼
+  Claude Sonnet 4.5 reads:
+  • Dog profile + rolling summary
+  • 14 days raw check-in data
+  • Active pattern alerts
+  • 22 article catalog
+         │
+         ▼
+  Produces:
+  • 1-3 observations (severity-rated)
+  • 0-2 article recommendations
+  • Alert enrichments
+  • Summary annotation (critical events only)
+```
+
+### Triage Pipeline
 
 ```
 User Input ──► Client-Side Emergency Detection (500ms debounce)
                          │
-                    [if emergency keywords found]
+                    [if keywords found]
                          │
                     Emergency Alert Banner
                          │
-               User can still submit ──► check-symptoms Edge Function
-                                                  │
-                                         16-Step Pipeline:
-                                         1. JWT validation
-                                         2. Rate limiting (10/hr)
-                                         3. Emergency bypass (instant)
-                                         4. Off-topic detection
-                                         5. Dog profile lookup
-                                         6. RAG retrieval (303 chunks)
-                                         7. LLM triage generation
-                                         8. Output safety filter
-                                         9. Foreign body urgency floor
-                                         10. Audit logging
-                                                  │
-                                         ┌────────┼────────┐
-                                         │        │        │
-                                      Triage  Emergency  Off-Topic
-                                      Result   Bypass    Response
+               User submits ──► check-symptoms Edge Function
+                                         │
+                                16-Step Pipeline (v10):
+                                JWT → Rate Limit → Emergency Bypass →
+                                Off-Topic → Dog Profile → RAG →
+                                LLM → Safety Filter → Foreign Body Floor →
+                                Audit Log
+                                         │
+                                ┌────────┼────────┐
+                                │        │        │
+                             Triage  Emergency  Off-Topic
+                             Result   Bypass    Response
 ```
 
 ## Urgency Levels
@@ -136,50 +188,69 @@ User Input ──► Client-Side Emergency Detection (500ms debounce)
 
 ## Backend
 
-The backend runs on Supabase with three Edge Functions:
+The backend runs on Supabase with five Edge Functions:
 
-| Function | Purpose |
-|----------|---------|
-| `check-symptoms` (v10) | 16-step triage pipeline with RAG, LLM, and safety filters |
-| `delete-account` (v1) | Password re-auth, data anonymization, account deletion |
-| `run-stress-test` (v3) | 120-prompt automated test harness |
+| Function | Version | Purpose |
+|----------|---------|---------|
+| `check-symptoms` | v10 | 16-step triage pipeline with RAG, LLM, and safety filters |
+| `analyze-patterns` | v1 | 8-step rule-based pattern detection (17 rules, 20/hr rate limit) |
+| `ai-health-analysis` | v1 | Daily Sonnet 4.5 analysis (fire-and-forget, 20/hr rate limit) |
+| `weekly-summary-update` | v1 | Weekly Haiku 4.5 health summary compression |
+| `delete-account` | v1 | Password re-auth, data anonymization, account deletion |
 
-### Stress Test Results
+### Stress Test Results (v10)
 
 - **Tier 1 (Safety):** 100% (60/60) — zero safety-critical failures
 - **Tier 2 (Quality):** 90% (54/60)
 - **Overall:** 95% (114/120)
 
+### AI Health Analysis Test Results
+
+- **9 scenarios, 55/55 runs passed (100%)**
+- **15/15 safety-critical tests passed** (Cushing's guardrail, ibuprofen detection, baseline shift)
+
 ## Security
 
-- Row Level Security (RLS) on all database tables
+- Row Level Security (RLS) on all 11 database tables
 - JWT tokens stored in device secure enclave via expo-secure-store
 - Edge Functions validate JWTs internally
 - Audit log is append-only (no UPDATE/DELETE policies)
 - Account deletion anonymizes triage data before removing user
 - COPPA 13+ age gate on sign-up
 - All SQL functions have immutable search_path
+- 0 ERROR-level security findings in Supabase linter
 
 ## Test Coverage
 
-103 tests across 7 suites:
+228 tests across 18 suites:
 
-| Suite | Tests | Coverage |
-|-------|-------|----------|
-| emergencyKeywords | 39 | Pattern matching, normalization, clusters |
-| foreignBodyFloor | 22 | Urgency floor logic, regex patterns, edge cases |
-| triageStore | 13 | Symptoms, char limits, nudge tracking |
-| TriageResult | 10 | Triage display, emergency bypass, sources |
-| LegalComponents | 9 | Disclaimer, call banner, source citation |
-| UrgencyBadge | 7 | All urgency levels, accessibility |
-| EmergencyAlert | 3 | Rendering, dismiss callback |
+| Category | Suites | Tests | Coverage |
+|----------|--------|-------|----------|
+| Lib | 5 | 105 | Emergency keywords, foreign body floor, consistency score, day summary, pattern rules |
+| Stores | 4 | 54 | Triage, check-in, health, learn stores |
+| Components | 9 | 69 | Urgency badge, triage result, legal, emergency alert, check-in cards, calendar, AI insights |
 
-## Known Issues
+## Design System
 
-- **50/day rate limit** not implemented (10/hour exists)
-- **Leaked password protection** requires Supabase Pro Plan
-- **Buddy mascot animation** deferred (libraries installed, not implemented)
-- **Emergency vet locator** opens Google search (Google Places API is post-MVP)
+**"Earthy Dog Park" palette:**
+- Limestone (#EFEBE9) — main background
+- Topsoil (#D7CCC8) — cards, containers
+- Dark Loam (#3E2723) — primary text, buttons
+- Orange Collar (#FF6F00) — accent, active states
+
+**Typography:** DM Serif Display for headings, system font for body text.
+
+## Milestone Status
+
+- [x] Auth + Legal Foundation
+- [x] Dog Profiles + Onboarding
+- [x] Core Triage (16-step pipeline)
+- [x] Settings + Account Management
+- [x] Testing + Polish (228 tests, accessibility audit)
+- [x] Backend Completion (security hardened, stress test passed)
+- [x] v2.6 Phase 1 — Daily Check-Ins + Rule-Based Pattern Detection
+- [x] v2.6 Phase 2 — AI Pattern Analysis (daily Sonnet + weekly Haiku + frontend dashboard)
+- [ ] Milestone 6 — Beta Testing (TestFlight build + real user testers)
 
 ## License
 

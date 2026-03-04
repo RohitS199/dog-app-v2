@@ -59,7 +59,7 @@ export default function SignIn() {
               <MaterialCommunityIcons name="paw" size={40} color="#FFFFFF" />
             </View>
             <Text style={styles.appName}>PawCheck</Text>
-            <Text style={styles.tagline}>KNOW BEFORE THE VET</Text>
+            <Text style={styles.tagline}>Daily health tracking for your best friend</Text>
           </View>
 
           {/* Form */}
@@ -160,10 +160,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   tagline: {
-    fontSize: 11,
-    color: COLORS.textDisabled,
-    letterSpacing: 2.5,
-    fontWeight: '500',
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    fontWeight: '400',
   },
   form: {
     width: '100%',

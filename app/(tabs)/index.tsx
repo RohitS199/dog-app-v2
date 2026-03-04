@@ -11,7 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useDogStore } from '../../src/stores/dogStore';
 import { useCheckInStore } from '../../src/stores/checkInStore';
 import { useHealthStore } from '../../src/stores/healthStore';
@@ -83,6 +83,26 @@ function getWeekDays(): { label: string; date: string; dayNum: number; isToday: 
 }
 
 // Mood Ring component using SVG
+// Build an SVG arc path for a ring segment
+function describeArc(cx: number, cy: number, r: number, startAngle: number, endAngle: number): string {
+  const startRad = ((startAngle - 90) * Math.PI) / 180;
+  const endRad = ((endAngle - 90) * Math.PI) / 180;
+  const x1 = cx + r * Math.cos(startRad);
+  const y1 = cy + r * Math.sin(startRad);
+  const x2 = cx + r * Math.cos(endRad);
+  const y2 = cy + r * Math.sin(endRad);
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+  return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+}
+
+// PRD conic gradient: #FFB74D → #FF9800 → #FF6F00 → #E65100 → #FF6F00
+const CONIC_SEGMENTS = [
+  { startAngle: 0, endAngle: 90, startColor: '#FFB74D', endColor: '#FF9800', id: 'seg0' },
+  { startAngle: 90, endAngle: 180, startColor: '#FF9800', endColor: '#FF6F00', id: 'seg1' },
+  { startAngle: 180, endAngle: 270, startColor: '#FF6F00', endColor: '#E65100', id: 'seg2' },
+  { startAngle: 270, endAngle: 360, startColor: '#E65100', endColor: '#FF6F00', id: 'seg3' },
+];
+
 function MoodRing({ streak, mood, hasCheckIn }: { streak: number; mood: string | null; hasCheckIn: boolean }) {
   const size = 190;
   const strokeWidth = 12;
@@ -116,6 +136,28 @@ function MoodRing({ streak, mood, hasCheckIn }: { streak: number; mood: string |
   return (
     <View style={moodStyles.container}>
       <Svg width={size} height={size}>
+        <Defs>
+          {CONIC_SEGMENTS.map((seg) => {
+            const startRad = ((seg.startAngle - 90) * Math.PI) / 180;
+            const endRad = ((seg.endAngle - 90) * Math.PI) / 180;
+            const cx = size / 2;
+            const cy = size / 2;
+            return (
+              <LinearGradient
+                key={seg.id}
+                id={seg.id}
+                x1={String(cx + radius * Math.cos(startRad))}
+                y1={String(cy + radius * Math.sin(startRad))}
+                x2={String(cx + radius * Math.cos(endRad))}
+                y2={String(cy + radius * Math.sin(endRad))}
+                gradientUnits="userSpaceOnUse"
+              >
+                <Stop offset="0" stopColor={seg.startColor} />
+                <Stop offset="1" stopColor={seg.endColor} />
+              </LinearGradient>
+            );
+          })}
+        </Defs>
         {/* Background ring */}
         <Circle
           cx={size / 2}
@@ -125,18 +167,17 @@ function MoodRing({ streak, mood, hasCheckIn }: { streak: number; mood: string |
           strokeWidth={strokeWidth}
           fill="transparent"
         />
-        {/* Progress ring */}
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={COLORS.accent}
-          strokeWidth={strokeWidth}
-          fill="transparent"
-          strokeDasharray={`${circumference * 0.75} ${circumference * 0.25}`}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
+        {/* Conic gradient ring — 4 arc segments */}
+        {CONIC_SEGMENTS.map((seg) => (
+          <Path
+            key={seg.id}
+            d={describeArc(size / 2, size / 2, radius, seg.startAngle, seg.endAngle)}
+            stroke={`url(#${seg.id})`}
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            strokeLinecap="round"
+          />
+        ))}
       </Svg>
       <View style={moodStyles.inner}>
         <MaterialCommunityIcons name="paw" size={32} color={COLORS.accent} />
@@ -160,8 +201,8 @@ const moodStyles = StyleSheet.create({
     alignItems: 'center',
   },
   dayLabel: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontFamily: FONTS.heading,
+    fontSize: 22,
     color: COLORS.textSecondary,
     marginTop: 4,
   },
@@ -186,7 +227,7 @@ function EnergyCard({ energyLevel, hasCheckIn }: { energyLevel: string | null; h
     <View style={[energyStyles.card, SHADOWS.card]}>
       <View style={energyStyles.header}>
         <View style={energyStyles.iconContainer}>
-          <MaterialCommunityIcons name="lightning-bolt" size={18} color={COLORS.accent} />
+          <MaterialCommunityIcons name="lightning-bolt" size={22} color={COLORS.accent} />
         </View>
         <Text style={energyStyles.title}>Energy Level</Text>
       </View>
@@ -217,9 +258,9 @@ const energyStyles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     backgroundColor: COLORS.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -271,8 +312,8 @@ function SniffArticleCard({ article, sectionMeta, onPress }: {
         <MaterialCommunityIcons name="book-open-variant" size={24} color={COLORS.textDisabled} />
       </View>
       {sectionMeta && (
-        <View style={[sniffStyles.badge, { backgroundColor: sectionMeta.accentColor + '1A' }]}>
-          <Text style={[sniffStyles.badgeText, { color: sectionMeta.accentColor }]}>
+        <View style={[sniffStyles.badge, { backgroundColor: sectionMeta.accentColor }]}>
+          <Text style={sniffStyles.badgeText}>
             {sectionMeta.title}
           </Text>
         </View>
@@ -292,7 +333,7 @@ const sniffStyles = StyleSheet.create({
   },
   pressed: { opacity: 0.85 },
   imagePlaceholder: {
-    height: 80,
+    height: 100,
     backgroundColor: COLORS.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -308,6 +349,7 @@ const sniffStyles = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontWeight: '700',
+    color: '#FFFFFF',
   },
   title: {
     fontSize: FONT_SIZES.sm,
@@ -427,7 +469,7 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: TAB_BAR_HEIGHT }]}
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} tintColor={COLORS.accent} />
+          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} tintColor={COLORS.textPrimary} />
         }
       >
         {/* Header Bar */}
@@ -639,9 +681,9 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   switchText: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.accent,
-    fontWeight: '600',
+    fontSize: 14,
+    color: COLORS.textPrimary,
+    fontWeight: '700',
   },
   // Week Strip
   weekStrip: {
