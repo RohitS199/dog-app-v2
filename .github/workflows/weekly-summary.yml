@@ -34,7 +34,9 @@ jobs:
 
           DOG_COUNT=$(echo "$BODY" | jq length)
           echo "Found $DOG_COUNT eligible dogs"
-          echo "dogs=$BODY" >> "$GITHUB_OUTPUT"
+          # Compact JSON to single line for GITHUB_OUTPUT
+          COMPACT=$(echo "$BODY" | jq -c '.')
+          echo "dogs=$COMPACT" >> "$GITHUB_OUTPUT"
           echo "dog_count=$DOG_COUNT" >> "$GITHUB_OUTPUT"
 
       - name: Process each dog
