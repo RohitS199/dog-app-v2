@@ -1,17 +1,17 @@
 ---
-name: pawcheck-a11y-audit
-description: Audits PawCheck screens and components for WCAG AA accessibility compliance. Checks color contrast, touch targets, screen reader labels, semantic roles, and decorative element hiding. Use before releases or after adding new UI elements.
+name: puplog-a11y-audit
+description: Audits PupLog screens and components for WCAG AA accessibility compliance. Checks color contrast, touch targets, screen reader labels, semantic roles, and decorative element hiding. Use before releases or after adding new UI elements.
 user_invocable: true
 metadata:
-  author: PawCheck Team
+  author: PupLog Team
   tags: accessibility, wcag, a11y, audit, ui
 ---
 
-# PawCheck Accessibility Audit
+# PupLog Accessibility Audit
 
 ## Overview
 
-Audits PawCheck's React Native screens and components for WCAG AA accessibility compliance. Checks color contrast ratios, minimum touch targets, screen reader labels, semantic roles, and decorative element handling.
+Audits PupLog's React Native screens and components for WCAG AA accessibility compliance. Checks color contrast ratios, minimum touch targets, screen reader labels, semantic roles, and decorative element handling.
 
 ## When to Use
 
@@ -118,7 +118,7 @@ accessibilityElementsHidden={true}
 importantForAccessibility="no-hide-descendants"
 ```
 
-**Known decorative elements in PawCheck:**
+**Known decorative elements in PupLog:**
 - Arrow icons (`→`) on settings items
 - Decorative emojis (paw print in off-topic, medical symbol in disclaimer)
 - Checkmark on selected dog in DogSelector

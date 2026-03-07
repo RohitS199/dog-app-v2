@@ -138,7 +138,7 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 - Dynamic route using `useLocalSearchParams<{ slug: string }>()`
 - Fetches article via `useLearnStore().getArticleBySlug(slug)`
 - Layout: back button → section label (colored) → title → summary → metadata row (read time + date) → accent divider → Markdown body → DisclaimerFooter
-- Markdown rendered via `react-native-markdown-display` with PawCheck theme overrides
+- Markdown rendered via `react-native-markdown-display` with PupLog theme overrides
 - Links in Markdown open via `Linking.openURL()`
 - States: loading, not found (with back button), normal article view
 - No hero image rendering (imageUrl is null for launch articles)

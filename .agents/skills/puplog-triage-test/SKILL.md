@@ -1,13 +1,13 @@
 ---
-name: pawcheck-triage-test
+name: puplog-triage-test
 description: Quick triage testing against the check-symptoms Edge Function. Send individual symptom prompts and inspect the full response including urgency, type, filter violations, and sources. Use for manual testing, debugging, or verifying specific behaviors.
 user_invocable: true
 metadata:
-  author: PawCheck Team
+  author: PupLog Team
   tags: testing, triage, edge-function, debugging
 ---
 
-# PawCheck Quick Triage Test
+# PupLog Quick Triage Test
 
 ## Overview
 

@@ -1,4 +1,4 @@
-# PawCheck — Mobile App (dog_app_ui)
+# PupLog — Mobile App (dog_app_ui)
 
 ## Repository
 
@@ -8,7 +8,7 @@
 
 ## What This Is
 
-PawCheck is a React Native (Expo) mobile app that provides **educational health guidance** for dogs. It has three core features:
+PupLog is a React Native (Expo) mobile app that provides **educational health guidance** for dogs. It has three core features:
 
 1. **Daily Health Check-Ins** (v2.6) — 9-question structured logging with rule-based pattern detection and health trend analysis
 2. **Symptom Triage** (v1.0) — Free-text symptom input returning AI-generated urgency classification (Emergency, Urgent, Soon, Low Urgency) with educational information, vet tips, and source citations
@@ -76,7 +76,7 @@ dog_app_ui/
 │   └── types/                    # TypeScript types (api, checkIn, health, learn)
 ├── jest.config.js                # Jest with jest-expo preset
 ├── jest.setup.js                 # Mocks for Supabase, Expo modules, Linking
-├── app.json                      # Expo config (scheme: pawcheck)
+├── app.json                      # Expo config (scheme: puplog)
 ├── tsconfig.json                 # Extends expo/tsconfig.base, strict: true
 ├── scripts/
 │   └── seed-data.sql             # Test data seed script (2 dogs, 51 check-ins, alerts, insights)
@@ -214,7 +214,7 @@ AI layer built on TOP of deterministic rules. Rules remain untouched — AI adds
 
 **Daily Analysis** (`ai-health-analysis`): Fire-and-forget after each check-in. Sonnet 4.5 reads dog profile + rolling summary (READ-ONLY) + 14 days raw data + alerts + article catalog. Produces 1-3 observations, 0-2 article recommendations, alert enrichments, and optional summary annotation (for critical events only).
 
-**Weekly Compression** (`weekly-summary-update`): Haiku 4.5 compresses raw data into rolling summary. One dog per invocation, externally orchestrated (Monday 3 AM Central). The ONLY process that performs a full `dogs.health_summary` rewrite. Two orchestration options exist: n8n workflow (`n8n/`) and GitHub Actions (`.github/workflows/weekly-summary.yml`). **Neither is active yet** — needs secret configuration and activation.
+**Weekly Compression** (`weekly-summary-update`): Haiku 4.5 compresses raw data into rolling summary. One dog per invocation, externally orchestrated (Monday 3 AM Central). The ONLY process that performs a full `dogs.health_summary` rewrite. Two orchestration options exist: n8n workflow (`n8n/`) and GitHub Actions (`.github/workflows/weekly-summary.yml`). **GitHub Actions is active** — secrets configured, first successful run completed March 7, 2026 (10/10 dogs processed).
 
 **Read/Write Separation**: Daily Sonnet READS summary, NEVER rewrites. Weekly Haiku is the ONLY rewriter. This prevents daily overwrites from losing long-term context. The 14-day raw data window covers gaps.
 
@@ -369,7 +369,7 @@ Full 120-prompt stress test against v10: **Tier 1 (safety) = 100% (60/60)**, **T
 3. ~~**CAT6-08 foreign body non-determinism**~~ — DONE.
 4. ~~**v2.6 Phase 1**~~ — DONE. Daily check-ins, pattern detection, health calendar, 4-tab navigation.
 5. ~~**v2.6 Phase 2**~~ (AI Pattern Analysis) — COMPLETE. Backend + frontend + orchestration files. See Milestone Status above.
-6. **Weekly summary orchestration** — NOT YET ACTIVE. n8n workflow JSON (`n8n/`) and GitHub Actions (`.github/workflows/weekly-summary.yml`) are created but neither is activated. Needs repository secrets configured and workflow enabled. Without this, `health_summary` stays null and daily Sonnet analysis is degraded.
+6. ~~**Weekly summary orchestration**~~ — ACTIVE. GitHub Actions (`.github/workflows/weekly-summary.yml`) is configured with repository secrets and running every Monday at 3 AM Central. First successful run: March 7, 2026 (10/10 dogs, 0 failures). n8n workflow JSON (`n8n/`) exists as an alternative but is not in use.
 7. **v2.6 Phase 3** (Enhanced Triage v11) — NOT STARTED. Triage integration with check-in history context.
 8. **Buddy mascot animation** — Deferred. `react-native-reanimated` and `react-native-svg` are installed but animation not implemented.
 9. **50/day rate limit** — Only 10/hour is implemented (check-symptoms). analyze-patterns has 20/hour.
@@ -385,7 +385,7 @@ A SQL seed script is available at `scripts/seed-data.sql` for populating realist
 
 ### How to Use
 
-1. Sign up through the PawCheck app and accept Terms of Service
+1. Sign up through the PupLog app and accept Terms of Service
 2. Copy your `user_id` from Supabase Auth dashboard (Dashboard → Authentication → Users → click user → copy UUID)
 3. Replace `YOUR_USER_ID_HERE` in `scripts/seed-data.sql` with your UUID
 4. Run the script in the Supabase SQL Editor (Dashboard → SQL Editor)

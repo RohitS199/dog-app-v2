@@ -1,5 +1,5 @@
 -- =============================================================================
--- PawCheck Seed Data Script
+-- PupLog Seed Data Script
 -- =============================================================================
 --
 -- PURPOSE: Populate realistic test data for a signed-up user so all app
@@ -7,7 +7,7 @@
 -- mood ring, energy card, week strip) have meaningful data to display.
 --
 -- PREREQUISITES:
---   1. Sign up through the PawCheck app (creates auth.users row)
+--   1. Sign up through the PupLog app (creates auth.users row)
 --   2. Accept Terms of Service in the app
 --   3. Copy your user_id from Supabase Auth dashboard:
 --      Dashboard → Authentication → Users → click your user → copy UUID

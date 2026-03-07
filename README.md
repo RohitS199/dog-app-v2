@@ -1,14 +1,14 @@
-# PawCheck
+# PupLog
 
 **Proactive dog health tracking with AI-powered pattern analysis.** Daily structured check-ins, rule-based pattern detection, AI health insights, educational triage, and a veterinary article library — all in one app.
 
-> **Important:** PawCheck provides educational health guidance only. It is **not** a substitute for professional veterinary advice, diagnosis, or treatment. Always consult your veterinarian.
+> **Important:** PupLog provides educational health guidance only. It is **not** a substitute for professional veterinary advice, diagnosis, or treatment. Always consult your veterinarian.
 
 ## The Golden Rule
 
 > Never let a dog owner walk away from a genuine emergency thinking they can wait.
 
-Every feature in PawCheck exists in service of this principle.
+Every feature in PupLog exists in service of this principle.
 
 ## Features
 
@@ -29,7 +29,7 @@ Every feature in PawCheck exists in service of this principle.
 
 ### Learn Tab
 - **22 educational articles** across 6 sections (Know Your Dog, When to Worry, Safety & First Aid, Nutrition & Diet, Behavior & Wellness, Puppy & New Dog)
-- **Markdown rendering** with PawCheck theme
+- **Markdown rendering** with PupLog theme
 - **5-minute client cache** with pull-to-refresh
 - **Deep links from AI insights** — article recommendations link directly to relevant content
 

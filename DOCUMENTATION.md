@@ -1,4 +1,4 @@
-# PawCheck — Complete Project Documentation
+# PupLog — Complete Project Documentation
 
 > Last updated: February 26, 2026
 
@@ -27,13 +27,13 @@
 
 ## 1. Project Overview
 
-PawCheck is a React Native mobile application that provides **educational health guidance** for dogs through three core features:
+PupLog is a React Native mobile application that provides **educational health guidance** for dogs through three core features:
 
 1. **Daily Health Check-Ins** (v2.6) — 9-question structured health logging with rule-based pattern detection, trend analysis, and proactive alerts
 2. **Symptom Triage** (v1.0) — Free-text symptom input returning AI-generated urgency classification with educational information, vet tips, and source citations
 3. **Learn** — Educational article library with 22 articles across 6 sections (Know Your Dog, When to Worry, Safety & First Aid, Nutrition & Diet, Behavior & Wellness, Puppy & New Dog), backed by Supabase `blog_articles` table with Markdown rendering
 
-**PawCheck is NOT veterinary medicine.** This distinction is legally load-bearing and permeates every design decision, from the language used in responses to the colors chosen for urgency badges.
+**PupLog is NOT veterinary medicine.** This distinction is legally load-bearing and permeates every design decision, from the language used in responses to the colors chosen for urgency badges.
 
 ### The Golden Rule
 
@@ -1055,7 +1055,7 @@ dog_app_ui/
 │       ├── health.ts             # Health types (patterns, alerts, calendar, AI insights)
 │       └── learn.ts              # Learn tab types (Article, Section)
 └── Configuration files
-    ├── app.json                  # Expo config (scheme: pawcheck)
+    ├── app.json                  # Expo config (scheme: puplog)
     ├── tsconfig.json             # Strict TypeScript
     ├── jest.config.js            # Jest with jest-expo preset
     ├── jest.setup.js             # Mock configuration
@@ -1378,7 +1378,7 @@ The system **passes the Tier 1 hard gate (100%)** across all three test runs (v7
 
 ### Legal Framework
 
-PawCheck operates as an **educational tool**, not a diagnostic tool. This distinction is maintained through:
+PupLog operates as an **educational tool**, not a diagnostic tool. This distinction is maintained through:
 
 1. **Language rules** in the LLM system prompt (mandatory hedging language)
 2. **Output filter** catching diagnostic language, treatment recommendations, false reassurance

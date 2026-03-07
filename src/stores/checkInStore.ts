@@ -350,6 +350,10 @@ export const useCheckInStore = create<CheckInState>()(
         draft: state.draft,
         currentStep: state.currentStep,
       }),
+      onRehydrateStorage: () => {
+        // One-time cleanup: remove orphaned key from pre-rebrand
+        AsyncStorage.removeItem('pawcheck-checkin-draft').catch(() => {});
+      },
     }
   )
 );

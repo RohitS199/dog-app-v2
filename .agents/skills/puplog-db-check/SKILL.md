@@ -1,17 +1,17 @@
 ---
-name: pawcheck-db-check
-description: Verifies PawCheck database schema, RLS policies, foreign key constraints, audit log integrity, and data health. Use after migrations, schema changes, or when debugging data issues.
+name: puplog-db-check
+description: Verifies PupLog database schema, RLS policies, foreign key constraints, audit log integrity, and data health. Use after migrations, schema changes, or when debugging data issues.
 user_invocable: true
 metadata:
-  author: PawCheck Team
+  author: PupLog Team
   tags: database, supabase, postgres, verification, rls
 ---
 
-# PawCheck Database Health Check
+# PupLog Database Health Check
 
 ## Overview
 
-Comprehensive database verification for PawCheck's Supabase Postgres database. Checks schema integrity, RLS policies, foreign key behavior, audit log health, and data consistency.
+Comprehensive database verification for PupLog's Supabase Postgres database. Checks schema integrity, RLS policies, foreign key behavior, audit log health, and data consistency.
 
 ## When to Use
 

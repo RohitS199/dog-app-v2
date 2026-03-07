@@ -1,17 +1,17 @@
 ---
-name: pawcheck-edge-deploy
-description: Deploys and manages Supabase Edge Functions for PawCheck. Handles the check-symptoms pipeline, delete-account, and stress test functions. Knows about the verify_jwt workaround, file structure requirements, and deployment verification steps.
+name: puplog-edge-deploy
+description: Deploys and manages Supabase Edge Functions for PupLog. Handles the check-symptoms pipeline, delete-account, and stress test functions. Knows about the verify_jwt workaround, file structure requirements, and deployment verification steps.
 user_invocable: true
 metadata:
-  author: PawCheck Team
+  author: PupLog Team
   tags: supabase, edge-functions, deployment, backend
 ---
 
-# PawCheck Edge Function Deployment
+# PupLog Edge Function Deployment
 
 ## Overview
 
-Manages deployment of Supabase Edge Functions for PawCheck. All functions use `verify_jwt: false` due to an ES256/HS256 JWT mismatch — they validate JWTs internally via `supabase.auth.getUser(token)`.
+Manages deployment of Supabase Edge Functions for PupLog. All functions use `verify_jwt: false` due to an ES256/HS256 JWT mismatch — they validate JWTs internally via `supabase.auth.getUser(token)`.
 
 ## When to Use
 

@@ -1,13 +1,13 @@
 ---
-name: pawcheck-stress-test
+name: puplog-stress-test
 description: Runs the 120-prompt stress test against the check-symptoms Edge Function. Tests emergency detection, toxicity, diagnostic elicitation, treatment seeking, false reassurance, urgency boundaries, off-topic, breed context, prompt injection, edge cases, and source attribution. Use when you need to verify backend safety after changes.
 user_invocable: true
 metadata:
-  author: PawCheck Team
+  author: PupLog Team
   tags: testing, safety, stress-test, edge-function
 ---
 
-# PawCheck Stress Test Runner
+# PupLog Stress Test Runner
 
 ## Overview
 
