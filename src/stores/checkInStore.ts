@@ -343,7 +343,7 @@ export const useCheckInStore = create<CheckInState>()(
         }),
     }),
     {
-      name: 'pawcheck-checkin-draft',
+      name: 'puplog-checkin-draft',
       storage: createJSONStorage(() => AsyncStorage),
       // Only persist draft and currentStep — everything else is ephemeral
       partialize: (state) => ({

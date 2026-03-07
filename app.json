@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "PawCheck",
-    "slug": "pawcheck",
+    "name": "PupLog",
+    "slug": "puplog",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "scheme": "pawcheck",
+    "scheme": "puplog",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pawcheck.app"
+      "bundleIdentifier": "com.puplog.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +24,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.pawcheck.app"
+      "package": "com.puplog.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"

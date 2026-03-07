@@ -130,7 +130,7 @@ export default function SettingsScreen() {
         <View style={[styles.card, SHADOWS.card]}>
           <View style={styles.legalContent}>
             <Text style={styles.legalText}>
-              PawCheck provides educational information only. It is not a
+              PupLog provides educational information only. It is not a
               substitute for professional veterinary advice, diagnosis, or
               treatment.
             </Text>

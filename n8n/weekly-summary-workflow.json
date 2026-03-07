@@ -1,5 +1,5 @@
 {
-  "name": "PawCheck Weekly Summary",
+  "name": "PupLog Weekly Summary",
   "nodes": [
     {
       "parameters": {
@@ -162,9 +162,9 @@
     },
     {
       "parameters": {
-        "fromEmail": "n8n@pawcheck.app",
+        "fromEmail": "n8n@puplog.app",
         "toEmail": "rsandur19@gmail.com",
-        "subject": "PawCheck Weekly Summary — Partial Failure",
+        "subject": "PupLog Weekly Summary — Partial Failure",
         "text": "=Weekly Summary Run: {{ $now.format('EEEE MMM d, yyyy h:mm a') }}\n\nAt least one dog's summary update failed.\n\nFailed item details:\n- Dog ID: {{ $json.dog_id || 'unknown' }}\n- Error: {{ $json.error || $json.message || 'Unknown error' }}\n- Status: {{ $json.statusCode || 'N/A' }}\n\nThe failed dog will be retried on the next weekly run.\nCheck Supabase Edge Function logs for details.",
         "options": {}
       },
@@ -264,7 +264,7 @@
   },
   "tags": [
     {
-      "name": "PawCheck"
+      "name": "PupLog"
     },
     {
       "name": "Weekly"

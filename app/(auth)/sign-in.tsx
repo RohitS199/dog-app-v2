@@ -58,7 +58,7 @@ export default function SignIn() {
             <View style={[styles.logoBox, SHADOWS.elevated]}>
               <MaterialCommunityIcons name="paw" size={40} color="#FFFFFF" />
             </View>
-            <Text style={styles.appName}>PawCheck</Text>
+            <Text style={styles.appName}>PupLog</Text>
             <Text style={styles.tagline}>Daily health tracking for your best friend</Text>
           </View>
 

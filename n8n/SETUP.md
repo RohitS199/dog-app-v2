@@ -1,4 +1,4 @@
-# PawCheck n8n Weekly Summary Workflow — Setup Guide
+# PupLog n8n Weekly Summary Workflow — Setup Guide
 
 ## Overview
 
@@ -64,9 +64,9 @@ Configure SMTP credentials in n8n for sending failure notification emails to `rs
 
 ### Step 3: Connect Error Workflow
 
-1. Open the main "PawCheck Weekly Summary" workflow
+1. Open the main "PupLog Weekly Summary" workflow
 2. Go to Settings (gear icon)
-3. Set "Error Workflow" to "PawCheck Weekly Summary — Error Handler"
+3. Set "Error Workflow" to "PupLog Weekly Summary — Error Handler"
 4. This ensures you get notified if the entire workflow fails (not just individual dogs)
 
 ### Step 4: Activate

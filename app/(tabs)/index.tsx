@@ -444,7 +444,7 @@ export default function HomeScreen() {
           <View style={[styles.emptyLogo, SHADOWS.elevated]}>
             <MaterialCommunityIcons name="paw" size={48} color="#FFFFFF" />
           </View>
-          <Text style={styles.emptyTitle}>Welcome to PawCheck!</Text>
+          <Text style={styles.emptyTitle}>Welcome to PupLog!</Text>
           <Text style={styles.emptyText}>
             Add your first dog to get started with daily health tracking.
           </Text>

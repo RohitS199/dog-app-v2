@@ -81,7 +81,7 @@ function BrandedSplash() {
           { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
         ]}
       >
-        PawCheck
+        PupLog
       </Animated.Text>
 
       <Animated.Text style={[splashStyles.tagline, { opacity: taglineOpacity }]}>

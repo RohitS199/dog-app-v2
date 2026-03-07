@@ -34,7 +34,7 @@ const mockEmergencyBypass: EmergencyBypassResponse = {
 
 const mockOffTopic: OffTopicResponse = {
   type: 'off_topic',
-  message: 'PawCheck is designed for dog health questions only. I can\'t help with cat symptoms, but your vet can!',
+  message: 'PupLog is designed for dog health questions only. I can\'t help with cat symptoms, but your vet can!',
   reason: 'non_dog_animal',
 };
 
@@ -105,7 +105,7 @@ describe('OffTopicResult', () => {
     const { getByText } = render(
       <OffTopicResult result={mockOffTopic} onTryAgain={onTryAgain} />
     );
-    expect(getByText(/PawCheck is designed for dog health/)).toBeTruthy();
+    expect(getByText(/PupLog is designed for dog health/)).toBeTruthy();
   });
 
   it('renders Try Again button', () => {

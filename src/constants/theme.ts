@@ -1,4 +1,4 @@
-// Design tokens for PawCheck
+// Design tokens for PupLog
 // "Earthy Dog Park" palette — organic, grounded, playful feel
 // Limestone bg, Topsoil cards, Dark Loam text/buttons, Orange Collar accents
 // Urgency colors: Teal for "monitor" (NOT green) to avoid "all clear" signal
