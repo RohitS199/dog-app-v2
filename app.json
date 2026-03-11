@@ -11,11 +11,14 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F6EFDD"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.puplog.app"
+      "bundleIdentifier": "com.puplog.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -32,6 +35,13 @@
     "plugins": [
       "expo-router",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bf10dede-6741-4591-bcf2-fd3df2cef358"
+      }
+    },
+    "owner": "ras199"
   }
 }
