@@ -413,6 +413,15 @@ export default function HomeScreen() {
   const hasCheckInToday = todayCheckIn !== null;
   const streak = selectedDog?.checkin_streak ?? 0;
 
+  // Fall back to most recent check-in for mood ring + energy when no today check-in
+  const latestCheckIn = useMemo(() => {
+    if (todayCheckIn) return todayCheckIn;
+    // Find the most recent check-in from calendarData
+    const dates = Object.keys(calendarData).sort().reverse();
+    return dates.length > 0 ? calendarData[dates[0]] : null;
+  }, [todayCheckIn, calendarData]);
+  const hasAnyCheckIn = latestCheckIn !== null;
+
   // Articles for Sniff Around
   const sniffArticles = useMemo(() => {
     const allArticles = sections.flatMap((s) => s.articles);
@@ -531,14 +540,14 @@ export default function HomeScreen() {
         {/* Mood Ring */}
         <MoodRing
           streak={streak}
-          mood={todayCheckIn?.mood ?? null}
-          hasCheckIn={hasCheckInToday}
+          mood={latestCheckIn?.mood ?? null}
+          hasCheckIn={hasAnyCheckIn}
         />
 
         {/* Energy Card */}
         <EnergyCard
-          energyLevel={todayCheckIn?.energy_level ?? null}
-          hasCheckIn={hasCheckInToday}
+          energyLevel={latestCheckIn?.energy_level ?? null}
+          hasCheckIn={hasAnyCheckIn}
         />
 
         {/* Daily Digs */}

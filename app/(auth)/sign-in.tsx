@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -9,11 +10,10 @@ import {
   View,
 } from 'react-native';
 import { Link } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
 import { InputField } from '../../src/components/ui/InputField';
 import { Button } from '../../src/components/ui/Button';
-import { COLORS, FONT_SIZES, SPACING, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
+import { COLORS, FONT_SIZES, SPACING, FONTS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SignIn() {
@@ -55,9 +55,11 @@ export default function SignIn() {
         >
           {/* Logo Section */}
           <View style={styles.logoSection}>
-            <View style={[styles.logoBox, SHADOWS.elevated]}>
-              <MaterialCommunityIcons name="paw" size={40} color="#FFFFFF" />
-            </View>
+            <Image
+              source={require('../../assets/splash-icon.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={styles.appName}>PupLog</Text>
             <Text style={styles.tagline}>Daily health tracking for your best friend</Text>
           </View>
@@ -144,14 +146,11 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xxl,
     paddingTop: 80,
   },
-  logoBox: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: COLORS.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
+  logo: {
+    width: 100,
+    height: 100,
     marginBottom: SPACING.md,
+    alignSelf: 'center',
   },
   appName: {
     fontFamily: FONTS.heading,

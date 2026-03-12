@@ -94,7 +94,7 @@ export default function LearnScreen() {
   // First load — no cached data
   if (isLoading && sections.length === 0) {
     return (
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
@@ -105,7 +105,7 @@ export default function LearnScreen() {
   // Error state
   if (error && sections.length === 0) {
     return (
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
           <Pressable
@@ -124,7 +124,7 @@ export default function LearnScreen() {
   // Empty state — no articles published
   if (!isLoading && sections.length === 0 && !error) {
     return (
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.centered}>
           <MaterialCommunityIcons
             name="book-open-variant"
@@ -139,7 +139,7 @@ export default function LearnScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={

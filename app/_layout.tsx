@@ -5,8 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, DMSerifDisplay_400Regular } from '@expo-google-fonts/dm-serif-display';
 import { useAuthStore } from '../src/stores/authStore';
 import { useAppState } from '../src/hooks/useAppState';
-import { Animated, StyleSheet, Text, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Animated, Image, StyleSheet, Text, View } from 'react-native';
 import { COLORS, FONTS } from '../src/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -70,9 +69,11 @@ function BrandedSplash() {
   return (
     <View style={splashStyles.container}>
       <Animated.View style={[splashStyles.logoContainer, { opacity: fadeAnim }]}>
-        <View style={splashStyles.logoBox}>
-          <MaterialCommunityIcons name="paw" size={60} color="#FFFFFF" />
-        </View>
+        <Image
+          source={require('../assets/splash-icon.png')}
+          style={splashStyles.logo}
+          resizeMode="contain"
+        />
       </Animated.View>
 
       <Animated.Text
@@ -97,7 +98,7 @@ function BrandedSplash() {
         <View style={splashStyles.spinner} />
       </Animated.View>
 
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
     </View>
   );
 }
@@ -105,35 +106,27 @@ function BrandedSplash() {
 const splashStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#F6EFDD',
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoContainer: {
     marginBottom: 20,
-  },
-  logoBox: {
-    width: 120,
-    height: 120,
-    borderRadius: 28,
-    backgroundColor: COLORS.accent,
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    elevation: 8,
+  },
+  logo: {
+    width: 140,
+    height: 140,
   },
   appName: {
     fontFamily: FONTS.heading,
     fontSize: 34,
-    color: '#FFFFFF',
+    color: COLORS.primary,
     marginBottom: 8,
   },
   tagline: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(62, 39, 35, 0.6)',
     letterSpacing: 3,
     fontWeight: '500',
     marginBottom: 48,
@@ -148,8 +141,8 @@ const splashStyles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 3,
     borderColor: 'transparent',
-    borderTopColor: COLORS.accent,
-    borderRightColor: COLORS.accent,
+    borderTopColor: COLORS.primary,
+    borderRightColor: COLORS.primary,
   },
 });
 

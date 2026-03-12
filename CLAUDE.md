@@ -121,7 +121,7 @@ type CheckSymptomsResponse =
 ### Color Palette — "Earthy Dog Park"
 
 The app uses an earthy, organic palette:
-- **Limestone** (#EFEBE9) — main background
+- **Limestone** (#FAFAFA) — main background
 - **Topsoil** (#D7CCC8) — cards, containers
 - **Dark Loam** (#3E2723) — primary text, buttons, actions
 - **Orange Collar** (#FF6F00) — accent, selection states, FAB, active tab
@@ -331,7 +331,7 @@ npx jest --no-cache  # If you encounter stale cache issues
 The app targets **WCAG AA** compliance:
 - All touch targets are minimum 48dp (`MIN_TOUCH_TARGET` constant)
 - All interactive elements have `accessibilityRole` and `accessibilityLabel`
-- `COLORS.textDisabled` is `#795548` (4.6:1 on Limestone) — passes AA
+- `COLORS.textDisabled` is `#795548` (5.1:1 on #FAFAFA) — passes AA
 - Decorative emojis/arrows have `accessibilityElementsHidden`
 - Error messages use `accessibilityRole="alert"`
 

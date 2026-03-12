@@ -39,6 +39,9 @@ yarn-error.*
 .windsurf/
 .claude/
 
+# design mockups
+.figma-mockups/
+
 # typescript
 *.tsbuildinfo
 

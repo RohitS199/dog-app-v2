@@ -20,7 +20,7 @@ export const COLORS = {
   monitor: '#00897B', // Teal — intentionally NOT green
 
   // Neutrals — Earthy palette
-  background: '#EFEBE9',   // Limestone — main app background
+  background: '#FAFAFA',   // Limestone — main app background
   surface: '#D7CCC8',      // Topsoil — cards, containers, modules
   surfaceLight: '#F5F0ED', // Light tint for input fields
   textPrimary: '#3E2723',  // Dark Loam — maximum readability
