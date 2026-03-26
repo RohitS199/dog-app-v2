@@ -1,11 +1,15 @@
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState, useCallback } from 'react';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
 import { useLearnStore } from '../../src/stores/learnStore';
+import { FavoriteToast } from '../../src/components/ui/FavoriteToast';
 import { DisclaimerFooter } from '../../src/components/legal';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
+
+const HEART_COLOR = '#FF385C';
 
 const markdownStyles = StyleSheet.create({
   heading1: {
@@ -69,10 +73,21 @@ function formatDate(dateString: string): string {
 export default function ArticleDetail() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
-  const { isLoading, getArticleBySlug, getSectionMeta } = useLearnStore();
+  const { isLoading, getArticleBySlug, getSectionMeta, isFavorite, toggleFavorite } = useLearnStore();
+
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState<'Added' | 'Removed'>('Added');
 
   const article = getArticleBySlug(slug ?? '');
   const sectionMeta = article ? getSectionMeta(article.section) : undefined;
+  const favorited = article ? isFavorite(article.slug) : false;
+
+  const handleToggleFavorite = useCallback(() => {
+    if (!article) return;
+    setToastMessage(favorited ? 'Removed' : 'Added');
+    toggleFavorite(article.slug);
+    setToastVisible(true);
+  }, [article, favorited, toggleFavorite]);
 
   // Loading state
   if (isLoading && !article) {
@@ -107,14 +122,36 @@ export default function ArticleDetail() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable
-          style={[styles.backCircle, SHADOWS.subtle]}
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.textPrimary} />
-        </Pressable>
+        <View style={styles.headerRow}>
+          <Pressable
+            style={[styles.backCircle, SHADOWS.subtle]}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <MaterialCommunityIcons name="arrow-left" size={20} color={COLORS.textPrimary} />
+          </Pressable>
+          <Pressable
+            style={[styles.heartButton, SHADOWS.subtle]}
+            onPress={handleToggleFavorite}
+            accessibilityRole="button"
+            accessibilityLabel={favorited ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <MaterialCommunityIcons
+              name={favorited ? 'heart' : 'heart-outline'}
+              size={20}
+              color={favorited ? HEART_COLOR : COLORS.textSecondary}
+            />
+          </Pressable>
+        </View>
+
+        {article.imageUrl && (
+          <Image
+            source={{ uri: article.imageUrl }}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+        )}
 
         {sectionMeta && (
           <View style={[styles.sectionBadge, { backgroundColor: sectionMeta.accentColor }]}>
@@ -157,6 +194,11 @@ export default function ArticleDetail() {
         <View style={styles.footerSpacing} />
         <DisclaimerFooter />
       </ScrollView>
+      <FavoriteToast
+        visible={toastVisible}
+        message={toastMessage}
+        onHide={() => setToastVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -176,6 +218,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.lg,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
   backCircle: {
     width: 44,
     height: 44,
@@ -183,6 +231,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  heartButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: BORDER_RADIUS.xl,
     marginBottom: SPACING.md,
   },
   backButton: {

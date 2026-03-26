@@ -167,17 +167,20 @@ const styles = StyleSheet.create({
   },
   baselineRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     paddingVertical: SPACING.xs,
   },
   baselineKey: {
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
+    width: 100,
+    flexShrink: 0,
   },
   baselineValue: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
     color: COLORS.textPrimary,
+    flex: 1,
+    flexWrap: 'wrap',
   },
   lastUpdated: {
     fontSize: FONT_SIZES.xs,

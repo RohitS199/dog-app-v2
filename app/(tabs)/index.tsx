@@ -1,21 +1,34 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
+  Image,
+  InteractionManager,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Svg, { Circle, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedScrollHandler,
+  withTiming,
+  Easing,
+  interpolate,
+  Extrapolation,
+} from 'react-native-reanimated';
+import { useTabFocusAnimation } from '../../src/hooks/useTabFocusAnimation';
+import { StreakCounter } from '../../src/components/ui/StreakCounter';
+import { FlippableDogCard } from '../../src/components/ui/FlippableDogCard';
 import { useDogStore } from '../../src/stores/dogStore';
 import { useCheckInStore } from '../../src/stores/checkInStore';
 import { useHealthStore } from '../../src/stores/healthStore';
 import { useLearnStore } from '../../src/stores/learnStore';
+import { useArticleTransitionStore } from '../../src/stores/articleTransitionStore';
 import { useAuthStore } from '../../src/stores/authStore';
 import { DisclaimerFooter } from '../../src/components/legal';
 import { GettingStartedCard } from '../../src/components/ui/GettingStartedCard';
@@ -25,16 +38,7 @@ import type { Dog } from '../../src/types/api';
 import type { Article } from '../../src/types/learn';
 
 const TAB_BAR_HEIGHT = 100; // padding for floating tab bar
-
-// Mood mapping from check-in mood values
-const MOOD_LABELS: Record<string, string> = {
-  normal: 'Tail Waggin\'',
-  quiet: 'Quiet Day',
-  anxious: 'On Edge',
-  clingy: 'Extra Cuddly',
-  hiding: 'Hiding Out',
-  aggressive: 'Grumpy Pup',
-};
+const HEADER_CONTENT_HEIGHT = 64; // 8px pad + 48px button + 8px pad
 
 // Energy mapping from check-in energy values
 const ENERGY_MAP: Record<string, number> = {
@@ -45,13 +49,6 @@ const ENERGY_MAP: Record<string, number> = {
   hyperactive: 95,
 };
 
-// Daily Digs card configs
-const DAILY_DIGS = [
-  { key: 'chow', label: 'Chow', icon: 'silverware-fork-knife' as const, step: 0 },
-  { key: 'slurp', label: 'Slurp', icon: 'water' as const, step: 1 },
-  { key: 'vibe', label: 'Vibe', icon: 'emoticon-happy-outline' as const, step: 6 },
-  { key: 'extras', label: 'Extras', icon: 'bandage' as const, step: 7 },
-];
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -82,142 +79,6 @@ function getWeekDays(): { label: string; date: string; dayNum: number; isToday: 
   return days;
 }
 
-// Mood Ring component using SVG
-// Build an SVG arc path for a ring segment
-function describeArc(cx: number, cy: number, r: number, startAngle: number, endAngle: number): string {
-  const startRad = ((startAngle - 90) * Math.PI) / 180;
-  const endRad = ((endAngle - 90) * Math.PI) / 180;
-  const x1 = cx + r * Math.cos(startRad);
-  const y1 = cy + r * Math.sin(startRad);
-  const x2 = cx + r * Math.cos(endRad);
-  const y2 = cy + r * Math.sin(endRad);
-  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
-  return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
-}
-
-// PRD conic gradient: #FFB74D → #FF9800 → #FF6F00 → #E65100 → #FF6F00
-const CONIC_SEGMENTS = [
-  { startAngle: 0, endAngle: 90, startColor: '#FFB74D', endColor: '#FF9800', id: 'seg0' },
-  { startAngle: 90, endAngle: 180, startColor: '#FF9800', endColor: '#FF6F00', id: 'seg1' },
-  { startAngle: 180, endAngle: 270, startColor: '#FF6F00', endColor: '#E65100', id: 'seg2' },
-  { startAngle: 270, endAngle: 360, startColor: '#E65100', endColor: '#FF6F00', id: 'seg3' },
-];
-
-function MoodRing({ streak, mood, hasCheckIn }: { streak: number; mood: string | null; hasCheckIn: boolean }) {
-  const size = 190;
-  const strokeWidth = 12;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-
-  if (!hasCheckIn) {
-    // Zero state
-    return (
-      <View style={moodStyles.container}>
-        <Svg width={size} height={size}>
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={COLORS.border}
-            strokeWidth={strokeWidth}
-            fill="transparent"
-            strokeDasharray={`${circumference * 0.05} ${circumference * 0.02}`}
-          />
-        </Svg>
-        <View style={moodStyles.inner}>
-          <MaterialCommunityIcons name="paw" size={32} color={COLORS.textDisabled} />
-          <Text style={moodStyles.dayLabel}>Day 0</Text>
-          <Text style={moodStyles.moodText}>Tap + to start</Text>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={moodStyles.container}>
-      <Svg width={size} height={size}>
-        <Defs>
-          {CONIC_SEGMENTS.map((seg) => {
-            const startRad = ((seg.startAngle - 90) * Math.PI) / 180;
-            const endRad = ((seg.endAngle - 90) * Math.PI) / 180;
-            const cx = size / 2;
-            const cy = size / 2;
-            return (
-              <LinearGradient
-                key={seg.id}
-                id={seg.id}
-                x1={String(cx + radius * Math.cos(startRad))}
-                y1={String(cy + radius * Math.sin(startRad))}
-                x2={String(cx + radius * Math.cos(endRad))}
-                y2={String(cy + radius * Math.sin(endRad))}
-                gradientUnits="userSpaceOnUse"
-              >
-                <Stop offset="0" stopColor={seg.startColor} />
-                <Stop offset="1" stopColor={seg.endColor} />
-              </LinearGradient>
-            );
-          })}
-        </Defs>
-        {/* Background ring */}
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={COLORS.accentLight}
-          strokeWidth={strokeWidth}
-          fill="transparent"
-        />
-        {/* Conic gradient ring — 4 arc segments */}
-        {CONIC_SEGMENTS.map((seg) => (
-          <Path
-            key={seg.id}
-            d={describeArc(size / 2, size / 2, radius, seg.startAngle, seg.endAngle)}
-            stroke={`url(#${seg.id})`}
-            strokeWidth={strokeWidth}
-            fill="transparent"
-            strokeLinecap="round"
-          />
-        ))}
-      </Svg>
-      <View style={moodStyles.inner}>
-        <MaterialCommunityIcons name="paw" size={32} color={COLORS.accent} />
-        <Text style={moodStyles.dayLabel}>Day {streak}</Text>
-        <Text style={moodStyles.moodTextActive}>{MOOD_LABELS[mood ?? 'normal'] ?? 'Tail Waggin\''}</Text>
-      </View>
-    </View>
-  );
-}
-
-const moodStyles = StyleSheet.create({
-  container: {
-    width: 190,
-    height: 190,
-    alignSelf: 'center',
-    marginVertical: SPACING.lg,
-  },
-  inner: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dayLabel: {
-    fontFamily: FONTS.heading,
-    fontSize: 22,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-  },
-  moodText: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textDisabled,
-    marginTop: 2,
-  },
-  moodTextActive: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginTop: 2,
-  },
-});
 
 // Energy Card
 function EnergyCard({ energyLevel, hasCheckIn }: { energyLevel: string | null; hasCheckIn: boolean }) {
@@ -246,7 +107,7 @@ function EnergyCard({ energyLevel, hasCheckIn }: { energyLevel: string | null; h
 
 const energyStyles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.card,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.md,
     marginHorizontal: SPACING.md,
@@ -295,99 +156,200 @@ const energyStyles = StyleSheet.create({
   },
 });
 
-// Article card for Sniff Around
+// Article slug → icon mapping for themed card headers
+const ARTICLE_ICONS: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
+  'normal-poop': 'clipboard-check-outline',
+  'skin-turgor-test': 'hand-heart-outline',
+  'monthly-health-check': 'stethoscope',
+  'what-vet-wishes': 'notebook-outline',
+  'one-bad-day': 'calendar-check',
+  'bloat-gdv': 'alert-octagon-outline',
+  'urgent-vs-routine': 'hospital-box-outline',
+  'cushings-disease': 'water-alert-outline',
+  'prepare-for-vet': 'clipboard-list-outline',
+  'dog-throwing-up': 'stomach',
+  'toxic-foods': 'skull-crossbones-outline',
+  'before-the-er': 'ambulance',
+  'household-hazards': 'home-alert-outline',
+  'reading-food-labels': 'tag-text-outline',
+  'age-appropriate-feeding': 'food-drumstick-outline',
+  'digestion-foods': 'food-apple-outline',
+  'separation-anxiety': 'heart-broken-outline',
+  'stress-signals': 'emoticon-sad-outline',
+  'exercise-enrichment': 'run',
+  'building-baseline': 'chart-line',
+  'new-dog-wont-eat': 'food-off-outline',
+  'first-year-milestones': 'trophy-outline',
+};
+
+// Article card for Sniff Around — matches Learn tab ArticleCard style
+const SNIFF_CARD_WIDTH = 200;
+const SNIFF_IMAGE_HEIGHT = 160;
+
 function SniffArticleCard({ article, sectionMeta, onPress }: {
   article: Article;
   sectionMeta?: { title: string; accentColor: string };
-  onPress: () => void;
+  onPress: (rect: { x: number; y: number; width: number; height: number }, iconName: string, bgColor: string) => void;
 }) {
+  const iconName = ARTICLE_ICONS[article.slug] ?? 'book-open-variant';
+  const accentColor = sectionMeta?.accentColor ?? COLORS.textDisabled;
+  const imageRef = useRef<View>(null);
+
+  const handlePress = useCallback(() => {
+    imageRef.current?.measureInWindow((x, y, width, height) => {
+      onPress({ x, y, width, height }, iconName, accentColor + '1A');
+    });
+  }, [onPress, iconName, accentColor]);
+
   return (
     <Pressable
-      style={({ pressed }) => [sniffStyles.card, SHADOWS.card, pressed && sniffStyles.pressed]}
-      onPress={onPress}
+      style={({ pressed }) => [sniffStyles.card, pressed && sniffStyles.pressed]}
+      onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={`${article.title}. ${article.readTimeMinutes} minute read`}
     >
-      <View style={sniffStyles.imagePlaceholder}>
-        <MaterialCommunityIcons name="book-open-variant" size={24} color={COLORS.textDisabled} />
+      <View ref={imageRef} style={sniffStyles.imageContainer}>
+        {article.imageUrl ? (
+          <Image source={{ uri: article.imageUrl }} style={sniffStyles.articleImage} resizeMode="cover" />
+        ) : (
+          <View style={[sniffStyles.imagePlaceholder, { backgroundColor: accentColor + '1A' }]}>
+            <MaterialCommunityIcons name={iconName} size={36} color={accentColor} />
+          </View>
+        )}
       </View>
-      {sectionMeta && (
-        <View style={[sniffStyles.badge, { backgroundColor: sectionMeta.accentColor }]}>
-          <Text style={sniffStyles.badgeText}>
-            {sectionMeta.title}
-          </Text>
-        </View>
-      )}
-      <Text style={sniffStyles.title} numberOfLines={2}>{article.title}</Text>
-      <Text style={sniffStyles.meta}>{article.readTimeMinutes} min read</Text>
+      <View style={sniffStyles.cardBody}>
+        <Text style={sniffStyles.title} numberOfLines={2}>{article.title}</Text>
+        <Text style={sniffStyles.meta}>{article.readTimeMinutes} min read</Text>
+      </View>
     </Pressable>
   );
 }
 
 const sniffStyles = StyleSheet.create({
   card: {
-    width: 170,
-    backgroundColor: '#FFFFFF',
+    width: SNIFF_CARD_WIDTH,
+    backgroundColor: COLORS.background,
+    borderRadius: BORDER_RADIUS.xl,
+    overflow: 'hidden',
+    ...SHADOWS.card,
+  },
+  pressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+  imageContainer: {
+    width: SNIFF_CARD_WIDTH,
+    height: SNIFF_IMAGE_HEIGHT,
     borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
   },
-  pressed: { opacity: 0.85 },
+  articleImage: {
+    width: '100%',
+    height: '100%',
+  },
   imagePlaceholder: {
-    height: 100,
-    backgroundColor: COLORS.surfaceLight,
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badge: {
-    alignSelf: 'flex-start',
-    borderRadius: BORDER_RADIUS.full,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-    marginHorizontal: SPACING.sm,
-    marginTop: SPACING.sm,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  cardBody: {
+    paddingHorizontal: SPACING.xs,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.sm,
   },
   title: {
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.md,
     fontWeight: '600',
     color: COLORS.textPrimary,
-    paddingHorizontal: SPACING.sm,
-    marginTop: SPACING.xs,
+    marginBottom: SPACING.xs,
+    lineHeight: 22,
   },
   meta: {
     fontSize: FONT_SIZES.xs,
     color: COLORS.textDisabled,
-    paddingHorizontal: SPACING.sm,
-    paddingBottom: SPACING.sm,
-    marginTop: SPACING.xs,
   },
 });
 
 export default function HomeScreen() {
+  const focusStyle = useTabFocusAnimation();
+  const insets = useSafeAreaInsets();
   const { dogs, isLoading, selectedDogId, fetchDogs, fetchLastTriageDates, selectDog } = useDogStore();
   const { calendarData, fetchMonthData } = useHealthStore();
   const { sections, fetchArticles, getSectionMeta } = useLearnStore();
+  const startTransition = useArticleTransitionStore((s) => s.startTransition);
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
   const [showDogSelector, setShowDogSelector] = useState(false);
 
   const selectedDog = dogs.find((d) => d.id === selectedDogId);
 
-  // Fetch data on mount
+  // Animated header — hide on scroll down, show on scroll up
+  const prevScrollY = useSharedValue(0);
+  const headerTranslateY = useSharedValue(0);
+
+  const SNAP_CONFIG = { duration: 300, easing: Easing.out(Easing.cubic) };
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      const y = event.contentOffset.y;
+      const diff = y - prevScrollY.value;
+      prevScrollY.value = y;
+
+      // Always show header at top of page
+      if (y <= 0) {
+        headerTranslateY.value = withTiming(0, SNAP_CONFIG);
+        return;
+      }
+
+      // Smooth 1:1 tracking, clamped
+      const next = headerTranslateY.value - diff;
+      headerTranslateY.value = Math.min(0, Math.max(-HEADER_CONTENT_HEIGHT, next));
+    },
+    onEndDrag: () => {
+      // Snap to fully visible or fully hidden
+      const target = headerTranslateY.value < -HEADER_CONTENT_HEIGHT / 2
+        ? -HEADER_CONTENT_HEIGHT
+        : 0;
+      headerTranslateY.value = withTiming(target, SNAP_CONFIG);
+    },
+    onMomentumEnd: () => {
+      const target = headerTranslateY.value < -HEADER_CONTENT_HEIGHT / 2
+        ? -HEADER_CONTENT_HEIGHT
+        : 0;
+      headerTranslateY.value = withTiming(target, SNAP_CONFIG);
+    },
+  });
+
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: headerTranslateY.value }],
+      opacity: interpolate(
+        headerTranslateY.value,
+        [-HEADER_CONTENT_HEIGHT, 0],
+        [0, 1],
+        Extrapolation.CLAMP,
+      ),
+    };
+  });
+
+  // Fetch data on mount — deferred until after mount + animation settle
   useEffect(() => {
-    fetchDogs().then(() => fetchLastTriageDates());
-    fetchArticles();
+    const handle = InteractionManager.runAfterInteractions(() => {
+      fetchDogs().then(() => fetchLastTriageDates());
+      fetchArticles();
+    });
+    return () => handle.cancel();
   }, []);
 
   // Fetch current month check-ins for week strip
   useEffect(() => {
     if (selectedDogId) {
-      const now = new Date();
-      fetchMonthData(selectedDogId, now.getFullYear(), now.getMonth() + 1);
+      const handle = InteractionManager.runAfterInteractions(() => {
+        const now = new Date();
+        fetchMonthData(selectedDogId, now.getFullYear(), now.getMonth() + 1);
+      });
+      return () => handle.cancel();
     }
   }, [selectedDogId]);
 
@@ -410,7 +372,6 @@ export default function HomeScreen() {
   }, []);
 
   const todayCheckIn = calendarData[todayStr] ?? null;
-  const hasCheckInToday = todayCheckIn !== null;
   const streak = selectedDog?.checkin_streak ?? 0;
 
   // Fall back to most recent check-in for mood ring + energy when no today check-in
@@ -422,11 +383,126 @@ export default function HomeScreen() {
   }, [todayCheckIn, calendarData]);
   const hasAnyCheckIn = latestCheckIn !== null;
 
-  // Articles for Sniff Around
+  // Articles for Sniff Around — personalized based on recent check-in data
   const sniffArticles = useMemo(() => {
     const allArticles = sections.flatMap((s) => s.articles);
-    return allArticles.slice(0, 5);
-  }, [sections]);
+    if (allArticles.length === 0) return [];
+
+    // Map abnormal check-in values to relevant article slugs
+    const RELEVANCE_MAP: Record<string, string[]> = {
+      // Appetite issues
+      'appetite:less': ['reading-food-labels', 'new-dog-wont-eat', 'age-appropriate-feeding'],
+      'appetite:barely': ['new-dog-wont-eat', 'one-bad-day', 'prepare-for-vet'],
+      'appetite:refusing': ['new-dog-wont-eat', 'urgent-vs-routine', 'prepare-for-vet'],
+      'appetite:more': ['cushings-disease', 'age-appropriate-feeding', 'reading-food-labels'],
+      // Water intake
+      'water_intake:less': ['skin-turgor-test', 'one-bad-day'],
+      'water_intake:much_less': ['skin-turgor-test', 'urgent-vs-routine', 'prepare-for-vet'],
+      'water_intake:more': ['cushings-disease', 'skin-turgor-test'],
+      'water_intake:excessive': ['cushings-disease', 'urgent-vs-routine'],
+      // Energy
+      'energy_level:low': ['one-bad-day', 'exercise-enrichment'],
+      'energy_level:lethargic': ['urgent-vs-routine', 'one-bad-day', 'prepare-for-vet'],
+      'energy_level:barely_moving': ['urgent-vs-routine', 'before-the-er', 'prepare-for-vet'],
+      // Stool
+      'stool_quality:soft': ['normal-poop', 'digestion-foods'],
+      'stool_quality:diarrhea': ['normal-poop', 'digestion-foods', 'one-bad-day'],
+      'stool_quality:constipated': ['normal-poop', 'digestion-foods'],
+      'stool_quality:blood': ['urgent-vs-routine', 'before-the-er', 'prepare-for-vet'],
+      // Vomiting
+      'vomiting:once': ['dog-throwing-up', 'one-bad-day'],
+      'vomiting:multiple': ['dog-throwing-up', 'urgent-vs-routine', 'toxic-foods'],
+      'vomiting:dry_heaving': ['bloat-gdv', 'before-the-er', 'urgent-vs-routine'],
+      // Mobility
+      'mobility:stiff': ['exercise-enrichment', 'monthly-health-check'],
+      'mobility:limping': ['urgent-vs-routine', 'prepare-for-vet'],
+      'mobility:reluctant': ['exercise-enrichment', 'stress-signals'],
+      'mobility:difficulty_rising': ['urgent-vs-routine', 'prepare-for-vet'],
+      // Mood
+      'mood:anxious': ['separation-anxiety', 'stress-signals'],
+      'mood:clingy': ['stress-signals', 'separation-anxiety'],
+      'mood:hiding': ['stress-signals', 'one-bad-day'],
+      'mood:aggressive': ['stress-signals', 'urgent-vs-routine'],
+      'mood:quiet': ['one-bad-day', 'stress-signals'],
+    };
+
+    // Score articles based on recent check-ins (last 7 days)
+    const recentCheckIns = Object.values(calendarData)
+      .sort((a, b) => b.check_in_date.localeCompare(a.check_in_date))
+      .slice(0, 7);
+
+    const slugScores: Record<string, number> = {};
+
+    for (const checkIn of recentCheckIns) {
+      const fields: [string, string | null][] = [
+        ['appetite', checkIn.appetite],
+        ['water_intake', checkIn.water_intake],
+        ['energy_level', checkIn.energy_level],
+        ['stool_quality', checkIn.stool_quality],
+        ['vomiting', checkIn.vomiting],
+        ['mobility', checkIn.mobility],
+        ['mood', checkIn.mood],
+      ];
+
+      for (const [field, value] of fields) {
+        if (!value) continue;
+        const key = `${field}:${value}`;
+        const relevantSlugs = RELEVANCE_MAP[key];
+        if (relevantSlugs) {
+          for (const slug of relevantSlugs) {
+            slugScores[slug] = (slugScores[slug] ?? 0) + 1;
+          }
+        }
+      }
+    }
+
+    // Sort articles by relevance score, then fill remaining with general picks
+    const scoredSlugs = Object.entries(slugScores)
+      .sort((a, b) => b[1] - a[1])
+      .map(([slug]) => slug);
+
+    const GENERAL_SLUGS = [
+      'monthly-health-check', 'what-vet-wishes', 'building-baseline',
+      'prepare-for-vet', 'normal-poop',
+    ];
+
+    // New users with no check-ins get starter articles
+    const NO_CHECKIN_SLUGS = [
+      'building-baseline', 'monthly-health-check', 'normal-poop',
+      'what-vet-wishes', 'first-year-milestones',
+    ];
+
+    const orderedSlugs = recentCheckIns.length === 0
+      ? NO_CHECKIN_SLUGS
+      : [...scoredSlugs, ...GENERAL_SLUGS];
+
+    // Deduplicate and pick top 5 that exist in articles
+    const articleMap = new Map(allArticles.map((a) => [a.slug, a]));
+    const picked: Article[] = [];
+    const seen = new Set<string>();
+
+    for (const slug of orderedSlugs) {
+      if (seen.has(slug)) continue;
+      const article = articleMap.get(slug);
+      if (article) {
+        picked.push(article);
+        seen.add(slug);
+      }
+      if (picked.length >= 5) break;
+    }
+
+    // If we still have fewer than 5, fill with remaining articles
+    if (picked.length < 5) {
+      for (const article of allArticles) {
+        if (seen.has(article.slug)) continue;
+        picked.push(article);
+        seen.add(article.slug);
+        if (picked.length >= 5) break;
+      }
+    }
+
+    return picked;
+  }, [sections, calendarData]);
 
   const handleCheckIn = (dog?: Dog) => {
     const d = dog ?? selectedDog;
@@ -436,18 +512,11 @@ export default function HomeScreen() {
     }
   };
 
-  const handleDigPress = (step: number) => {
-    if (selectedDog) {
-      selectDog(selectedDog.id);
-      router.push('/check-in');
-    }
-  };
-
-  const userInitial = user?.email?.[0]?.toUpperCase() ?? '?';
 
   // Empty state
   if (dogs.length === 0 && !isLoading) {
     return (
+      <Animated.View style={[{ flex: 1 }, focusStyle]}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.emptyState}>
           <View style={[styles.emptyLogo, SHADOWS.elevated]}>
@@ -470,48 +539,25 @@ export default function HomeScreen() {
           </View>
         </View>
       </SafeAreaView>
+      </Animated.View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: TAB_BAR_HEIGHT }]}
+    <Animated.View style={[{ flex: 1 }, focusStyle]}>
+    <View style={styles.safe}>
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + HEADER_CONTENT_HEIGHT, paddingBottom: TAB_BAR_HEIGHT }]}
         refreshControl={
           <RefreshControl refreshing={isLoading} onRefresh={onRefresh} tintColor={COLORS.textPrimary} />
         }
       >
-        {/* Header Bar */}
-        <View style={styles.headerBar}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>{userInitial}</Text>
-          </View>
-          <View style={styles.headerCenter}>
-            <Text style={styles.greeting}>{getGreeting()}</Text>
-            <Text style={styles.headerTitle}>Home Base</Text>
-          </View>
-          <Pressable
-            style={styles.calendarBtn}
-            onPress={() => router.push('/(tabs)/health')}
-            accessibilityRole="button"
-            accessibilityLabel="View health calendar"
-          >
-            <MaterialCommunityIcons name="calendar-heart" size={24} color={COLORS.textPrimary} />
-          </Pressable>
+        {/* Greeting — scrolls with content */}
+        <View style={styles.greetingRow}>
+          <Text style={styles.greeting}>{getGreeting()}, {(user?.user_metadata?.first_name as string) || 'friend'}</Text>
         </View>
-
-        {/* Dog Selector */}
-        {dogs.length > 1 && selectedDog && (
-          <Pressable
-            style={styles.dogSelectorRow}
-            onPress={() => setShowDogSelector(true)}
-            accessibilityRole="button"
-            accessibilityLabel={`Viewing ${selectedDog.name}. Tap to switch dogs.`}
-          >
-            <Text style={styles.selectedDogName}>{selectedDog.name}</Text>
-            <Text style={styles.switchText}>Switch</Text>
-          </Pressable>
-        )}
 
         {/* Week Strip */}
         <View style={styles.weekStrip}>
@@ -537,12 +583,31 @@ export default function HomeScreen() {
           })}
         </View>
 
-        {/* Mood Ring */}
-        <MoodRing
-          streak={streak}
-          mood={latestCheckIn?.mood ?? null}
-          hasCheckIn={hasAnyCheckIn}
-        />
+        {/* Dog Selector */}
+        {dogs.length > 1 && selectedDog && (
+          <Pressable
+            style={styles.dogSelectorRow}
+            onPress={() => setShowDogSelector(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`Viewing ${selectedDog.name}. Tap to switch dogs.`}
+          >
+            <View style={{ flex: 1 }} />
+            <Text style={styles.switchText}>Switch</Text>
+          </Pressable>
+        )}
+
+        {/* Dog Profile Card */}
+        {selectedDog && (
+          <FlippableDogCard
+            dog={selectedDog}
+            onEditPress={() => router.push({ pathname: '/edit-dog', params: { id: selectedDog.id } })}
+          />
+        )}
+
+        {/* Streak Counter */}
+        <View style={styles.streakContainer}>
+          <StreakCounter streak={streak} />
+        </View>
 
         {/* Energy Card */}
         <EnergyCard
@@ -550,54 +615,27 @@ export default function HomeScreen() {
           hasCheckIn={hasAnyCheckIn}
         />
 
-        {/* Daily Digs */}
-        <View style={styles.digsSection}>
-          <Text style={styles.sectionTitle}>Daily Digs</Text>
-          <View style={styles.digsGrid}>
-            {DAILY_DIGS.map((dig, i) => (
-              <Pressable
-                key={dig.key}
-                style={({ pressed }) => [
-                  styles.digCard,
-                  SHADOWS.card,
-                  i === 0 && styles.digCardHighlight,
-                  pressed && { opacity: 0.85 },
-                ]}
-                onPress={() => handleDigPress(dig.step)}
-                accessibilityRole="button"
-                accessibilityLabel={`Log ${dig.label}`}
-              >
-                <MaterialCommunityIcons
-                  name={dig.icon}
-                  size={24}
-                  color={i === 0 ? '#FFFFFF' : COLORS.textPrimary}
-                />
-                <Text style={[
-                  styles.digLabel,
-                  i === 0 && styles.digLabelHighlight,
-                ]}>
-                  {dig.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
 
         {/* Sniff Around — Article carousel */}
         {sniffArticles.length > 0 && (
           <View style={styles.sniffSection}>
-            <Text style={styles.sectionTitle}>Sniff Around</Text>
+            <Text style={[styles.sectionTitle, { paddingLeft: SPACING.md }]}>Sniff Around</Text>
             <FlatList
               horizontal
               data={sniffArticles}
               keyExtractor={(item) => item.slug}
-              renderItem={({ item }) => (
-                <SniffArticleCard
-                  article={item}
-                  sectionMeta={getSectionMeta(item.section)}
-                  onPress={() => router.push(`/article/${item.slug}`)}
-                />
-              )}
+              renderItem={({ item }) => {
+                const meta = getSectionMeta(item.section);
+                return (
+                  <SniffArticleCard
+                    article={item}
+                    sectionMeta={meta}
+                    onPress={(rect, iconName, bgColor) => {
+                      startTransition(item.slug, rect, meta?.accentColor ?? null, iconName, bgColor);
+                    }}
+                  />
+                );
+              }}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.sniffList}
             />
@@ -617,13 +655,33 @@ export default function HomeScreen() {
         <View style={styles.disclaimerContainer}>
           <DisclaimerFooter />
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+
+      {/* Status bar background — fixed, never moves */}
+      <View style={[styles.headerStatusBar, { height: insets.top }]} />
+
+      {/* Floating header content — slides up/down with scroll */}
+      <Animated.View style={[styles.headerContent, { top: insets.top }, headerAnimatedStyle]}>
+        <View style={styles.avatarCircle}>
+          <Image source={require('../../assets/logo-transparent.png')} style={styles.avatarImage} />
+        </View>
+        <View style={{ flex: 1 }} />
+        <Pressable
+          style={styles.calendarBtn}
+          onPress={() => router.push('/(tabs)/health')}
+          accessibilityRole="button"
+          accessibilityLabel="View health calendar"
+        >
+          <MaterialCommunityIcons name="calendar-heart" size={24} color={COLORS.textPrimary} />
+        </Pressable>
+      </Animated.View>
 
       <DogSelector
         visible={showDogSelector}
         onClose={() => setShowDogSelector(false)}
       />
-    </SafeAreaView>
+    </View>
+    </Animated.View>
   );
 }
 
@@ -635,39 +693,56 @@ const styles = StyleSheet.create({
   scroll: {
     paddingBottom: TAB_BAR_HEIGHT,
   },
-  // Header
-  headerBar: {
+  // Floating Header — two layers
+  headerStatusBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.background,
+    zIndex: 11,
+  },
+  headerContent: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.background,
+    zIndex: 10,
+  },
+  greetingRow: {
+    paddingHorizontal: SPACING.md,
     paddingTop: SPACING.sm,
-    paddingBottom: SPACING.md,
+    marginBottom: SPACING.sm,
+    alignItems: 'center',
   },
   avatarCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.accent,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   avatarText: {
     color: '#FFFFFF',
     fontSize: FONT_SIZES.lg,
     fontWeight: '700',
   },
-  headerCenter: {
-    flex: 1,
-    marginLeft: SPACING.sm,
-  },
   greeting: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.textSecondary,
-  },
-  headerTitle: {
     fontFamily: FONTS.heading,
     fontSize: 22,
     color: COLORS.textPrimary,
+    textAlign: 'center',
   },
   calendarBtn: {
     width: MIN_TOUCH_TARGET,
@@ -736,10 +811,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
     marginTop: 3,
   },
-  // Daily Digs
-  digsSection: {
-    paddingHorizontal: SPACING.md,
-    marginBottom: SPACING.lg,
+  streakContainer: {
+    marginBottom: SPACING.md,
   },
   sectionTitle: {
     fontFamily: FONTS.heading,
@@ -747,40 +820,13 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     marginBottom: SPACING.sm,
   },
-  digsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
-  },
-  digCard: {
-    width: '48%' as any,
-    flexGrow: 1,
-    flexBasis: '45%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: BORDER_RADIUS.xl,
-    paddingVertical: SPACING.lg,
-    alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  digCardHighlight: {
-    backgroundColor: COLORS.accent,
-  },
-  digLabel: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  digLabelHighlight: {
-    color: '#FFFFFF',
-  },
   // Sniff Around
   sniffSection: {
     marginBottom: SPACING.lg,
-    paddingLeft: SPACING.md,
   },
   sniffList: {
     gap: SPACING.sm,
-    paddingRight: SPACING.md,
+    paddingHorizontal: SPACING.md,
   },
   // Getting Started
   gettingStarted: {

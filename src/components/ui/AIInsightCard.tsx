@@ -8,6 +8,18 @@ interface AIInsightCardProps {
   onArticlePress: (slug: string) => void;
 }
 
+function formatRelativeDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export function AIInsightCard({ insight, onArticlePress }: AIInsightCardProps) {
   const leftColor = insight.is_positive
     ? COLORS.success
@@ -22,6 +34,7 @@ export function AIInsightCard({ insight, onArticlePress }: AIInsightCardProps) {
             <Text style={styles.positiveText}>Good sign</Text>
           </View>
         )}
+        <Text style={styles.dateText}>{formatRelativeDate(insight.created_at)}</Text>
       </View>
 
       <Text style={styles.title}>{insight.title}</Text>
@@ -67,6 +80,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.sm,
     marginBottom: SPACING.sm,
+  },
+  dateText: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textDisabled,
+    marginLeft: 'auto',
   },
   positiveBadge: {
     backgroundColor: '#E8F5E9',

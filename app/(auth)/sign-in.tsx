@@ -56,7 +56,7 @@ export default function SignIn() {
           {/* Logo Section */}
           <View style={styles.logoSection}>
             <Image
-              source={require('../../assets/splash-icon.png')}
+              source={require('../../assets/logo-transparent.png')}
               style={styles.logo}
               resizeMode="contain"
             />

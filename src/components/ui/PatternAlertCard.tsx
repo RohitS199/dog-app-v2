@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET, ALERT_LEVEL_CONFIG } from '../../constants/theme';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, MIN_TOUCH_TARGET, ALERT_LEVEL_CONFIG, SHADOWS } from '../../constants/theme';
 import type { PatternAlert } from '../../types/health';
 import { AlertLevelBadge } from './AlertLevelBadge';
 
@@ -8,9 +8,19 @@ interface PatternAlertCardProps {
   onDismiss: (alertId: string) => void;
 }
 
+function formatAlertDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export function PatternAlertCard({ alert, onDismiss }: PatternAlertCardProps) {
   const config = ALERT_LEVEL_CONFIG[alert.alert_level];
   const isVetRecommended = alert.alert_level === 'vet_recommended';
+  const firstDate = formatAlertDate(alert.first_detected);
+  const lastDate = formatAlertDate(alert.last_confirmed);
+  const dateLabel = firstDate === lastDate
+    ? `Detected ${firstDate}`
+    : `${firstDate} — ${lastDate}`;
 
   return (
     <View
@@ -30,6 +40,7 @@ export function PatternAlertCard({ alert, onDismiss }: PatternAlertCardProps) {
       </View>
 
       <Text style={styles.title}>{alert.title}</Text>
+      <Text style={styles.dateLabel}>{dateLabel}</Text>
       <Text style={styles.message}>{alert.message}</Text>
 
       {alert.ai_insight && (
@@ -51,12 +62,11 @@ export function PatternAlertCard({ alert, onDismiss }: PatternAlertCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     borderLeftWidth: 4,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: 20,
     marginBottom: SPACING.sm,
+    ...SHADOWS.card,
   },
   header: {
     flexDirection: 'row',
@@ -74,9 +84,14 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   title: {
-    fontSize: FONT_SIZES.md,
-    fontWeight: '600',
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '700',
     color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  dateLabel: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textDisabled,
     marginBottom: SPACING.xs,
   },
   message: {

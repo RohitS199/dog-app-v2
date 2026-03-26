@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { COLORS, FONT_SIZES, SPACING, CALENDAR_STATUS_CONFIG, MIN_TOUCH_TARGET } from '../../constants/theme';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, CALENDAR_STATUS_CONFIG, MIN_TOUCH_TARGET } from '../../constants/theme';
 import type { CalendarDayStatus } from '../../types/health';
 
 interface CalendarGridProps {
@@ -11,6 +11,7 @@ interface CalendarGridProps {
 }
 
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const CELL_HEIGHT = 56;
 
 function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
@@ -18,44 +19,6 @@ function getDaysInMonth(year: number, month: number): number {
 
 function getFirstDayOfMonth(year: number, month: number): number {
   return new Date(year, month - 1, 1).getDay();
-}
-
-function StatusIndicator({ status }: { status: CalendarDayStatus }) {
-  const config = CALENDAR_STATUS_CONFIG[status];
-
-  if (status === 'future' || config.shape === 'none') return null;
-
-  if (config.shape === 'dash') {
-    return (
-      <View style={[indicatorStyles.dash, { backgroundColor: config.color }]} />
-    );
-  }
-
-  if (config.shape === 'circle') {
-    return (
-      <View style={[indicatorStyles.circle, { backgroundColor: config.color }]} />
-    );
-  }
-
-  if (config.shape === 'circle_outlined') {
-    return (
-      <View style={[indicatorStyles.circleOutlined, { borderColor: config.color }]} />
-    );
-  }
-
-  if (config.shape === 'triangle') {
-    return (
-      <View style={[indicatorStyles.triangle, { borderBottomColor: config.color }]} />
-    );
-  }
-
-  if (config.shape === 'diamond') {
-    return (
-      <View style={[indicatorStyles.diamond, { backgroundColor: config.color }]} />
-    );
-  }
-
-  return null;
 }
 
 export function CalendarGrid({
@@ -68,9 +31,18 @@ export function CalendarGrid({
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
 
+  // Build rows of 7 cells
   const cells: (number | null)[] = [];
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const rows: (number | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    rows.push(cells.slice(i, i + 7));
+  }
+  // Pad last row to 7 cells
+  const lastRow = rows[rows.length - 1];
+  while (lastRow.length < 7) lastRow.push(null);
 
   return (
     <View style={styles.container}>
@@ -83,44 +55,58 @@ export function CalendarGrid({
         ))}
       </View>
 
-      {/* Calendar grid */}
-      <View style={styles.grid}>
-        {cells.map((day, index) => {
-          if (day === null) {
-            return <View key={`empty-${index}`} style={styles.cell} />;
-          }
+      {/* Calendar rows with grid lines */}
+      {rows.map((row, rowIndex) => (
+        <View
+          key={`row-${rowIndex}`}
+          style={[
+            styles.row,
+            rowIndex < rows.length - 1 && styles.rowBorder,
+          ]}
+        >
+          {row.map((day, colIndex) => {
+            if (day === null) {
+              return <View key={`empty-${rowIndex}-${colIndex}`} style={styles.cell} />;
+            }
 
-          const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          const status = dayStatuses[dateStr] ?? 'future';
-          const isToday = dateStr === todayString;
+            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const status = dayStatuses[dateStr] ?? 'future';
+            const isToday = dateStr === todayString;
+            const dotColor = status !== 'future' ? CALENDAR_STATUS_CONFIG[status].color : null;
 
-          return (
-            <Pressable
-              key={dateStr}
-              style={[styles.cell, isToday && styles.todayCell]}
-              onPress={() => onDayPress(dateStr)}
-              accessibilityRole="button"
-              accessibilityLabel={`${dateStr}, status: ${status}`}
-            >
-              <Text style={[styles.dayNumber, isToday && styles.todayText]}>
-                {day}
-              </Text>
-              <StatusIndicator status={status} />
-            </Pressable>
-          );
-        })}
-      </View>
+            return (
+              <Pressable
+                key={dateStr}
+                style={styles.cell}
+                onPress={() => onDayPress(dateStr)}
+                accessibilityRole="button"
+                accessibilityLabel={`${dateStr}, status: ${status}`}
+              >
+                <View style={[styles.dayCircle, isToday && styles.todayCircle]}>
+                  <Text style={[styles.dayNumber, isToday && styles.todayText]}>
+                    {day}
+                  </Text>
+                </View>
+                {dotColor ? (
+                  <View style={[styles.dot, { backgroundColor: dotColor }]} />
+                ) : (
+                  <View style={styles.dotSpacer} />
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    ...SHADOWS.elevated,
   },
   headerRow: {
     flexDirection: 'row',
@@ -134,22 +120,30 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: FONT_SIZES.xs,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: COLORS.textDisabled,
   },
-  grid: {
+  row: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+  },
+  rowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.border,
   },
   cell: {
-    width: `${100 / 7}%`,
-    height: MIN_TOUCH_TARGET,
+    flex: 1,
+    height: CELL_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 2,
   },
-  todayCell: {
-    backgroundColor: COLORS.accentLight,
-    borderRadius: 8,
+  dayCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  todayCircle: {
+    backgroundColor: COLORS.accent,
   },
   dayNumber: {
     fontSize: FONT_SIZES.sm,
@@ -157,44 +151,16 @@ const styles = StyleSheet.create({
   },
   todayText: {
     fontWeight: '700',
-    color: COLORS.accent,
+    color: '#FFFFFF',
   },
-});
-
-const indicatorStyles = StyleSheet.create({
-  circle: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginTop: 2,
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 3,
   },
-  circleOutlined: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    marginTop: 2,
-  },
-  triangle: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 4,
-    borderRightWidth: 4,
-    borderBottomWidth: 7,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    marginTop: 2,
-  },
-  diamond: {
-    width: 7,
-    height: 7,
-    transform: [{ rotate: '45deg' }],
-    marginTop: 2,
-  },
-  dash: {
-    width: 12,
-    height: 2,
-    borderRadius: 1,
-    marginTop: 4,
+  dotSpacer: {
+    height: 6,
+    marginTop: 3,
   },
 });

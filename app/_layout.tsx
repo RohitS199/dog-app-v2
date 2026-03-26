@@ -70,7 +70,7 @@ function BrandedSplash() {
     <View style={splashStyles.container}>
       <Animated.View style={[splashStyles.logoContainer, { opacity: fadeAnim }]}>
         <Image
-          source={require('../assets/splash-icon.png')}
+          source={require('../assets/logo-transparent.png')}
           style={splashStyles.logo}
           resizeMode="contain"
         />

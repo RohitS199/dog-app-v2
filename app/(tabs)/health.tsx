@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, InteractionManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated from 'react-native-reanimated';
 import { useRouter, useNavigation } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTabFocusAnimation } from '../../src/hooks/useTabFocusAnimation';
 import { useDogStore } from '../../src/stores/dogStore';
 import { useHealthStore } from '../../src/stores/healthStore';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, FONTS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
@@ -12,7 +16,7 @@ import { CalendarGrid } from '../../src/components/ui/CalendarGrid';
 import { DayDetailSheet } from '../../src/components/ui/DayDetailSheet';
 import { StreakCounter } from '../../src/components/ui/StreakCounter';
 import { ConsistencyCard } from '../../src/components/ui/ConsistencyCard';
-import { PatternAlertCard } from '../../src/components/ui/PatternAlertCard';
+import { AlertCardStack } from '../../src/components/ui/AlertCardStack';
 import { AIInsightCard } from '../../src/components/ui/AIInsightCard';
 import { HealthSummaryCard } from '../../src/components/ui/HealthSummaryCard';
 import { DogSelector } from '../../src/components/ui/DogSelector';
@@ -25,6 +29,7 @@ function getTodayString(): string {
 }
 
 export default function HealthScreen() {
+  const focusStyle = useTabFocusAnimation();
   const { dogs, selectedDogId } = useDogStore();
   const selectedDog = dogs.find((d) => d.id === selectedDogId);
   const [showDogSelector, setShowDogSelector] = useState(false);
@@ -49,15 +54,21 @@ export default function HealthScreen() {
 
   useEffect(() => {
     if (selectedDogId) {
-      fetchMonthData(selectedDogId, viewYear, viewMonth);
-      fetchActiveAlerts(selectedDogId);
+      const handle = InteractionManager.runAfterInteractions(() => {
+        fetchMonthData(selectedDogId, viewYear, viewMonth);
+        fetchActiveAlerts(selectedDogId);
+      });
+      return () => handle.cancel();
     }
   }, [selectedDogId, viewYear, viewMonth]);
 
   // AI insights are dog-scoped, not month-scoped — separate useEffect
   useEffect(() => {
     if (selectedDogId) {
-      fetchAIInsights(selectedDogId);
+      const handle = InteractionManager.runAfterInteractions(() => {
+        fetchAIInsights(selectedDogId);
+      });
+      return () => handle.cancel();
     }
   }, [selectedDogId]);
 
@@ -166,15 +177,19 @@ export default function HealthScreen() {
 
   if (!selectedDog) {
     return (
+      <Animated.View style={[{ flex: 1 }, focusStyle]}>
       <SafeAreaView style={styles.safe}>
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>Add a dog to start tracking health.</Text>
         </View>
       </SafeAreaView>
+      </Animated.View>
     );
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+    <Animated.View style={[{ flex: 1 }, focusStyle]}>
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Dog selector */}
@@ -195,23 +210,25 @@ export default function HealthScreen() {
 
         {/* Month navigation */}
         <View style={styles.monthNav}>
-          <Pressable
-            style={styles.navButton}
-            onPress={handlePrevMonth}
-            accessibilityRole="button"
-            accessibilityLabel="Previous month"
-          >
-            <Text style={styles.navArrow} accessibilityElementsHidden>{'<'}</Text>
-          </Pressable>
           <Text style={styles.monthLabel}>{monthLabel}</Text>
-          <Pressable
-            style={styles.navButton}
-            onPress={handleNextMonth}
-            accessibilityRole="button"
-            accessibilityLabel="Next month"
-          >
-            <Text style={styles.navArrow} accessibilityElementsHidden>{'>'}</Text>
-          </Pressable>
+          <View style={styles.navButtons}>
+            <Pressable
+              style={styles.navButton}
+              onPress={handlePrevMonth}
+              accessibilityRole="button"
+              accessibilityLabel="Previous month"
+            >
+              <MaterialCommunityIcons name="chevron-left" size={24} color={COLORS.textPrimary} />
+            </Pressable>
+            <Pressable
+              style={styles.navButton}
+              onPress={handleNextMonth}
+              accessibilityRole="button"
+              accessibilityLabel="Next month"
+            >
+              <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS.textPrimary} />
+            </Pressable>
+          </View>
         </View>
 
         {/* Loading / Error */}
@@ -265,18 +282,10 @@ export default function HealthScreen() {
         )}
 
         {/* Active alerts */}
-        {activeAlerts.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Active Alerts</Text>
-            {activeAlerts.map((alert) => (
-              <PatternAlertCard
-                key={alert.id}
-                alert={alert}
-                onDismiss={dismissAlert}
-              />
-            ))}
-          </View>
-        )}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Active Alerts</Text>
+          <AlertCardStack alerts={activeAlerts} onDismiss={dismissAlert} />
+        </View>
       </ScrollView>
 
       {/* Day detail sheet */}
@@ -293,6 +302,8 @@ export default function HealthScreen() {
         onClose={() => setShowDogSelector(false)}
       />
     </SafeAreaView>
+    </Animated.View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -328,21 +339,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: SPACING.md,
   },
+  monthLabel: {
+    fontFamily: FONTS.heading,
+    fontSize: 24,
+    color: COLORS.textPrimary,
+  },
+  navButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   navButton: {
     minWidth: MIN_TOUCH_TARGET,
     minHeight: MIN_TOUCH_TARGET,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  navArrow: {
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.primary,
-    fontWeight: '700',
-  },
-  monthLabel: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
   },
   section: {
     marginTop: SPACING.lg,

@@ -52,6 +52,7 @@ export interface Dog {
   breed: string;
   age_years: number;
   weight_lbs: number;
+  photo_url: string | null;
   vet_phone: string | null;
   created_at: string;
   updated_at: string;

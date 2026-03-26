@@ -15,6 +15,8 @@ interface AuthState {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   changePassword: (newPassword: string) => Promise<void>;
+  updateAvatar: (uri: string) => Promise<void>;
+  updateProfile: (fields: { first_name?: string; last_name?: string }) => Promise<void>;
   checkTermsAcceptance: () => Promise<boolean>;
   setSession: (session: Session | null) => void;
 }
@@ -70,6 +72,49 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   changePassword: async (newPassword) => {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
+  },
+
+  updateAvatar: async (uri) => {
+    const user = get().user;
+    if (!user) throw new Error('Not authenticated');
+
+    const filePath = `${user.id}/avatar.jpg`;
+
+    // Upload using FormData (React Native compatible)
+    const formData = new FormData();
+    formData.append('file', {
+      uri,
+      name: 'avatar.jpg',
+      type: 'image/jpeg',
+    } as any);
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, formData, {
+        upsert: true,
+        contentType: 'multipart/form-data',
+      });
+    if (uploadError) throw uploadError;
+
+    // Get public URL with cache buster
+    const { data: urlData } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+    const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    // Save to user metadata
+    const { data, error: updateError } = await supabase.auth.updateUser({
+      data: { avatar_url: avatarUrl },
+    });
+    if (updateError) throw updateError;
+
+    set({ user: data.user });
+  },
+
+  updateProfile: async (fields) => {
+    const { data, error } = await supabase.auth.updateUser({ data: fields });
+    if (error) throw error;
+    set({ user: data.user });
   },
 
   checkTermsAcceptance: async () => {

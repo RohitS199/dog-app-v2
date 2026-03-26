@@ -1,7 +1,11 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTabFocusAnimation } from '../../src/hooks/useTabFocusAnimation';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useDogStore } from '../../src/stores/dogStore';
 import { useTriageStore } from '../../src/stores/triageStore';
@@ -52,15 +56,73 @@ function SettingsRow({
 }
 
 export default function SettingsScreen() {
+  const focusStyle = useTabFocusAnimation();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
+  const updateAvatar = useAuthStore((s) => s.updateAvatar);
+  const updateProfile = useAuthStore((s) => s.updateProfile);
   const { dogs } = useDogStore();
   const clearDogs = useDogStore((s) => s.clearDogs);
   const clearAll = useTriageStore((s) => s.clearAll);
   const clearCheckIn = useCheckInStore((s) => s.clearAll);
   const clearHealth = useHealthStore((s) => s.clearHealth);
   const clearLearn = useLearnStore((s) => s.clearLearn);
+
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [firstName, setFirstName] = useState((user?.user_metadata?.first_name as string) ?? '');
+  const [lastName, setLastName] = useState((user?.user_metadata?.last_name as string) ?? '');
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  // Sync local state when user metadata changes (e.g. after save)
+  useEffect(() => {
+    setFirstName((user?.user_metadata?.first_name as string) ?? '');
+    setLastName((user?.user_metadata?.last_name as string) ?? '');
+  }, [user?.user_metadata?.first_name, user?.user_metadata?.last_name]);
+
+  const storedFirst = (user?.user_metadata?.first_name as string) ?? '';
+  const storedLast = (user?.user_metadata?.last_name as string) ?? '';
+  const nameChanged = firstName.trim() !== storedFirst || lastName.trim() !== storedLast;
+
+  const handleSaveName = async () => {
+    setIsSavingName(true);
+    try {
+      await updateProfile({ first_name: firstName.trim(), last_name: lastName.trim() });
+    } catch (err: any) {
+      Alert.alert('Save Failed', err.message ?? 'Could not update name.');
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
+  const userInitial = (firstName?.[0] ?? user?.email?.[0])?.toUpperCase() ?? '?';
+
+  const handlePickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Needed', 'Please allow photo access to set a profile picture.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+
+    setIsUploadingAvatar(true);
+    try {
+      await updateAvatar(result.assets[0].uri);
+    } catch (err: any) {
+      Alert.alert('Upload Failed', err.message ?? 'Could not update profile picture.');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   const handleSignOut = async () => {
     clearDogs();
@@ -72,13 +134,94 @@ export default function SettingsScreen() {
   };
 
   return (
+    <Animated.View style={[{ flex: 1 }, focusStyle]}>
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_HEIGHT }]}>
         <Text style={styles.pageTitle}>Settings</Text>
 
+        {/* Profile Picture */}
+        <View style={styles.profileSection}>
+          <Pressable
+            onPress={handlePickAvatar}
+            disabled={isUploadingAvatar}
+            accessibilityRole="button"
+            accessibilityLabel="Change profile picture"
+            style={styles.profileAvatarWrapper}
+          >
+            <View style={styles.profileAvatar}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.profileAvatarImage} />
+              ) : (
+                <Text style={styles.profileAvatarText}>{userInitial}</Text>
+              )}
+            </View>
+            <View style={styles.cameraOverlay}>
+              {isUploadingAvatar ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <MaterialCommunityIcons name="camera" size={14} color="#FFFFFF" />
+              )}
+            </View>
+          </Pressable>
+          <Pressable onPress={handlePickAvatar} disabled={isUploadingAvatar}>
+            <Text style={styles.changePhotoText}>
+              {isUploadingAvatar ? 'Uploading...' : 'Change Photo'}
+            </Text>
+          </Pressable>
+        </View>
+
         {/* Account Section */}
         <Text style={styles.sectionHeader}>Account</Text>
         <View style={[styles.card, SHADOWS.card]}>
+          <View style={styles.nameRow}>
+            <Text style={styles.nameLabel}>First Name</Text>
+            <TextInput
+              style={styles.nameInput}
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="First name"
+              placeholderTextColor={COLORS.textDisabled}
+              autoCapitalize="words"
+              autoCorrect={false}
+              returnKeyType="next"
+              accessibilityLabel="First name"
+            />
+          </View>
+          <View style={styles.separator} />
+          <View style={styles.nameRow}>
+            <Text style={styles.nameLabel}>Last Name</Text>
+            <TextInput
+              style={styles.nameInput}
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder="Last name"
+              placeholderTextColor={COLORS.textDisabled}
+              autoCapitalize="words"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={nameChanged ? handleSaveName : undefined}
+              accessibilityLabel="Last name"
+            />
+          </View>
+          {nameChanged && (
+            <>
+              <View style={styles.separator} />
+              <Pressable
+                style={({ pressed }) => [styles.settingsRow, pressed && styles.rowPressed]}
+                onPress={handleSaveName}
+                disabled={isSavingName}
+                accessibilityRole="button"
+                accessibilityLabel="Save name"
+              >
+                {isSavingName ? (
+                  <ActivityIndicator size="small" color={COLORS.accent} />
+                ) : (
+                  <Text style={styles.saveNameText}>Save</Text>
+                )}
+              </Pressable>
+            </>
+          )}
+          <View style={styles.separator} />
           <SettingsRow label="Email" value={user?.email ?? ''} />
           <View style={styles.separator} />
           <SettingsRow
@@ -174,6 +317,7 @@ export default function SettingsScreen() {
         </Pressable>
       </ScrollView>
     </SafeAreaView>
+    </Animated.View>
   );
 }
 
@@ -234,6 +378,29 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: COLORS.divider,
     marginLeft: SPACING.md,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    minHeight: MIN_TOUCH_TARGET,
+  },
+  nameLabel: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+    width: 100,
+  },
+  nameInput: {
+    flex: 1,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+    textAlign: 'right',
+    padding: 0,
+  },
+  saveNameText: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.accent,
+    fontWeight: '600',
   },
   dogRow: {
     flexDirection: 'row',
@@ -308,5 +475,51 @@ const styles = StyleSheet.create({
   deleteAccountText: {
     color: COLORS.error,
     fontSize: FONT_SIZES.sm,
+  },
+  profileSection: {
+    alignItems: 'center',
+    marginTop: SPACING.md,
+    marginBottom: SPACING.sm,
+  },
+  profileAvatarWrapper: {
+    position: 'relative',
+    marginBottom: SPACING.sm,
+  },
+  profileAvatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  profileAvatarImage: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+  },
+  profileAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 34,
+    fontWeight: '700',
+  },
+  cameraOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.background,
+  },
+  changePhotoText: {
+    color: COLORS.accent,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '600',
   },
 });

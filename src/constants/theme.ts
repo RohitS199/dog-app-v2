@@ -22,6 +22,7 @@ export const COLORS = {
   // Neutrals — Earthy palette
   background: '#FAFAFA',   // Limestone — main app background
   surface: '#D7CCC8',      // Topsoil — cards, containers, modules
+  card: '#EFEBE9',         // Warm cream — card backgrounds on #FAFAFA
   surfaceLight: '#F5F0ED', // Light tint for input fields
   textPrimary: '#3E2723',  // Dark Loam — maximum readability
   textSecondary: '#5D4037', // Medium brown — softer text

@@ -12,7 +12,8 @@ interface DogState {
   fetchDogs: () => Promise<void>;
   fetchLastTriageDates: () => Promise<void>;
   addDog: (dog: Omit<Dog, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'last_checkin_date' | 'checkin_streak' | 'health_summary'>) => Promise<Dog>;
-  updateDog: (id: string, updates: Partial<Pick<Dog, 'name' | 'breed' | 'age_years' | 'weight_lbs' | 'vet_phone'>>) => Promise<void>;
+  updateDog: (id: string, updates: Partial<Pick<Dog, 'name' | 'breed' | 'age_years' | 'weight_lbs' | 'vet_phone' | 'photo_url'>>) => Promise<void>;
+  updateDogPhoto: (dogId: string, uri: string) => Promise<void>;
   deleteDog: (id: string) => Promise<void>;
   selectDog: (id: string) => void;
   clearDogs: () => void;
@@ -104,6 +105,35 @@ export const useDogStore = create<DogState>((set, get) => ({
     set((state) => ({
       dogs: state.dogs.map((d) => (d.id === id ? { ...d, ...updates } : d)),
     }));
+  },
+
+  updateDogPhoto: async (dogId, uri) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const filePath = `${user.id}/${dogId}.jpg`;
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri,
+      name: `${dogId}.jpg`,
+      type: 'image/jpeg',
+    } as any);
+
+    const { error: uploadError } = await supabase.storage
+      .from('dog-photos')
+      .upload(filePath, formData, {
+        upsert: true,
+        contentType: 'multipart/form-data',
+      });
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabase.storage
+      .from('dog-photos')
+      .getPublicUrl(filePath);
+    const photo_url = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    await get().updateDog(dogId, { photo_url });
   },
 
   deleteDog: async (id) => {

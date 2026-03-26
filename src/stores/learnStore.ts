@@ -1,6 +1,9 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import type { Article, Section } from '../types/learn';
+
+const FAVORITES_KEY = 'puplog_favorite_articles';
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -55,10 +58,15 @@ interface LearnState {
   isLoading: boolean;
   error: string | null;
   lastFetched: number | null;
+  favoriteSlugs: string[];
 
   fetchArticles: (force?: boolean) => Promise<void>;
   getArticleBySlug: (slug: string) => Article | undefined;
   getSectionMeta: (sectionSlug: string) => Omit<Section, 'articles'> | undefined;
+  loadFavorites: () => Promise<void>;
+  toggleFavorite: (slug: string) => Promise<void>;
+  isFavorite: (slug: string) => boolean;
+  getFavoriteArticles: () => Article[];
   clearLearn: () => void;
 }
 
@@ -68,6 +76,7 @@ export const useLearnStore = create<LearnState>((set, get) => ({
   isLoading: false,
   error: null,
   lastFetched: null,
+  favoriteSlugs: [],
 
   fetchArticles: async (force = false) => {
     const { lastFetched, isLoading } = get();
@@ -134,12 +143,48 @@ export const useLearnStore = create<LearnState>((set, get) => ({
     return SECTION_META.find((s) => s.id === sectionSlug);
   },
 
-  clearLearn: () =>
+  loadFavorites: async () => {
+    try {
+      const stored = await AsyncStorage.getItem(FAVORITES_KEY);
+      if (stored) {
+        set({ favoriteSlugs: JSON.parse(stored) });
+      }
+    } catch {
+      // Silent fail — favorites are non-critical
+    }
+  },
+
+  toggleFavorite: async (slug: string) => {
+    const { favoriteSlugs } = get();
+    const updated = favoriteSlugs.includes(slug)
+      ? favoriteSlugs.filter((s) => s !== slug)
+      : [...favoriteSlugs, slug];
+    set({ favoriteSlugs: updated });
+    try {
+      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(updated));
+    } catch {
+      // Silent fail
+    }
+  },
+
+  isFavorite: (slug: string) => {
+    return get().favoriteSlugs.includes(slug);
+  },
+
+  getFavoriteArticles: () => {
+    const { articles, favoriteSlugs } = get();
+    return articles.filter((a) => favoriteSlugs.includes(a.slug));
+  },
+
+  clearLearn: () => {
+    AsyncStorage.removeItem(FAVORITES_KEY).catch(() => {});
     set({
       articles: [],
       sections: [],
       isLoading: false,
       error: null,
       lastFetched: null,
-    }),
+      favoriteSlugs: [],
+    });
+  },
 }));

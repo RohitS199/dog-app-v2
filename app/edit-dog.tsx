@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,6 +14,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { useDogStore } from '../src/stores/dogStore';
 import { InputField } from '../src/components/ui/InputField';
 import { Button } from '../src/components/ui/Button';
@@ -21,7 +24,7 @@ import { LIMITS } from '../src/constants/config';
 export default function EditDog() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { dogs, updateDog, deleteDog } = useDogStore();
+  const { dogs, updateDog, updateDogPhoto, deleteDog } = useDogStore();
   const dog = dogs.find((d) => d.id === id);
 
   const [name, setName] = useState('');
@@ -31,6 +34,7 @@ export default function EditDog() {
   const [vetPhone, setVetPhone] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   useEffect(() => {
     if (dog) {
@@ -54,6 +58,28 @@ export default function EditDog() {
       </SafeAreaView>
     );
   }
+
+  const handlePickPhoto = async () => {
+    if (!dog) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+
+    setIsUploadingPhoto(true);
+    try {
+      await updateDogPhoto(dog.id, result.assets[0].uri);
+    } catch (err: any) {
+      Alert.alert('Upload Failed', err.message ?? 'Could not upload photo.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   const handleSave = async () => {
     setError('');
@@ -145,6 +171,30 @@ export default function EditDog() {
           </View>
 
           <View style={styles.form}>
+            {/* Dog Photo */}
+            <Pressable
+              style={styles.photoWrapper}
+              onPress={handlePickPhoto}
+              disabled={isUploadingPhoto}
+              accessibilityRole="button"
+              accessibilityLabel="Change dog photo"
+            >
+              <View style={styles.photoCircle}>
+                {dog.photo_url ? (
+                  <Image source={{ uri: dog.photo_url }} style={styles.photoImage} />
+                ) : (
+                  <MaterialCommunityIcons name="paw" size={36} color={COLORS.textDisabled} />
+                )}
+              </View>
+              <View style={styles.photoCameraBadge}>
+                {isUploadingPhoto ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <MaterialCommunityIcons name="camera" size={14} color="#FFFFFF" />
+                )}
+              </View>
+            </Pressable>
+
             <InputField
               icon="paw"
               placeholder="Dog's name"
@@ -277,6 +327,37 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.heading,
     fontSize: 22,
     color: COLORS.textPrimary,
+  },
+  photoWrapper: {
+    alignSelf: 'center',
+    marginBottom: SPACING.lg,
+  },
+  photoCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.surfaceLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  photoImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  photoCameraBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.background,
   },
   form: {
     width: '100%',
