@@ -181,6 +181,30 @@ Cold start onboarding card on home screen.
 - Auto-dismisses when `checkin_streak >= 5`
 - White CTA button on Orange Collar (accent) background
 
+### FloatingTabBar.tsx
+Custom tab bar component rendered via `tabBar` prop in `(tabs)/_layout.tsx`.
+- **Props**: `BottomTabBarProps` from `@react-navigation/bottom-tabs`
+- Absolutely positioned pill-shaped bar at bottom of screen with Dark Loam background
+- 4 visible tabs (Home, Health, Learn, Settings) — Triage tab is hidden (`href: null`)
+- Centered FAB (+ button) for starting daily check-in (or adding first dog if none exist)
+- Settings tab shows user avatar or initial instead of icon
+- **FAB leak prevention**: Returns `null` when `useArticleTransitionStore().isExpanded` is true (hides tab bar during shared element article transitions). Root Stack also uses opaque `contentStyle` to prevent leak on pushed screens.
+- Active tab color: Orange Collar accent; inactive: semi-transparent Topsoil
+
+### ArticleExpandOverlay.tsx
+Full-screen animated overlay for Pinterest-style shared element article transitions.
+- Rendered as sibling to `<Tabs>` in `(tabs)/_layout.tsx` — covers entire screen including tab bar
+- Uses `react-native-reanimated` for FLIP animations from card origin rect to full-screen
+- Reads transition state from `useArticleTransitionStore`
+- Supports expand (card → full screen) and collapse (full screen → card) animations
+- Close triggers: back button, swipe-down gesture, tab switch
+
+### FlippableDogCard.tsx
+Animated dog profile card with flip-to-reveal interaction on the home screen.
+
+### FavoriteToast.tsx
+Toast notification for article favorite/unfavorite actions.
+
 ---
 
 ## __tests__/ — Component Tests (9 suites, 69 tests)

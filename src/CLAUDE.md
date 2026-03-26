@@ -8,13 +8,13 @@ All non-screen source code lives here. Screens are in `app/` (Expo Router), but 
 src/
 ├── components/
 │   ├── legal/       # Safety-critical legal/compliance components (5)
-│   ├── ui/          # General UI components (22)
+│   ├── ui/          # General UI components (31)
 │   └── __tests__/   # Component tests (9 suites, 69 tests)
 ├── constants/       # Theme tokens, config, loading tips, check-in questions
 ├── hooks/           # useAppState, useNetworkStatus
 ├── lib/             # Supabase client, emergency keywords, pattern rules, consistency score, day summary
 │   └── __tests__/   # Lib tests (5 suites, 105 tests)
-├── stores/          # Zustand state management (auth, dog, triage, checkIn, health, learn)
+├── stores/          # Zustand state management (7: auth, dog, triage, checkIn, health, learn, articleTransition)
 │   └── __tests__/   # Store tests (4 suites, 54 tests)
 └── types/           # TypeScript type definitions (api, checkIn, health, learn)
 ```

@@ -22,7 +22,7 @@ Session + terms → /(tabs)
 
 This works by watching `useSegments()` and checking auth state from `useAuthStore`. The `useAppState()` hook is also mounted here to handle app foreground/background transitions (session validation, auto-refresh toggling).
 
-**How it renders:** Uses `<Stack screenOptions={{ headerShown: false }} />` to render child routes. This provides native iOS swipe-back gestures on pushed screens (check-in, add-dog, etc.). Auth redirects use `router.replace()` which doesn't animate, so no unwanted transitions on redirect.
+**How it renders:** Uses `<Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.background } }} />` to render child routes. The opaque `contentStyle` background ensures pushed screens fully cover the absolutely-positioned FloatingTabBar in the tabs layout (prevents FAB/tab bar visual leak). This provides native iOS swipe-back gestures on pushed screens (check-in, add-dog, etc.). Auth redirects use `router.replace()` which doesn't animate, so no unwanted transitions on redirect.
 
 ## File Descriptions
 
@@ -31,7 +31,7 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 - Watches `session`, `isLoading`, `hasAcceptedTerms`, and `segments` to decide routing
 - Shows a centered `ActivityIndicator` while loading
 - Mounts `useAppState()` which manages session refresh on foreground/background
-- Uses `<Stack screenOptions={{ headerShown: false }} />` — enables native swipe-back gestures on iOS
+- Uses `<Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.background } }} />` — enables native swipe-back gestures on iOS, opaque background prevents FloatingTabBar leak on pushed screens
 
 ### (auth)/_layout.tsx
 - Simple `Stack` with `headerShown: false` and themed background color
@@ -60,6 +60,8 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 
 ### (tabs)/_layout.tsx
 - Bottom tab navigator with 5 tabs: Home (`index`), Health (`health`), Learn (`learn`), Triage (`triage`), Settings (`settings`)
+- Uses custom `FloatingTabBar` component as `tabBar` prop — absolutely positioned pill-shaped bar with centered FAB (+ button)
+- `ArticleExpandOverlay` rendered as sibling to `<Tabs>` for Pinterest-style shared element transitions
 - Tab icons use `MaterialCommunityIcons` from `@expo/vector-icons`: `home` (Home), `calendar-heart` (Health), `book-open-variant` (Learn), `stethoscope` (Triage), `cog-outline` (Settings)
 - Uses theme colors for active/inactive tint
 

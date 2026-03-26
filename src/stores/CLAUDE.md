@@ -1,6 +1,6 @@
 # src/stores/ — Zustand State Management
 
-Six Zustand stores manage all app state. Auth, dog, triage, and learn stores use the `create<Interface>((set, get) => ...)` pattern. The checkInStore additionally uses Zustand's `persist` middleware with AsyncStorage.
+Seven Zustand stores manage all app state. Auth, dog, triage, learn, and articleTransition stores use the `create<Interface>((set, get) => ...)` pattern. The checkInStore additionally uses Zustand's `persist` middleware with AsyncStorage.
 
 ## authStore.ts — Authentication State
 
@@ -243,3 +243,34 @@ Resets all state including `lastFetched: null`. Called on sign-out and account d
 
 10 tests in `__tests__/learnStore.test.ts`:
 - Initial state, fetchArticles (cache skip, force bypass, error), getArticleBySlug, sections assembly, clearLearn
+
+---
+
+## articleTransitionStore.ts — Shared Element Transition State (Ephemeral)
+
+Lightweight, **non-persisted** store for Pinterest-style article expand/collapse animations. Used by `ArticleExpandOverlay` and `FloatingTabBar`.
+
+**State:**
+- `isExpanded: boolean` — Whether overlay is currently shown
+- `isClosing: boolean` — Whether collapse animation is in progress
+- `selectedSlug: string | null` — Article slug being shown
+- `originRect: { x, y, width, height } | null` — Card's absolute screen position at tap time
+- `accentColor: string | null` — Section accent color for the article
+- `iconName: string | null` — Section icon name
+- `imageBg: string | null` — Background color for the image area
+
+**Methods:**
+
+### `startTransition(slug, rect, accentColor, iconName, imageBg)`
+Sets all state fields and `isExpanded: true`. Guards re-entry (returns early if already expanded).
+
+### `closeTransition()`
+Sets `isClosing: true` to trigger collapse animation. Guards against double-close.
+
+### `reset()`
+Clears all state back to initial values. Called after collapse animation completes.
+
+**Consumers:**
+- `ArticleExpandOverlay` — reads all state to render/animate the overlay
+- `FloatingTabBar` — reads `isExpanded` to hide itself during transitions
+- `learn.tsx` / `index.tsx` — calls `startTransition` on article card press (after `measureInWindow`)

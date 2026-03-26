@@ -27,7 +27,7 @@ Every feature, every component, every urgency color choice exists in service of 
 - **Expo SDK 54** — Managed workflow, TypeScript strict mode
 - **Expo Router v6** — File-based navigation (`app/` directory)
 - **React Native 0.81** — New Architecture enabled
-- **Zustand v5** — Lightweight state management (6 stores: auth, dog, triage, checkIn, health, learn)
+- **Zustand v5** — Lightweight state management (7 stores: auth, dog, triage, checkIn, health, learn, articleTransition)
 - **Supabase JS v2** — Auth, Postgres database, Edge Functions
 - **expo-secure-store** — JWT token persistence (critical for security)
 - **expo-network** — Offline detection (polling, no listener API)
@@ -65,13 +65,13 @@ dog_app_ui/
 ├── src/
 │   ├── components/
 │   │   ├── legal/                # Safety-critical legal components (5)
-│   │   ├── ui/                   # General UI components (22)
+│   │   ├── ui/                   # General UI components (31)
 │   │   └── __tests__/            # Component tests (9 suites)
 │   ├── constants/                # Theme, config, loading tips, check-in questions
 │   ├── hooks/                    # useAppState, useNetworkStatus
 │   ├── lib/                      # Supabase client, emergency keywords, pattern rules, consistency score
 │   │   └── __tests__/            # Lib tests (5 suites)
-│   ├── stores/                   # Zustand stores (auth, dog, triage, checkIn, health, learn)
+│   ├── stores/                   # Zustand stores (7: auth, dog, triage, checkIn, health, learn, articleTransition)
 │   │   └── __tests__/            # Store tests (4 suites)
 │   └── types/                    # TypeScript types (api, checkIn, health, learn)
 ├── jest.config.js                # Jest with jest-expo preset

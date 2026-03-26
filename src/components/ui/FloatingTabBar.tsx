@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 
 import { useDogStore } from '../../stores/dogStore';
 import { useAuthStore } from '../../stores/authStore';
+import { useArticleTransitionStore } from '../../stores/articleTransitionStore';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
@@ -76,6 +77,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const router = useRouter();
   const { dogs, selectedDogId, selectDog } = useDogStore();
   const user = useAuthStore((s) => s.user);
+  const isArticleExpanded = useArticleTransitionStore((s) => s.isExpanded);
   const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
   const userInitial = user?.email?.[0]?.toUpperCase() ?? '?';
 
@@ -133,6 +135,8 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
       />
     );
   };
+
+  if (isArticleExpanded) return null;
 
   return (
     <View style={styles.wrapper}>
