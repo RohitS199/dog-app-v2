@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390, initial-scale=1">
+<title>PupLog — Health Calendar on Notebook</title>
+<style>
+  :root {
+    --primary: #3E2723;
+    --accent: #FF6F00;
+    --bg: #FAFAFA;
+    --surface: #D7CCC8;
+    --card: #FFFFFF;
+    --text-primary: #3E2723;
+    --text-secondary: #6D5D54;
+    --text-disabled: #795548;
+    --divider: #E8E0DC;
+
+    /* Calendar status colors */
+    --good: #4CAF50;
+    --fair: #F57C00;
+    --poor: #C62828;
+    --new-day: #1976D2;
+    --missed: #9E9E9E;
+
+    /* Alert levels */
+    --info: #1976D2;
+    --watch: #F57C00;
+    --concern: #E65100;
+    --vet-rec: #C62828;
+
+    /* Notebook paper color — matched from the image */
+    --paper: #F5F0E8;
+    --paper-edge: #E8E2D6;
+    --paper-line: rgba(62,39,35,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #E8E0DC;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Phone Frame ── */
+  .phone-frame {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    border-radius: 40px;
+    overflow: hidden;
+    background: var(--bg);
+    box-shadow:
+      0 0 0 2px #1a1a1a,
+      0 20px 60px rgba(0,0,0,0.3),
+      0 0 0 14px #2a2a2a,
+      inset 0 0 4px rgba(0,0,0,0.1);
+  }
+
+  .screen {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    background: var(--bg);
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ── Status Bar ── */
+  .status-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 8px;
+    background: var(--bg);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .status-bar .time { font-weight: 700; font-size: 15px; }
+  .status-bar .icons { display: flex; gap: 5px; align-items: center; font-size: 12px; }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 20px 12px;
+  }
+  .header-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--primary);
+    font-family: 'DM Serif Display', Georgia, serif;
+  }
+  .dog-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--card);
+    padding: 5px 12px 5px 5px;
+    border-radius: 24px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    cursor: pointer;
+  }
+  .dog-chip .avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFE0B2, #FFCC80);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .dog-chip .name { font-weight: 600; font-size: 13px; color: var(--primary); }
+  .dog-chip .dropdown { font-size: 9px; color: var(--text-secondary); }
+
+  /* ── Streak ── */
+  .streak-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 20px 10px;
+  }
+  .streak-row .flame { font-size: 16px; }
+  .streak-row .text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* ── Month Navigation ── */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 0 20px 10px;
+  }
+  .month-arrow {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 1px solid var(--divider);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--primary);
+    transition: background 0.15s;
+  }
+  .month-arrow:hover { background: #F0EBE7; }
+  .month-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+    min-width: 160px;
+    text-align: center;
+  }
+
+  /* ══════════════════════════════════════════════ */
+  /* NOTEBOOK CALENDAR CONTAINER                    */
+  /* ══════════════════════════════════════════════ */
+  .notebook-wrapper {
+    position: relative;
+    margin: 0 12px 16px;
+  }
+
+  /* The notebook background image */
+  .notebook-bg {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 4px;
+  }
+
+  /* Calendar overlaid on top of the notebook */
+  .calendar-overlay {
+    position: absolute;
+    top: 14%;
+    left: 6%;
+    right: 6%;
+    bottom: 5%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Calendar Grid ── */
+  .cal-header-row {
+    display: flex;
+    margin-bottom: 1px;
+    flex-shrink: 0;
+  }
+  .cal-header-cell {
+    flex: 1;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-disabled);
+    padding: 1px 0 2px;
+  }
+
+  .cal-row {
+    display: flex;
+    flex: 1;
+    border-bottom: 1px solid var(--paper-line);
+  }
+  .cal-row:last-child { border-bottom: none; }
+
+  .cal-cell {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s;
+    border-radius: 4px;
+  }
+  .cal-cell:hover { background: rgba(62,39,35,0.04); }
+  .cal-cell.empty { cursor: default; }
+  .cal-cell.empty:hover { background: none; }
+
+  .day-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: all 0.15s;
+  }
+  .cal-cell.today .day-num {
+    background: var(--accent);
+    color: white;
+    font-weight: 700;
+  }
+  .cal-cell.selected .day-num {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+
+  .status-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    margin-top: 1px;
+  }
+  .dot-good { background: var(--good); }
+  .dot-fair { background: var(--fair); }
+  .dot-poor { background: var(--poor); }
+  .dot-new { background: var(--new-day); }
+  .dot-missed { background: var(--missed); }
+
+  /* ══════════════════════════════════════════════ */
+  /* DAY DETAIL PANEL (slide-up on click)           */
+  /* ══════════════════════════════════════════════ */
+  .day-detail {
+    margin: 0 16px 16px;
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  .day-detail.hidden {
+    display: none;
+  }
+
+  .detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--divider);
+  }
+  .detail-date {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .detail-status {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+  }
+  .status-good { background: rgba(76,175,80,0.12); color: var(--good); }
+  .status-fair { background: rgba(245,124,0,0.12); color: var(--fair); }
+  .status-poor { background: rgba(198,40,40,0.12); color: var(--poor); }
+  .status-new { background: rgba(25,118,210,0.12); color: var(--new-day); }
+  .status-missed { background: rgba(158,158,158,0.12); color: var(--missed); }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    padding: 0;
+  }
+  .detail-item {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .detail-item:nth-child(odd) {
+    border-right: 1px solid rgba(0,0,0,0.04);
+  }
+  .detail-icon { font-size: 16px; flex-shrink: 0; }
+  .detail-info { flex: 1; min-width: 0; }
+  .detail-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-disabled);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .detail-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-top: 1px;
+  }
+  .detail-value.abnormal { color: var(--fair); }
+  .detail-value.critical { color: var(--poor); }
+
+  .detail-compare {
+    font-size: 10px;
+    color: var(--text-disabled);
+    margin-top: 1px;
+  }
+  .compare-same { color: var(--text-disabled); }
+  .compare-worse { color: var(--poor); }
+  .compare-better { color: var(--good); }
+
+  .detail-notes {
+    padding: 10px 16px 14px;
+    border-top: 1px solid var(--divider);
+  }
+  .notes-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-disabled);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
+  }
+  .notes-text {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    font-style: italic;
+  }
+
+  .detail-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-disabled);
+    cursor: pointer;
+    border-top: 1px solid var(--divider);
+  }
+  .detail-close:hover { color: var(--primary); }
+
+  /* ── Tab Bar ── */
+  .tab-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    z-index: 50;
+    background: var(--card);
+    box-shadow: 0 -2px 16px rgba(0,0,0,0.06);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;
+    padding-top: 8px;
+    height: 84px;
+    border-top: 1px solid var(--divider);
+  }
+  .tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    flex: 1;
+  }
+  .tab-icon {
+    font-size: 22px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tab-label {
+    font-size: 10px; font-weight: 500;
+    color: var(--text-disabled);
+  }
+  .tab-item.active .tab-icon { color: var(--accent); }
+  .tab-item.active .tab-label { color: var(--accent); font-weight: 600; }
+  .tab-item:not(.active) .tab-icon { color: var(--text-disabled); }
+
+  .fab-container {
+    display: flex; flex-direction: column;
+    align-items: center; flex: 1;
+    margin-top: -22px; cursor: pointer;
+  }
+  .fab {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, #FF8F00, var(--accent));
+    color: white; font-size: 28px; font-weight: 300;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 16px rgba(255,111,0,0.35);
+  }
+
+  .home-indicator {
+    position: absolute;
+    bottom: 8px; left: 50%;
+    transform: translateX(-50%);
+    width: 134px; height: 5px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 3px; z-index: 60;
+  }
+
+  /* Bottom padding for scroll content above tab bar */
+  .scroll-pad { height: 100px; }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="screen" id="screen">
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <span class="icons">
+        <span style="font-size:13px">&#9679;&#9679;&#9679;&#9679;&#9675;</span>
+        <span style="font-size:11px;margin-left:3px">5G</span>
+        <span style="font-size:15px;margin-left:3px">&#128267;</span>
+      </span>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <span class="header-title">Health</span>
+      <div class="dog-chip">
+        <div class="avatar">&#128054;</div>
+        <span class="name">Luna</span>
+        <span class="dropdown">&#9662;</span>
+      </div>
+    </div>
+
+    <!-- Streak -->
+    <div class="streak-row">
+      <span class="flame">&#128293;</span>
+      <span class="text">6-day check-in streak!</span>
+    </div>
+
+    <!-- Month Navigation -->
+    <div class="month-nav">
+      <div class="month-arrow">&#8249;</div>
+      <div class="month-label">April 2026</div>
+      <div class="month-arrow">&#8250;</div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- NOTEBOOK + CALENDAR                        -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="notebook-wrapper">
+      <img class="notebook-bg" src="notebook-bg.png" alt="Notebook background"/>
+
+      <div class="calendar-overlay">
+        <!-- Day headers -->
+        <div class="cal-header-row">
+          <div class="cal-header-cell">Sun</div>
+          <div class="cal-header-cell">Mon</div>
+          <div class="cal-header-cell">Tue</div>
+          <div class="cal-header-cell">Wed</div>
+          <div class="cal-header-cell">Thu</div>
+          <div class="cal-header-cell">Fri</div>
+          <div class="cal-header-cell">Sat</div>
+        </div>
+
+        <!-- Week 1: Mar 29-Apr 4 -->
+        <div class="cal-row">
+          <div class="cal-cell empty"></div>
+          <div class="cal-cell empty"></div>
+          <div class="cal-cell empty"></div>
+          <div class="cal-cell" data-date="2026-04-01" data-status="good" onclick="showDetail(this)">
+            <div class="day-num">1</div>
+            <div class="status-dot dot-good"></div>
+          </div>
+          <div class="cal-cell" data-date="2026-04-02" data-status="good" onclick="showDetail(this)">
+            <div class="day-num">2</div>
+            <div class="status-dot dot-good"></div>
+          </div>
+          <div class="cal-cell today" data-date="2026-04-03" data-status="new" onclick="showDetail(this)">
+            <div class="day-num">3</div>
+            <div class="status-dot dot-new"></div>
+          </div>
+          <div class="cal-cell" data-date="2026-04-04">
+            <div class="day-num">4</div>
+          </div>
+        </div>
+
+        <!-- Week 2: Apr 5-11 -->
+        <div class="cal-row">
+          <div class="cal-cell" data-date="2026-04-05"><div class="day-num">5</div></div>
+          <div class="cal-cell" data-date="2026-04-06"><div class="day-num">6</div></div>
+          <div class="cal-cell" data-date="2026-04-07"><div class="day-num">7</div></div>
+          <div class="cal-cell" data-date="2026-04-08"><div class="day-num">8</div></div>
+          <div class="cal-cell" data-date="2026-04-09"><div class="day-num">9</div></div>
+          <div class="cal-cell" data-date="2026-04-10"><div class="day-num">10</div></div>
+          <div class="cal-cell" data-date="2026-04-11"><div class="day-num">11</div></div>
+        </div>
+
+        <!-- Week 3: Apr 12-18 -->
+        <div class="cal-row">
+          <div class="cal-cell" data-date="2026-04-12"><div class="day-num">12</div></div>
+          <div class="cal-cell" data-date="2026-04-13"><div class="day-num">13</div></div>
+          <div class="cal-cell" data-date="2026-04-14"><div class="day-num">14</div></div>
+          <div class="cal-cell" data-date="2026-04-15"><div class="day-num">15</div></div>
+          <div class="cal-cell" data-date="2026-04-16"><div class="day-num">16</div></div>
+          <div class="cal-cell" data-date="2026-04-17"><div class="day-num">17</div></div>
+          <div class="cal-cell" data-date="2026-04-18"><div class="day-num">18</div></div>
+        </div>
+
+        <!-- Week 4: Apr 19-25 -->
+        <div class="cal-row">
+          <div class="cal-cell" data-date="2026-04-19"><div class="day-num">19</div></div>
+          <div class="cal-cell" data-date="2026-04-20"><div class="day-num">20</div></div>
+          <div class="cal-cell" data-date="2026-04-21"><div class="day-num">21</div></div>
+          <div class="cal-cell" data-date="2026-04-22"><div class="day-num">22</div></div>
+          <div class="cal-cell" data-date="2026-04-23"><div class="day-num">23</div></div>
+          <div class="cal-cell" data-date="2026-04-24"><div class="day-num">24</div></div>
+          <div class="cal-cell" data-date="2026-04-25"><div class="day-num">25</div></div>
+        </div>
+
+        <!-- Week 5: Apr 26-30 -->
+        <div class="cal-row">
+          <div class="cal-cell" data-date="2026-04-26"><div class="day-num">26</div></div>
+          <div class="cal-cell" data-date="2026-04-27"><div class="day-num">27</div></div>
+          <div class="cal-cell" data-date="2026-04-28"><div class="day-num">28</div></div>
+          <div class="cal-cell" data-date="2026-04-29"><div class="day-num">29</div></div>
+          <div class="cal-cell" data-date="2026-04-30"><div class="day-num">30</div></div>
+          <div class="cal-cell empty"></div>
+          <div class="cal-cell empty"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- DAY DETAIL PANEL                           -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="day-detail hidden" id="dayDetail">
+      <div class="detail-header">
+        <span class="detail-date" id="detailDate">April 2, 2026</span>
+        <span class="detail-status status-good" id="detailStatus">Good</span>
+      </div>
+      <div class="detail-grid" id="detailGrid">
+        <!-- Populated by JS -->
+      </div>
+      <div class="detail-notes" id="detailNotes">
+        <div class="notes-label">Notes</div>
+        <div class="notes-text" id="notesText">Luna was her usual self today, played fetch in the yard.</div>
+      </div>
+      <div class="detail-close" onclick="hideDetail()">Dismiss</div>
+    </div>
+
+    <div class="scroll-pad"></div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <div class="tab-item">
+      <div class="tab-icon">&#127968;</div>
+      <div class="tab-label">Home</div>
+    </div>
+    <div class="tab-item active">
+      <div class="tab-icon">&#10084;&#65039;</div>
+      <div class="tab-label">Health</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon">&#128214;</div>
+      <div class="tab-label">Learn</div>
+    </div>
+    <div class="fab-container">
+      <div class="fab">+</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon">&#129658;</div>
+      <div class="tab-label">Triage</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon">&#9881;&#65039;</div>
+      <div class="tab-label">Settings</div>
+    </div>
+  </div>
+
+  <div class="home-indicator"></div>
+</div>
+
+<script>
+  // ── Mock check-in data ──
+  const checkInData = {
+    '2026-03-28': {
+      status: 'good', label: 'Good',
+      appetite: 'Normal', water: 'Normal', energy: 'Normal',
+      stool: 'Normal', vomiting: 'None', mobility: 'Normal', mood: 'Normal',
+      symptoms: 'None',
+      notes: 'Luna was happy and active all day.',
+      prev: { appetite: 'Normal', water: 'Normal', energy: 'Normal', stool: 'Normal', vomiting: 'None', mobility: 'Normal', mood: 'Normal' }
+    },
+    '2026-03-29': {
+      status: 'fair', label: 'Fair',
+      appetite: 'Less than usual', water: 'Normal', energy: 'Low',
+      stool: 'Soft', vomiting: 'None', mobility: 'Normal', mood: 'Quiet',
+      symptoms: 'Excessive scratching',
+      notes: 'Seemed a bit off today, scratching more than usual.',
+      prev: { appetite: 'Normal', water: 'Normal', energy: 'Normal', stool: 'Normal', vomiting: 'None', mobility: 'Normal', mood: 'Normal' }
+    },
+    '2026-03-30': {
+      status: 'fair', label: 'Fair',
+      appetite: 'Less than usual', water: 'More than usual', energy: 'Low',
+      stool: 'Soft', vomiting: 'Once', mobility: 'Normal', mood: 'Quiet',
+      symptoms: 'Excessive scratching',
+      notes: 'Still low energy. Vomited once in the morning but ate dinner.',
+      prev: { appetite: 'Less than usual', water: 'Normal', energy: 'Low', stool: 'Soft', vomiting: 'None', mobility: 'Normal', mood: 'Quiet' }
+    },
+    '2026-03-31': {
+      status: 'good', label: 'Good',
+      appetite: 'Normal', water: 'Normal', energy: 'Normal',
+      stool: 'Normal', vomiting: 'None', mobility: 'Normal', mood: 'Normal',
+      symptoms: 'None',
+      notes: 'Back to herself! Played fetch and ate full meals.',
+      prev: { appetite: 'Less than usual', water: 'More than usual', energy: 'Low', stool: 'Soft', vomiting: 'Once', mobility: 'Normal', mood: 'Quiet' }
+    },
+    '2026-04-01': {
+      status: 'good', label: 'Good',
+      appetite: 'Normal', water: 'Normal', energy: 'Normal',
+      stool: 'Normal', vomiting: 'None', mobility: 'Normal', mood: 'Normal',
+      symptoms: 'None',
+      notes: 'Great day. Morning walk, full appetite, happy tail.',
+      prev: { appetite: 'Normal', water: 'Normal', energy: 'Normal', stool: 'Normal', vomiting: 'None', mobility: 'Normal', mood: 'Normal' }
+    },
+    '2026-04-02': {
+      status: 'good', label: 'Good',
+      appetite: 'Normal', water: 'Normal', energy: 'Normal',
+      stool: 'Normal', vomiting: 'None', mobility: 'Normal', mood: 'Normal',
+      symptoms: 'None',
+      notes: 'Luna was her usual self today, played fetch in the yard.',
+      prev: { appetite: 'Normal', water: 'Normal', energy: 'Normal', stool: 'Normal', vomiting: 'None', mobility: 'Normal', mood: 'Normal' }
+    },
+    '2026-04-03': {
+      status: 'new', label: 'Today',
+      appetite: 'Normal', water: 'Normal', energy: 'Normal',
+      stool: 'Normal', vomiting: 'None', mobility: 'Normal', mood: 'Normal',
+      symptoms: 'None',
+      notes: 'Checked in this morning. All looks good!',
+      prev: { appetite: 'Normal', water: 'Normal', energy: 'Normal', stool: 'Normal', vomiting: 'None', mobility: 'Normal', mood: 'Normal' }
+    },
+  };
+
+  const metricIcons = {
+    appetite: '&#127860;',
+    water: '&#128167;',
+    energy: '&#9889;',
+    stool: '&#128169;',
+    vomiting: '&#129326;',
+    mobility: '&#128694;',
+    mood: '&#128054;',
+  };
+
+  const metricLabels = {
+    appetite: 'Appetite',
+    water: 'Water',
+    energy: 'Energy',
+    stool: 'Stool',
+    vomiting: 'Vomiting',
+    mobility: 'Mobility',
+    mood: 'Mood',
+  };
+
+  const normalValues = ['Normal', 'None'];
+
+  let selectedCell = null;
+
+  function showDetail(cell) {
+    const date = cell.dataset.date;
+    const data = checkInData[date];
+
+    // Remove previous selection
+    if (selectedCell) selectedCell.classList.remove('selected');
+    cell.classList.add('selected');
+    selectedCell = cell;
+
+    const panel = document.getElementById('dayDetail');
+    const detailDate = document.getElementById('detailDate');
+    const detailStatus = document.getElementById('detailStatus');
+    const grid = document.getElementById('detailGrid');
+    const notesSection = document.getElementById('detailNotes');
+    const notesText = document.getElementById('notesText');
+
+    if (!data) {
+      // No data for this date
+      const d = new Date(date + 'T12:00:00');
+      detailDate.textContent = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      detailStatus.textContent = 'No Check-in';
+      detailStatus.className = 'detail-status status-missed';
+      grid.innerHTML = '<div style="padding:20px 16px;text-align:center;color:#795548;font-size:13px;grid-column:1/-1;">No check-in logged for this day.</div>';
+      notesSection.style.display = 'none';
+      panel.classList.remove('hidden');
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
+
+    // Format date
+    const d = new Date(date + 'T12:00:00');
+    detailDate.textContent = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+    // Status badge
+    detailStatus.textContent = data.label;
+    detailStatus.className = 'detail-status status-' + data.status;
+
+    // Build metric grid
+    let html = '';
+    const metrics = ['appetite', 'water', 'energy', 'stool', 'vomiting', 'mobility', 'mood'];
+    metrics.forEach(m => {
+      const value = data[m];
+      const prevValue = data.prev ? data.prev[m] : null;
+      const isNormal = normalValues.includes(value);
+      const isCritical = ['Diarrhea', 'Blood', 'Multiple', 'Dry heaving', 'Barely moving', 'Refusing', 'Aggressive'].some(v => value.includes(v));
+
+      let compareHtml = '';
+      if (prevValue) {
+        if (prevValue === value) {
+          compareHtml = '<div class="detail-compare compare-same">Same as yesterday</div>';
+        } else if (normalValues.includes(prevValue) && !isNormal) {
+          compareHtml = '<div class="detail-compare compare-worse">Was: ' + prevValue + '</div>';
+        } else if (!normalValues.includes(prevValue) && isNormal) {
+          compareHtml = '<div class="detail-compare compare-better">Was: ' + prevValue + '</div>';
+        } else if (prevValue !== value) {
+          compareHtml = '<div class="detail-compare">Was: ' + prevValue + '</div>';
+        }
+      }
+
+      html += '<div class="detail-item">';
+      html += '<span class="detail-icon">' + metricIcons[m] + '</span>';
+      html += '<div class="detail-info">';
+      html += '<div class="detail-label">' + metricLabels[m] + '</div>';
+      html += '<div class="detail-value' + (isCritical ? ' critical' : (!isNormal ? ' abnormal' : '')) + '">' + value + '</div>';
+      html += compareHtml;
+      html += '</div></div>';
+    });
+
+    // Add symptoms as an extra item spanning full width
+    if (data.symptoms && data.symptoms !== 'None') {
+      html += '<div class="detail-item" style="grid-column:1/-1;border-right:none;">';
+      html += '<span class="detail-icon">&#9888;&#65039;</span>';
+      html += '<div class="detail-info">';
+      html += '<div class="detail-label">Additional Symptoms</div>';
+      html += '<div class="detail-value abnormal">' + data.symptoms + '</div>';
+      html += '</div></div>';
+    }
+
+    grid.innerHTML = html;
+
+    // Notes
+    if (data.notes) {
+      notesSection.style.display = 'block';
+      notesText.textContent = data.notes;
+    } else {
+      notesSection.style.display = 'none';
+    }
+
+    panel.classList.remove('hidden');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function hideDetail() {
+    document.getElementById('dayDetail').classList.add('hidden');
+    if (selectedCell) {
+      selectedCell.classList.remove('selected');
+      selectedCell = null;
+    }
+  }
+</script>
+
+</body>
+</html>

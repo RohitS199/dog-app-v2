@@ -15,6 +15,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
 import { InputField } from '../../src/components/ui/InputField';
 import { Button } from '../../src/components/ui/Button';
+import { SocialAuthButton } from '../../src/components/ui/SocialAuthButton';
 import { StepperDots } from '../../src/components/ui/StepperDots';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
 import { LIMITS } from '../../src/constants/config';
@@ -46,8 +47,11 @@ export default function SignUp() {
   const [dobYear, setDobYear] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
 
   const signUp = useAuthStore((s) => s.signUp);
+  const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
+  const signInWithApple = useAuthStore((s) => s.signInWithApple);
   const router = useRouter();
 
   const validateDob = (): boolean => {
@@ -109,6 +113,24 @@ export default function SignUp() {
     }
   };
 
+  const handleSocialSignIn = async (provider: 'google' | 'apple') => {
+    setError('');
+    setSocialLoading(provider);
+    try {
+      if (provider === 'google') {
+        await signInWithGoogle();
+      } else {
+        await signInWithApple();
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : `Sign in with ${provider} failed. Please try again.`
+      );
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
   // Welcome state
   if (showWelcome) {
     return (
@@ -150,6 +172,31 @@ export default function SignUp() {
               onPress={() => setShowWelcome(false)}
               icon="arrow-right"
             />
+
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Social Auth */}
+            <SocialAuthButton
+              provider="apple"
+              onPress={() => handleSocialSignIn('apple')}
+              loading={socialLoading === 'apple'}
+            />
+            <SocialAuthButton
+              provider="google"
+              onPress={() => handleSocialSignIn('google')}
+              loading={socialLoading === 'google'}
+            />
+
+            {error ? (
+              <Text style={styles.error} accessibilityRole="alert">
+                {error}
+              </Text>
+            ) : null}
 
             <View style={styles.signInRow}>
               <Text style={styles.signInText}>Already have an account? </Text>
@@ -390,6 +437,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.textSecondary,
     marginTop: 2,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SPACING.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginHorizontal: SPACING.md,
   },
   signInRow: {
     flexDirection: 'row',

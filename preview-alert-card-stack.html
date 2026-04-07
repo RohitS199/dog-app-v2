@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
+<title>PupLog - Alert Card Stack Preview</title>
+<style>
+  /* PupLog Design Tokens */
+  :root {
+    --color-primary: #3E2723;
+    --color-primary-light: #5D4037;
+    --color-accent: #FF6F00;
+    --color-accent-light: rgba(255, 111, 0, 0.12);
+    --color-background: #FAFAFA;
+    --color-surface: #D7CCC8;
+    --color-card: #EFEBE9;
+    --color-text-primary: #3E2723;
+    --color-text-secondary: #5D4037;
+    --color-text-disabled: #795548;
+    --color-border: #BCAAA4;
+    --color-divider: #C8B8B0;
+    --color-success: #388E3C;
+    --color-emergency: #C62828;
+    --color-urgent: #E65100;
+    --color-soon: #F57C00;
+    --color-monitor: #00897B;
+    --color-info: #1976D2;
+    --color-celebration-bg: #E8F5E9;
+
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+
+    --font-xs: 12px;
+    --font-sm: 14px;
+    --font-md: 16px;
+    --font-lg: 18px;
+    --font-xl: 20px;
+    --font-xxl: 24px;
+
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    min-height: 100vh;
+  }
+
+  .phone-frame {
+    width: 390px;
+    max-width: 100%;
+    background: var(--color-background);
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    position: relative;
+  }
+
+  .phone-frame::before {
+    content: '';
+    display: block;
+    height: 50px;
+    background: var(--color-background);
+  }
+
+  .screen-content {
+    padding: 0 var(--spacing-md) var(--spacing-lg);
+    min-height: 700px;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .section-title {
+    font-size: var(--font-lg);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+
+  .redo-btn {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    font-size: var(--font-xs);
+    font-weight: 500;
+    min-height: 36px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .redo-btn:hover {
+    background: var(--color-accent-light);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .redo-btn.visible {
+    display: inline-flex;
+  }
+  .redo-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Card counter */
+  .card-counter {
+    text-align: center;
+    font-size: var(--font-sm);
+    color: var(--color-text-disabled);
+    margin-bottom: var(--spacing-sm);
+    font-weight: 500;
+  }
+
+  /* Card Stack Container */
+  .card-stack-container {
+    position: relative;
+    margin-bottom: var(--spacing-lg);
+    /* Height set dynamically based on top card */
+  }
+
+  .stack-card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.35s ease;
+    transform-origin: center top;
+  }
+
+  /* Stack depth positions */
+  .stack-card[data-index="0"] {
+    z-index: 3;
+    transform: scale(1) translateY(0);
+    opacity: 1;
+    cursor: grab;
+    touch-action: pan-y;
+  }
+  .stack-card[data-index="0"]:active { cursor: grabbing; }
+
+  .stack-card[data-index="1"] {
+    z-index: 2;
+    transform: scale(0.95) translateY(8px);
+    opacity: 0.85;
+  }
+
+  .stack-card[data-index="2"] {
+    z-index: 1;
+    transform: scale(0.90) translateY(16px);
+    opacity: 0.7;
+  }
+
+  /* Swipe animation */
+  .stack-card.swiping {
+    transition: none;
+  }
+
+  .stack-card.dismissed-left {
+    transition: transform 0.25s ease-out, opacity 0.25s ease-out;
+    transform: translateX(-120%) rotate(-12deg) !important;
+    opacity: 0 !important;
+  }
+
+  .stack-card.dismissed-right {
+    transition: transform 0.25s ease-out, opacity 0.25s ease-out;
+    transform: translateX(120%) rotate(12deg) !important;
+    opacity: 0 !important;
+  }
+
+  /* Promoting: index 1 -> 0 */
+  .stack-card.promoting-to-0 {
+    z-index: 3;
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  .stack-card.promoting-to-1 {
+    z-index: 2;
+    transform: scale(0.95) translateY(8px);
+    opacity: 0.85;
+  }
+
+  /* Alert Card — Airbnb-inspired polish */
+  .alert-card {
+    background: var(--color-surface);
+    border: none;
+    border-left: 4px solid;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  .alert-card.level-watch { border-left-color: var(--color-soon); }
+  .alert-card.level-concern { border-left-color: var(--color-urgent); }
+  .alert-card.level-vet_recommended { border-left-color: var(--color-emergency); }
+  .alert-card.level-info { border-left-color: var(--color-info); }
+
+  .alert-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .alert-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: var(--font-xs);
+    font-weight: 600;
+    border: 1px solid;
+  }
+
+  .badge-watch {
+    color: var(--color-soon);
+    background: #FFF3E0;
+    border-color: var(--color-soon);
+  }
+  .badge-concern {
+    color: var(--color-urgent);
+    background: #FBE9E7;
+    border-color: var(--color-urgent);
+  }
+  .badge-vet_recommended {
+    color: var(--color-emergency);
+    background: #FFEBEE;
+    border-color: var(--color-emergency);
+  }
+  .badge-info {
+    color: var(--color-info);
+    background: #E3F2FD;
+    border-color: var(--color-info);
+  }
+
+  .dismiss-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: var(--font-sm);
+    cursor: pointer;
+    padding: 8px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+  }
+  .dismiss-btn:hover { color: var(--color-text-primary); }
+
+  .alert-title {
+    font-size: var(--font-lg);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 2px;
+  }
+
+  .alert-date {
+    font-size: var(--font-xs);
+    color: var(--color-text-disabled);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .alert-message {
+    font-size: var(--font-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+
+  .ai-insight-section {
+    margin-top: var(--spacing-sm);
+    border-top: 1px solid var(--color-divider);
+    padding-top: var(--spacing-sm);
+  }
+
+  .ai-insight-label {
+    font-size: var(--font-xs);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .ai-insight-text {
+    font-size: var(--font-sm);
+    color: var(--color-text-secondary);
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  .vet-banner {
+    margin-top: var(--spacing-sm);
+    background: #FFEBEE;
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    text-align: center;
+  }
+
+  .vet-banner-text {
+    font-size: var(--font-md);
+    font-weight: 700;
+    color: var(--color-emergency);
+  }
+
+  /* Celebration Card */
+  .celebration-card {
+    background: var(--color-celebration-bg);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl) var(--spacing-md);
+    text-align: center;
+    animation: celebrationEntry 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  @keyframes celebrationEntry {
+    from {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .celebration-title {
+    font-size: var(--font-xl);
+    font-weight: 700;
+    color: var(--color-success);
+    margin-top: var(--spacing-md);
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+
+  .celebration-subtitle {
+    font-size: var(--font-sm);
+    color: var(--color-text-secondary);
+    margin-top: var(--spacing-xs);
+  }
+
+  /* Lottie animation container */
+  .lottie-container {
+    width: 180px;
+    height: 180px;
+    margin: 0 auto;
+  }
+
+  /* Swipe hint */
+  .swipe-hint {
+    text-align: center;
+    font-size: var(--font-xs);
+    color: var(--color-text-disabled);
+    margin-top: var(--spacing-sm);
+    opacity: 0.7;
+  }
+
+  /* Controls */
+  .controls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 100;
+  }
+
+  .controls button {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    font-size: var(--font-sm);
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .controls button:hover { background: var(--color-primary-light); }
+  .controls button.reset {
+    background: var(--color-accent);
+  }
+
+  /* Page header info */
+  .preview-header {
+    text-align: center;
+    margin-bottom: 20px;
+    max-width: 500px;
+  }
+  .preview-header h1 {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 4px;
+  }
+  .preview-header p {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.4;
+  }
+
+  .page-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+</style>
+</head>
+<body>
+<div class="page-wrapper">
+  <div class="preview-header">
+    <h1>Alert Card Stack Preview</h1>
+    <p>Swipe the top card left or right to dismiss. Tap "Dismiss" button also works. When all cards are gone, the celebration appears.</p>
+  </div>
+
+  <div class="phone-frame">
+    <div class="screen-content">
+      <div class="section-header">
+        <div class="section-title">Active Alerts</div>
+        <button id="redo-btn" class="redo-btn" onclick="resetCards()">
+          <svg class="redo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 4v6h6"/>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+          </svg>
+          Review again
+        </button>
+      </div>
+
+      <div id="counter" class="card-counter">1 of 3</div>
+
+      <div id="card-stack" class="card-stack-container" style="height: 220px;">
+        <!-- Cards rendered by JS -->
+      </div>
+
+      <div id="swipe-hint" class="swipe-hint">Swipe left or right to dismiss</div>
+
+      <!-- Celebration (hidden initially) -->
+      <div id="celebration" style="display: none;">
+        <div class="celebration-card">
+          <div id="lottie-player" class="lottie-container"></div>
+          <div class="celebration-title">You're all caught up!</div>
+          <div class="celebration-subtitle">No active pattern alerts</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button onclick="swipeTopCard('left')">&#8592; Swipe Left</button>
+    <button onclick="swipeTopCard('right')">Swipe Right &#8594;</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+<script>
+  // Load Lottie JSON inline to avoid CORS issues with file:// protocol
+  let lottieJsonData = null;
+  fetch('./assets/caught-up-corgi.json')
+    .then(r => r.json())
+    .then(data => { lottieJsonData = data; })
+    .catch(() => {
+      // Fallback: try loading via XMLHttpRequest for file:// protocol
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', './assets/caught-up-corgi.json', false);
+        xhr.send();
+        if (xhr.status === 0 || xhr.status === 200) {
+          lottieJsonData = JSON.parse(xhr.responseText);
+        }
+      } catch(e) { console.warn('Could not load Lottie JSON:', e); }
+    });
+
+  let lottieAnim = null;
+
+  function playCelebrationLottie() {
+    const container = document.getElementById('lottie-player');
+    if (lottieAnim) {
+      lottieAnim.destroy();
+      lottieAnim = null;
+    }
+    container.innerHTML = '';
+    if (!lottieJsonData) {
+      // Last resort: try synchronous load
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', './assets/caught-up-corgi.json', false);
+        xhr.send();
+        if (xhr.status === 0 || xhr.status === 200) {
+          lottieJsonData = JSON.parse(xhr.responseText);
+        }
+      } catch(e) {}
+    }
+    if (lottieJsonData) {
+      lottieAnim = lottie.loadAnimation({
+        container: container,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        animationData: lottieJsonData,
+      });
+    } else {
+      container.innerHTML = '<div style="text-align:center;padding:20px;color:#795548;font-size:14px;">Animation loading failed</div>';
+    }
+  }
+
+  const MOCK_ALERTS = [
+    {
+      id: '1',
+      title: 'Declining Energy Levels',
+      alert_level: 'concern',
+      first_detected: '2026-03-10',
+      last_confirmed: '2026-03-22',
+      message: 'Bear has shown consistently lower energy over the past 12 days. This may indicate age-related changes or an underlying condition.',
+      ai_insight: 'Energy decline correlating with morning stiffness pattern suggests possible joint discomfort. Consider discussing glucosamine supplementation with your vet.',
+    },
+    {
+      id: '2',
+      title: 'Intermittent Mobility Issues',
+      alert_level: 'watch',
+      first_detected: '2026-03-14',
+      last_confirmed: '2026-03-21',
+      message: 'Morning stiffness and occasional reluctance to walk have been noted for Bear.',
+      ai_insight: null,
+    },
+    {
+      id: '3',
+      title: 'Appetite Change Detected',
+      alert_level: 'vet_recommended',
+      first_detected: '2026-03-18',
+      last_confirmed: '2026-03-23',
+      message: 'Bear has been eating significantly less for 5 consecutive days. Combined with energy decline, a vet visit is recommended.',
+      ai_insight: 'Appetite decrease paired with reduced energy and mobility changes warrants prompt veterinary evaluation to rule out systemic illness.',
+    },
+  ];
+
+  let alerts = [...MOCK_ALERTS];
+  let isDragging = false;
+  let startX = 0;
+  let currentX = 0;
+
+  function formatDate(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function renderCards() {
+    const stack = document.getElementById('card-stack');
+    const counter = document.getElementById('counter');
+    const hint = document.getElementById('swipe-hint');
+    const celebration = document.getElementById('celebration');
+    const redoBtn = document.getElementById('redo-btn');
+
+    stack.innerHTML = '';
+
+    if (alerts.length === 0) {
+      counter.style.display = 'none';
+      hint.style.display = 'none';
+      stack.style.display = 'none';
+      celebration.style.display = 'block';
+      redoBtn.classList.add('visible');
+      playCelebrationLottie();
+      return;
+    }
+
+    celebration.style.display = 'none';
+    redoBtn.classList.remove('visible');
+    stack.style.display = 'block';
+    counter.style.display = 'block';
+    hint.style.display = 'block';
+    counter.textContent = `1 of ${alerts.length}`;
+
+    // Only render top 3
+    const visible = alerts.slice(0, 3);
+
+    // Render in reverse so top card is last in DOM (on top)
+    for (let i = visible.length - 1; i >= 0; i--) {
+      const alert = visible[i];
+      const card = createCardElement(alert, i);
+      stack.appendChild(card);
+    }
+
+    // Attach swipe to top card
+    const topCard = stack.querySelector('[data-index="0"]');
+    if (topCard) {
+      attachSwipeHandlers(topCard);
+      // Measure and set container height
+      requestAnimationFrame(() => {
+        const innerCard = topCard.querySelector('.alert-card');
+        if (innerCard) {
+          stack.style.height = (innerCard.offsetHeight + 20) + 'px';
+        }
+      });
+    }
+  }
+
+  function createCardElement(alert, index) {
+    const badgeClass = `badge-${alert.alert_level}`;
+    const levelLabel = {
+      info: 'Info',
+      watch: 'Watch',
+      concern: 'Concern',
+      vet_recommended: 'Vet Recommended',
+    }[alert.alert_level];
+
+    const firstDate = formatDate(alert.first_detected);
+    const lastDate = formatDate(alert.last_confirmed);
+    const dateLabel = firstDate === lastDate ? `Detected ${firstDate}` : `${firstDate} — ${lastDate}`;
+
+    const aiSection = alert.ai_insight ? `
+      <div class="ai-insight-section">
+        <div class="ai-insight-label">AI Analysis</div>
+        <div class="ai-insight-text">${alert.ai_insight}</div>
+      </div>
+    ` : '';
+
+    const vetBanner = alert.alert_level === 'vet_recommended' ? `
+      <div class="vet-banner">
+        <div class="vet-banner-text">Contact Your Vet</div>
+      </div>
+    ` : '';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'stack-card';
+    wrapper.setAttribute('data-index', index);
+    wrapper.setAttribute('data-id', alert.id);
+
+    wrapper.innerHTML = `
+      <div class="alert-card level-${alert.alert_level}">
+        <div class="alert-header">
+          <span class="alert-badge ${badgeClass}">${levelLabel}</span>
+          <button class="dismiss-btn" onclick="dismissCard('${alert.id}')">Dismiss</button>
+        </div>
+        <div class="alert-title">${alert.title}</div>
+        <div class="alert-date">${dateLabel}</div>
+        <div class="alert-message">${alert.message}</div>
+        ${aiSection}
+        ${vetBanner}
+      </div>
+    `;
+
+    return wrapper;
+  }
+
+  function attachSwipeHandlers(card) {
+    let lastTime = 0;
+    let lastPointerX = 0;
+    let velocityX = 0;
+
+    card.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.dismiss-btn')) return;
+      isDragging = true;
+      startX = e.clientX;
+      currentX = 0;
+      velocityX = 0;
+      lastPointerX = e.clientX;
+      lastTime = Date.now();
+      card.classList.add('swiping');
+      card.setPointerCapture(e.pointerId);
+    });
+
+    card.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      currentX = e.clientX - startX;
+
+      // Track velocity
+      const now = Date.now();
+      const dt = now - lastTime;
+      if (dt > 0) {
+        velocityX = (e.clientX - lastPointerX) / dt * 1000; // px/sec
+        lastPointerX = e.clientX;
+        lastTime = now;
+      }
+
+      const rotation = (currentX / 300) * 8;
+      const liftY = -Math.abs(currentX) * 0.06;
+      card.style.transform = `translateX(${currentX}px) translateY(${liftY}px) rotate(${rotation}deg)`;
+      card.style.opacity = Math.max(0.4, 1 - Math.abs(currentX) / 250);
+    });
+
+    card.addEventListener('pointerup', (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      card.classList.remove('swiping');
+
+      // Dismiss if dragged 60px+ OR flicked fast (velocity > 600px/s)
+      const shouldDismiss = Math.abs(currentX) > 60 || Math.abs(velocityX) > 600;
+
+      if (shouldDismiss && Math.abs(currentX) > 15) {
+        const dir = currentX > 0 ? 'right' : 'left';
+        card.classList.add(`dismissed-${dir}`);
+        const alertId = card.getAttribute('data-id');
+        setTimeout(() => {
+          alerts = alerts.filter(a => a.id !== alertId);
+          renderCards();
+        }, 260);
+      } else {
+        // Spring back
+        card.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease';
+        card.style.transform = 'scale(1) translateY(0) rotate(0deg)';
+        card.style.opacity = '1';
+        setTimeout(() => {
+          card.style.transition = '';
+        }, 400);
+      }
+    });
+
+    card.addEventListener('pointercancel', () => {
+      isDragging = false;
+      card.classList.remove('swiping');
+      card.style.transform = '';
+      card.style.opacity = '';
+    });
+  }
+
+  function dismissCard(id) {
+    const card = document.querySelector(`[data-id="${id}"]`);
+    if (card) {
+      card.classList.add('dismissed-right');
+      setTimeout(() => {
+        alerts = alerts.filter(a => a.id !== id);
+        renderCards();
+      }, 260);
+    }
+  }
+
+  function swipeTopCard(direction) {
+    if (alerts.length === 0) return;
+    const card = document.querySelector('[data-index="0"]');
+    if (card) {
+      card.classList.add(`dismissed-${direction}`);
+      const alertId = card.getAttribute('data-id');
+      setTimeout(() => {
+        alerts = alerts.filter(a => a.id !== alertId);
+        renderCards();
+      }, 260);
+    }
+  }
+
+  function resetCards() {
+    alerts = [...MOCK_ALERTS];
+    // Destroy lottie before hiding celebration
+    if (lottieAnim) {
+      lottieAnim.destroy();
+      lottieAnim = null;
+    }
+    document.getElementById('celebration').style.display = 'none';
+    // Re-trigger celebration entry animation on next show by removing/re-adding the card
+    const card = document.querySelector('.celebration-card');
+    if (card) {
+      card.style.animation = 'none';
+      card.offsetHeight; // force reflow
+      card.style.animation = '';
+    }
+    renderCards();
+  }
+
+  // Initial render
+  renderCards();
+</script>
+</body>
+</html>

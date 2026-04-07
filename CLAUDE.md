@@ -27,14 +27,16 @@ Every feature, every component, every urgency color choice exists in service of 
 - **Expo SDK 54** — Managed workflow, TypeScript strict mode
 - **Expo Router v6** — File-based navigation (`app/` directory)
 - **React Native 0.81** — New Architecture enabled
-- **Zustand v5** — Lightweight state management (7 stores: auth, dog, triage, checkIn, health, learn, articleTransition)
+- **Zustand v5** — Lightweight state management (9 stores: auth, dog, triage, checkIn, health, learn, articleTransition, onboarding, subscription)
 - **Supabase JS v2** — Auth, Postgres database, Edge Functions
 - **expo-secure-store** — JWT token persistence (critical for security)
 - **expo-network** — Offline detection (polling, no listener API)
-- **@react-native-async-storage/async-storage** — Zustand persist middleware for check-in draft
+- **@react-native-async-storage/async-storage** — Zustand persist middleware for check-in draft and onboarding draft
 - **react-native-reanimated v4** + **react-native-svg** — Installed for future Buddy mascot animation (not yet implemented)
 - **react-native-markdown-display** — Markdown renderer for Learn tab article body
-- **Jest 29** + **React Native Testing Library** — 228 tests across 18 suites
+- **expo-superwall** — Paywall integration (SuperwallProvider wraps app)
+- **react-native-purchases** — RevenueCat subscription management
+- **Jest 29** + **React Native Testing Library** — 279 tests across 22 suites
 
 ## Project Structure
 
@@ -59,20 +61,22 @@ dog_app_ui/
 │   ├── edit-dog.tsx              # Edit/delete dog form
 │   ├── check-in.tsx              # Daily check-in flow (9 questions, full-screen modal)
 │   ├── article/[slug].tsx        # Article detail screen with Markdown rendering
+│   ├── onboarding.tsx            # 19-step onboarding flow (goals, breed, photo, first check-in)
 │   ├── emergency.tsx             # Standalone emergency resources screen
 │   ├── change-password.tsx       # Change password for logged-in users
 │   └── delete-account.tsx        # Account deletion with confirmation
 ├── src/
 │   ├── components/
 │   │   ├── legal/                # Safety-critical legal components (5)
-│   │   ├── ui/                   # General UI components (31)
-│   │   └── __tests__/            # Component tests (9 suites)
-│   ├── constants/                # Theme, config, loading tips, check-in questions
+│   │   ├── ui/                   # General UI components (36)
+│   │   └── __tests__/            # Component tests (10 suites)
+│   ├── constants/                # Theme, config, loading tips, check-in questions, breed data
 │   ├── hooks/                    # useAppState, useNetworkStatus
 │   ├── lib/                      # Supabase client, emergency keywords, pattern rules, consistency score
-│   │   └── __tests__/            # Lib tests (5 suites)
-│   ├── stores/                   # Zustand stores (7: auth, dog, triage, checkIn, health, learn, articleTransition)
-│   │   └── __tests__/            # Store tests (4 suites)
+│   │   └── __tests__/            # Lib tests (6 suites)
+│   ├── providers/                # SuperwallProvider (paywall)
+│   ├── stores/                   # Zustand stores (9: auth, dog, triage, checkIn, health, learn, articleTransition, onboarding, subscription)
+│   │   └── __tests__/            # Store tests (5 suites)
 │   └── types/                    # TypeScript types (api, checkIn, health, learn)
 ├── jest.config.js                # Jest with jest-expo preset
 ├── jest.setup.js                 # Mocks for Supabase, Expo modules, Linking
@@ -296,11 +300,11 @@ npx expo start
 ## Running Tests
 
 ```bash
-npm test          # Runs all 228 tests
+npm test          # Runs all 279 tests
 npx jest --no-cache  # If you encounter stale cache issues
 ```
 
-**18 test suites:**
+**22 test suites:**
 
 *Lib tests (5 suites, 105 tests):*
 - `emergencyKeywords.test.ts` — 39 tests (pattern matching, normalization, clusters, v9/v10 compound patterns)
@@ -325,6 +329,14 @@ npx jest --no-cache  # If you encounter stale cache issues
 - `PatternAlertCard.test.tsx` — 8 tests (title/message, badge, dismiss, vet_recommended CTA, ai_insight display)
 - `CalendarGrid.test.tsx` — 8 tests (cell count, status indicators, date press, today highlight)
 - `AIInsightCard.test.tsx` — 8 tests (title, message, severity badge, positive/negative, article links, onArticlePress)
+- `FlippableDogCard.test.tsx` — Tests for flippable dog card component
+- `AlertCardStack.test.tsx` — Tests for swipeable alert card stack
+
+*Lib tests (6 suites):*
+- `breedHealthData.test.ts` — Breed health data validation tests
+
+*Store tests (5 suites):*
+- `onboardingStore.test.ts` — Onboarding flow state management tests
 
 ## Accessibility
 
@@ -355,7 +367,8 @@ Do not remove or weaken these components. They are legally required.
 - **Milestone 5** (Testing + Polish): COMPLETE (accessibility audit done)
 - **Backend Completion**: COMPLETE — all tasks done, security hardened, stress test passed, delete-account verified
 - **v2.6 Phase 1** (Daily Check-Ins + Pattern Detection): COMPLETE — all 9 blocks implemented, 7-bug audit fix applied
-- **v2.6 Phase 2** (AI Pattern Analysis): COMPLETE — backend (daily Sonnet 4.5, weekly Haiku 4.5, `ai_health_insights` table, `dogs.health_summary`) + **frontend dashboard** (AIInsightCard, HealthSummaryCard, PatternAlertCard AI enrichment, tab focus refresh) + **orchestration files** (n8n workflow JSON + GitHub Actions YAML, not yet active). 228/228 tests pass, 18 suites.
+- **v2.6 Phase 2** (AI Pattern Analysis): COMPLETE — backend (daily Sonnet 4.5, weekly Haiku 4.5, `ai_health_insights` table, `dogs.health_summary`) + **frontend dashboard** (AIInsightCard, HealthSummaryCard, PatternAlertCard AI enrichment, tab focus refresh) + **orchestration files** (n8n workflow JSON + GitHub Actions YAML, not yet active). 279/279 tests pass, 22 suites.
+- **UI Redesign** (Playful Overhaul): IN PROGRESS — HTML mockups for journey home (park scene), health calendar (notebook), onboarding (19-step), alert card stack, dog mascot, article transitions. Onboarding store, subscription store, breed data, social auth buttons created.
 - **Milestone 6** (Beta Testing): NOT STARTED — needs TestFlight build + real user testers
 
 ## Stress Test Results (Feb 19, 2026 — v10 full retest)
@@ -378,6 +391,9 @@ Full 120-prompt stress test against v10: **Tier 1 (safety) = 100% (60/60)**, **T
 12. **Privacy Policy** — Needs attorney drafting (outlined in legal compliance docs).
 13. **LLC formation + E&O insurance** — Business prerequisites before launch.
 14. **Tier 2 RAG gaps** — Cat 12 needs dog_health_content expansion (post-beta).
+15. **UI Redesign** — IN PROGRESS. HTML mockups created (preview-*.html files). Implementing playful park/notebook theme. Onboarding flow (19-step), social auth, subscription/paywall integration, breed health data in progress.
+16. **Onboarding flow** — 19-step flow built (`app/onboarding.tsx` + `onboardingStore.ts`). Needs integration testing and routing from auth screens.
+17. **Subscription/Paywall** — `subscriptionStore.ts` + `SuperwallProvider.tsx` created. expo-superwall and react-native-purchases installed. Needs configuration and testing.
 
 ## Seed Data for Testing
 

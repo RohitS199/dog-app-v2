@@ -13,10 +13,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDogStore } from '../src/stores/dogStore';
 import { InputField } from '../src/components/ui/InputField';
+import { BreedPicker } from '../src/components/ui/BreedPicker';
 import { Button } from '../src/components/ui/Button';
 import { StepperDots } from '../src/components/ui/StepperDots';
 import { COLORS, FONT_SIZES, SPACING, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../src/constants/theme';
 import { LIMITS } from '../src/constants/config';
+import { DOG_BREEDS } from '../src/constants/dogBreeds';
 
 export default function AddDog() {
   const [name, setName] = useState('');
@@ -39,6 +41,10 @@ export default function AddDog() {
     }
     if (!breed.trim()) {
       setError("Please enter your dog's breed (or 'Mixed').");
+      return;
+    }
+    if (!DOG_BREEDS.some((b) => b.toLowerCase() === breed.trim().toLowerCase())) {
+      setError('Please select a breed from the list.');
       return;
     }
 
@@ -110,12 +116,9 @@ export default function AddDog() {
               accessibilityLabel="Dog's name"
             />
 
-            <InputField
-              icon="dog"
-              placeholder="Breed (e.g., Golden Retriever)"
+            <BreedPicker
               value={breed}
               onChangeText={setBreed}
-              autoCapitalize="words"
               accessibilityLabel="Dog's breed"
             />
 

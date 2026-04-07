@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390, initial-scale=1">
+<title>PupLog — Park Journey Home (v3)</title>
+<style>
+  /* ── CSS Custom Properties ── */
+  :root {
+    /* Core Earthy Dog Park */
+    --primary: #3E2723;
+    --accent: #FF6F00;
+    --bg: #FAFAFA;
+    --surface: #D7CCC8;
+    --card: #FFFFFF;
+    --text-primary: #3E2723;
+    --text-secondary: #6D5D54;
+    --text-disabled: #795548;
+    --divider: #E8E0DC;
+
+    /* Node sizing */
+    --node-size: 48px;
+    --node-size-current: 56px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #E8E0DC;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Phone Frame ── */
+  .phone-frame {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    border-radius: 40px;
+    overflow: hidden;
+    background: #4FC3F7;
+    box-shadow:
+      0 0 0 2px #1a1a1a,
+      0 20px 60px rgba(0,0,0,0.3),
+      0 0 0 14px #2a2a2a,
+      inset 0 0 4px rgba(0,0,0,0.1);
+  }
+
+  /* ── Full-screen Background Image ── */
+  .park-bg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    object-fit: contain;
+  }
+
+  /* ── UI Layer ── */
+  .ui-layer {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Status Bar ── */
+  .status-bar {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    flex-shrink: 0;
+  }
+  .status-bar .time { font-weight: 700; font-size: 15px; }
+  .status-bar .icons { display: flex; gap: 5px; align-items: center; font-size: 12px; }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 20px 8px;
+    flex-shrink: 0;
+  }
+  .dog-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.88);
+    padding: 5px 12px 5px 5px;
+    border-radius: 24px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+  }
+  .dog-chip .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFE0B2, #FFCC80);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+  }
+  .dog-chip .name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--primary);
+  }
+  .dog-chip .dropdown {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-left: 2px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .streak-pill {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,255,255,0.88);
+    padding: 5px 11px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--primary);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    backdrop-filter: blur(8px);
+  }
+  .profile-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+  }
+
+  /* ── Progress Card (compact) ── */
+  .progress-card {
+    background: rgba(255,255,255,0.92);
+    margin: 0 20px 0;
+    padding: 12px 16px;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+  }
+  .progress-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .progress-card .title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .progress-card .fraction {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .progress-card .fraction span {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .progress-bar-track {
+    width: 100%;
+    height: 6px;
+    background: #F0EBE7;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    width: 57%;
+    background: linear-gradient(90deg, #FF8F00, #FF6F00);
+    border-radius: 3px;
+  }
+  .progress-card .subtitle {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    line-height: 1.3;
+  }
+
+  /* ── Scene Area (fills remaining space) ── */
+  .scene-area {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+  }
+
+  /* ── Journey Nodes ── */
+  .node {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 10;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .node-circle {
+    width: var(--node-size);
+    height: var(--node-size);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    position: relative;
+    transition: transform 0.2s ease;
+  }
+  .node:active .node-circle { transform: scale(0.92); }
+  .node-shadow {
+    width: 40px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.1);
+    margin-top: 3px;
+    filter: blur(2px);
+  }
+  .node-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    margin-top: 2px;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+  }
+
+  /* Node States */
+  .node--completed .node-circle {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 3px 10px rgba(255,111,0,0.35);
+  }
+  .node--completed .node-shadow { background: rgba(255,111,0,0.15); }
+  .node--completed .node-label { color: var(--accent); }
+
+  .node--current .node-circle {
+    width: var(--node-size-current);
+    height: var(--node-size-current);
+    background: var(--accent);
+    color: white;
+    font-size: 18px;
+    font-weight: 800;
+    box-shadow: 0 0 0 4px rgba(255,111,0,0.25);
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+  .node--current .node-shadow { width: 48px; background: rgba(255,111,0,0.2); }
+  .node--current .node-label { color: var(--accent); font-weight: 700; font-size: 11.5px; }
+
+  .node--upcoming .node-circle {
+    background: rgba(255,255,255,0.5);
+    border: 2.5px dashed rgba(62,39,35,0.2);
+    color: rgba(62,39,35,0.3);
+    font-size: 13px;
+  }
+  .node--upcoming .node-label { color: var(--text-disabled); font-weight: 500; }
+  .node--upcoming .node-shadow { background: rgba(0,0,0,0.05); }
+
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(255,111,0,0.25), 0 4px 14px rgba(255,111,0,0.3); }
+    50% { box-shadow: 0 0 0 9px rgba(255,111,0,0.12), 0 4px 20px rgba(255,111,0,0.4); }
+  }
+
+  .checkmark { width: 20px; height: 20px; }
+
+  /* ── Dog Mascot ── */
+  .mascot-wrapper {
+    position: absolute;
+    z-index: 20;
+    width: 90px;
+    height: 90px;
+    transform: translate(-50%, -100%);
+    animation: dogFloat 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes dogFloat {
+    0%, 100% { transform: translate(-50%, -100%) translateY(0); }
+    50% { transform: translate(-50%, -100%) translateY(-8px); }
+  }
+
+  /* Mascot Animations */
+  @keyframes tailWag {
+    0%, 100% { transform: rotate(-15deg); }
+    50% { transform: rotate(20deg); }
+  }
+  .m-tail { transform-origin: 148px 270px; animation: tailWag 0.6s ease-in-out infinite; }
+  @keyframes bodyBreathe {
+    0%, 100% { transform: scaleY(1) translateY(0); }
+    50% { transform: scaleY(1.012) translateY(-1px); }
+  }
+  .m-body-group { transform-origin: 230px 300px; animation: bodyBreathe 3s ease-in-out infinite; }
+  @keyframes headTilt {
+    0%, 100% { transform: rotate(0deg); }
+    30% { transform: rotate(2deg); }
+    70% { transform: rotate(-1.5deg); }
+  }
+  .m-head-group { transform-origin: 235px 195px; animation: headTilt 4s ease-in-out infinite; }
+  @keyframes earFlopL { 0%, 100% { transform: rotate(0deg); } 40% { transform: rotate(-3deg); } }
+  @keyframes earFlopR { 0%, 100% { transform: rotate(0deg); } 40% { transform: rotate(3deg); } }
+  .m-ear-left { transform-origin: 185px 195px; animation: earFlopL 4s ease-in-out infinite; }
+  .m-ear-right { transform-origin: 280px 195px; animation: earFlopR 4s ease-in-out infinite; }
+  @keyframes blink {
+    0%, 42%, 44%, 100% { transform: scaleY(1); }
+    43% { transform: scaleY(0.1); }
+  }
+  .m-eye-left { transform-origin: 218px 192px; animation: blink 4s ease-in-out infinite; }
+  .m-eye-right { transform-origin: 248px 192px; animation: blink 4s ease-in-out infinite 0.05s; }
+  @keyframes noseTwitch {
+    0%, 90%, 100% { transform: scale(1); }
+    93% { transform: scale(1.08, 0.95); }
+    96% { transform: scale(0.95, 1.05); }
+  }
+  .m-nose { transform-origin: 233px 205px; animation: noseTwitch 5s ease-in-out infinite; }
+  @keyframes butterflyPath {
+    0%   { transform: translate(0, 0) rotate(0deg); }
+    15%  { transform: translate(10px, -14px) rotate(5deg); }
+    30%  { transform: translate(-3px, -24px) rotate(-3deg); }
+    50%  { transform: translate(7px, -10px) rotate(4deg); }
+    70%  { transform: translate(-7px, -18px) rotate(-5deg); }
+    85%  { transform: translate(3px, -5px) rotate(2deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+  }
+  .m-butterfly-group { animation: butterflyPath 5s ease-in-out infinite; }
+  @keyframes wingFlap {
+    0%, 100% { transform: scaleX(1); }
+    50% { transform: scaleX(0.3); }
+  }
+  .m-wing-left { transform-origin: 320px 245px; animation: wingFlap 0.25s ease-in-out infinite; }
+  .m-wing-right { transform-origin: 320px 245px; animation: wingFlap 0.25s ease-in-out infinite 0.05s; }
+
+  /* ── Speech Bubble ── */
+  .speech-bubble {
+    position: absolute;
+    z-index: 25;
+    background: var(--card);
+    border-radius: 14px;
+    padding: 10px 28px 10px 12px;
+    max-width: 170px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.35;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: auto;
+  }
+  .speech-bubble.hidden {
+    opacity: 0;
+    transform: scale(0.9);
+    pointer-events: none;
+  }
+  .speech-bubble::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0; height: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-right: 8px solid var(--card);
+  }
+  .speech-dismiss {
+    position: absolute;
+    top: 4px; right: 6px;
+    width: 18px; height: 18px;
+    border: none;
+    background: none;
+    font-size: 13px;
+    color: var(--text-disabled);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  .speech-dismiss:hover { background: rgba(0,0,0,0.05); }
+
+  /* ── Tab Bar ── */
+  .tab-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    z-index: 50;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 -2px 16px rgba(0,0,0,0.06);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;
+    padding-top: 8px;
+    height: 84px;
+    border-top: 1px solid var(--divider);
+  }
+  .tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    flex: 1;
+  }
+  .tab-icon {
+    font-size: 22px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tab-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-disabled);
+  }
+  .tab-item.active .tab-icon { color: var(--accent); }
+  .tab-item.active .tab-label { color: var(--accent); font-weight: 600; }
+  .tab-item:not(.active) .tab-icon { color: var(--text-disabled); }
+
+  .fab-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    margin-top: -22px;
+    cursor: pointer;
+  }
+  .fab {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF8F00, var(--accent));
+    color: white;
+    font-size: 28px;
+    font-weight: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(255,111,0,0.35);
+    transition: transform 0.2s;
+  }
+  .fab:active { transform: scale(0.92); }
+
+  .home-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 134px;
+    height: 5px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 3px;
+    z-index: 60;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- PARK BACKGROUND — Exact SVG file               -->
+  <!-- ══════════════════════════════════════════════ -->
+  <img class="park-bg" src="park-bg.svg" alt="Park background"/>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- UI LAYER — All interactive elements            -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="ui-layer">
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <span class="icons">
+        <span style="font-size:13px">&#9679;&#9679;&#9679;&#9679;&#9675;</span>
+        <span style="font-size:11px;margin-left:3px">5G</span>
+        <span style="font-size:15px;margin-left:3px">&#128267;</span>
+      </span>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="dog-chip">
+        <div class="avatar">&#128054;</div>
+        <span class="name">Luna</span>
+        <span class="dropdown">&#9662;</span>
+      </div>
+      <div class="header-right">
+        <div class="streak-pill">&#128293; 4</div>
+        <div class="profile-btn">&#128100;</div>
+      </div>
+    </div>
+
+    <!-- Progress Card (compact) -->
+    <div class="progress-card">
+      <div class="progress-top">
+        <span class="title">This Week's Journey</span>
+        <span class="fraction">4 <span>/ 7</span></span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill"></div>
+      </div>
+      <div class="subtitle">3 more days until your weekly health insights!</div>
+    </div>
+
+    <!-- ── Scene Area (journey nodes + mascot) ── -->
+    <div class="scene-area">
+
+      <!-- Journey Path SVG -->
+      <svg style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;" viewBox="0 0 390 540" preserveAspectRatio="xMidYMin meet">
+        <!-- Completed path -->
+        <path d="M130,60 C130,80 220,85 240,110
+                 C260,140 180,160 140,185
+                 C100,210 150,240 200,260
+                 C250,280 260,310 230,340"
+              fill="none" stroke="#FF6F00" stroke-width="4" stroke-dasharray="12 8" stroke-linecap="round" opacity="0.35"/>
+        <!-- Upcoming path -->
+        <path d="M230,340 C200,370 130,375 120,400
+                 C110,425 160,445 195,460
+                 C230,475 220,500 195,520"
+              fill="none" stroke="rgba(62,39,35,0.1)" stroke-width="4" stroke-dasharray="12 8" stroke-linecap="round"/>
+      </svg>
+
+      <!-- ── DATE NODES ── -->
+
+      <!-- Node 1: Mar 24 — Completed -->
+      <div class="node node--completed" style="left: 130px; top: 55px;" onclick="alert('Mar 24 check-in complete!')">
+        <div class="node-circle">
+          <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="5 12 10 17 19 7"/>
+          </svg>
+        </div>
+        <div class="node-shadow"></div>
+        <div class="node-label">Mar 24</div>
+      </div>
+
+      <!-- Node 2: Mar 25 — Completed -->
+      <div class="node node--completed" style="left: 245px; top: 125px;" onclick="alert('Mar 25 check-in complete!')">
+        <div class="node-circle">
+          <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="5 12 10 17 19 7"/>
+          </svg>
+        </div>
+        <div class="node-shadow"></div>
+        <div class="node-label">Mar 25</div>
+      </div>
+
+      <!-- Node 3: Mar 26 — Completed -->
+      <div class="node node--completed" style="left: 135px; top: 200px;" onclick="alert('Mar 26 check-in complete!')">
+        <div class="node-circle">
+          <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="5 12 10 17 19 7"/>
+          </svg>
+        </div>
+        <div class="node-shadow"></div>
+        <div class="node-label">Mar 26</div>
+      </div>
+
+      <!-- Node 4: Mar 27 — Completed -->
+      <div class="node node--completed" style="left: 230px; top: 275px;" onclick="alert('Mar 27 check-in complete!')">
+        <div class="node-circle">
+          <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="5 12 10 17 19 7"/>
+          </svg>
+        </div>
+        <div class="node-shadow"></div>
+        <div class="node-label">Mar 27</div>
+      </div>
+
+      <!-- Node 5: Mar 28 — CURRENT/TODAY -->
+      <div class="node node--current" style="left: 130px; top: 370px;" onclick="alert('Start today\'s check-in!')">
+        <div class="node-circle">28</div>
+        <div class="node-shadow"></div>
+        <div class="node-label">Today</div>
+      </div>
+
+      <!-- Node 6: Mar 29 — Upcoming -->
+      <div class="node node--upcoming" style="left: 210px; top: 440px;">
+        <div class="node-circle">29</div>
+        <div class="node-shadow"></div>
+        <div class="node-label">Mar 29</div>
+      </div>
+
+      <!-- Node 7: Mar 30 — Upcoming -->
+      <div class="node node--upcoming" style="left: 170px; top: 500px;">
+        <div class="node-circle">30</div>
+        <div class="node-shadow"></div>
+        <div class="node-label">Mar 30</div>
+      </div>
+
+      <!-- ── DOG MASCOT (at current node) ── -->
+      <div class="mascot-wrapper" style="left: 130px; top: 352px;">
+        <svg viewBox="100 130 220 240" xmlns="http://www.w3.org/2000/svg">
+          <!-- Tail -->
+          <g class="m-tail">
+            <path d="M 148 275 C 130 260, 115 235, 125 210 C 132 195, 145 200, 148 215"
+                  fill="#8D6E63" stroke="none"/>
+            <path d="M 140 270 C 125 255, 112 230, 122 208"
+                  fill="none" stroke="#3E2723" stroke-width="3.5" stroke-linecap="round"/>
+          </g>
+          <!-- Body -->
+          <g class="m-body-group">
+            <ellipse cx="232" cy="295" rx="65" ry="52" fill="#8D6E63"/>
+            <ellipse cx="228" cy="305" rx="40" ry="32" fill="#A1887F" opacity="0.6"/>
+            <path d="M 218 260 C 215 280, 215 310, 218 340"
+                  fill="none" stroke="#3E2723" stroke-width="3.5" stroke-linecap="round"/>
+            <rect x="200" y="310" width="22" height="36" rx="10" fill="#8D6E63"/>
+            <rect x="238" y="310" width="22" height="36" rx="10" fill="#8D6E63"/>
+            <path d="M 202 310 C 200 325, 199 335, 200 345" fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 220 310 C 221 325, 222 335, 222 345" fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 240 310 C 239 325, 238 335, 238 345" fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 258 310 C 259 325, 260 335, 261 345" fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+            <ellipse cx="211" cy="344" rx="12" ry="4" fill="#8D6E63"/>
+            <ellipse cx="249" cy="344" rx="12" ry="4" fill="#8D6E63"/>
+            <path d="M 170 320 C 168 330, 170 340, 175 345" fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 290 320 C 292 330, 290 340, 285 345" fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+            <line x1="165" y1="345" x2="300" y2="345" stroke="#3E2723" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+          </g>
+          <!-- Head -->
+          <g class="m-head-group">
+            <circle cx="235" cy="190" r="60" fill="#8D6E63"/>
+            <ellipse cx="233" cy="210" rx="25" ry="18" fill="#A1887F" opacity="0.5"/>
+            <g class="m-ear-left">
+              <ellipse cx="185" cy="200" rx="18" ry="32" transform="rotate(15, 185, 200)" fill="#8D6E63"/>
+              <ellipse cx="185" cy="205" rx="10" ry="22" transform="rotate(15, 185, 205)" fill="#6D4C41" opacity="0.4"/>
+              <path d="M 188 178 C 178 190, 172 210, 178 225"
+                    fill="none" stroke="#3E2723" stroke-width="3.5" stroke-linecap="round"/>
+            </g>
+            <g class="m-ear-right">
+              <ellipse cx="280" cy="195" rx="18" ry="30" transform="rotate(-15, 280, 195)" fill="#8D6E63"/>
+              <ellipse cx="280" cy="200" rx="10" ry="20" transform="rotate(-15, 280, 200)" fill="#6D4C41" opacity="0.4"/>
+              <path d="M 276 175 C 288 188, 293 208, 288 220"
+                    fill="none" stroke="#3E2723" stroke-width="3.5" stroke-linecap="round"/>
+            </g>
+            <g class="m-eye-left">
+              <circle cx="218" cy="192" r="5.5" fill="#3E2723"/>
+              <circle cx="216" cy="190" r="1.5" fill="white" opacity="0.7"/>
+            </g>
+            <g class="m-eye-right">
+              <circle cx="248" cy="192" r="5.5" fill="#3E2723"/>
+              <circle cx="246" cy="190" r="1.5" fill="white" opacity="0.7"/>
+            </g>
+            <g class="m-nose">
+              <ellipse cx="233" cy="207" rx="7" ry="5.5" fill="#3E2723"/>
+              <ellipse cx="231" cy="206" rx="2" ry="1.2" fill="rgba(255,255,255,0.15)"/>
+            </g>
+            <path d="M 233 212 C 228 220, 222 222, 218 218"
+                  fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 233 212 C 238 220, 244 222, 248 218"
+                  fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+          </g>
+          <!-- Butterfly -->
+          <g class="m-butterfly-group">
+            <g class="m-wing-left">
+              <path d="M 320 245 C 308 232, 302 218, 312 212 C 322 208, 320 230, 320 245"
+                    fill="#FF6F00" fill-opacity="0.3" stroke="#FF6F00" stroke-width="2" stroke-linecap="round"/>
+            </g>
+            <g class="m-wing-right">
+              <path d="M 320 245 C 332 232, 338 218, 328 212 C 318 208, 320 230, 320 245"
+                    fill="#FF6F00" fill-opacity="0.3" stroke="#FF6F00" stroke-width="2" stroke-linecap="round"/>
+            </g>
+            <line x1="320" y1="240" x2="320" y2="252" stroke="#3E2723" stroke-width="2" stroke-linecap="round"/>
+            <path d="M 320 240 C 316 234, 314 230, 312 228" fill="none" stroke="#3E2723" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M 320 240 C 324 234, 326 230, 328 228" fill="none" stroke="#3E2723" stroke-width="1.5" stroke-linecap="round"/>
+          </g>
+        </svg>
+      </div>
+
+      <!-- ── SPEECH BUBBLE ── -->
+      <div class="speech-bubble" id="speechBubble" style="left: 180px; top: 300px;">
+        Great progress! &#128062; 3 more to go!
+        <button class="speech-dismiss" onclick="dismissBubble()" aria-label="Dismiss">&times;</button>
+      </div>
+
+    </div><!-- /scene-area -->
+
+  </div><!-- /ui-layer -->
+
+  <!-- ── TAB BAR ── -->
+  <div class="tab-bar">
+    <div class="tab-item active">
+      <div class="tab-icon">&#127968;</div>
+      <div class="tab-label">Home</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon">&#10084;&#65039;</div>
+      <div class="tab-label">Health</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon">&#128214;</div>
+      <div class="tab-label">Learn</div>
+    </div>
+    <div class="fab-container">
+      <div class="fab">+</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon">&#129658;</div>
+      <div class="tab-label">Triage</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon">&#9881;&#65039;</div>
+      <div class="tab-label">Settings</div>
+    </div>
+  </div>
+
+  <!-- Home Indicator -->
+  <div class="home-indicator"></div>
+
+</div>
+
+<script>
+  function dismissBubble() {
+    document.getElementById('speechBubble').classList.add('hidden');
+  }
+</script>
+
+</body>
+</html>

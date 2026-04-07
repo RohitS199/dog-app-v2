@@ -17,6 +17,8 @@ const mockDog: Dog = {
   last_checkin_date: '2026-03-23',
   checkin_streak: 7,
   health_summary: null,
+  spayed_neutered: null,
+  known_conditions: [],
 };
 
 describe('FlippableDogCard', () => {

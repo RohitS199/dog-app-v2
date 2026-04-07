@@ -8,6 +8,7 @@ import { useTabFocusAnimation } from '../../src/hooks/useTabFocusAnimation';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useDogStore } from '../../src/stores/dogStore';
+import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
 import { useTriageStore } from '../../src/stores/triageStore';
 import { useCheckInStore } from '../../src/stores/checkInStore';
 import { useHealthStore } from '../../src/stores/healthStore';
@@ -68,6 +69,7 @@ export default function SettingsScreen() {
   const clearCheckIn = useCheckInStore((s) => s.clearAll);
   const clearHealth = useHealthStore((s) => s.clearHealth);
   const clearLearn = useLearnStore((s) => s.clearLearn);
+  const clearSubscription = useSubscriptionStore((s) => s.clearSubscription);
 
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [firstName, setFirstName] = useState((user?.user_metadata?.first_name as string) ?? '');
@@ -130,6 +132,7 @@ export default function SettingsScreen() {
     clearCheckIn();
     clearHealth();
     clearLearn();
+    clearSubscription();
     await signOut();
   };
 

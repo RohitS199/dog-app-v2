@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import type { Session, User } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { makeRedirectUri } from 'expo-auth-session';
 import { supabase } from '../lib/supabase';
 import { LEGAL } from '../constants/config';
 
@@ -17,6 +21,8 @@ interface AuthState {
   changePassword: (newPassword: string) => Promise<void>;
   updateAvatar: (uri: string) => Promise<void>;
   updateProfile: (fields: { first_name?: string; last_name?: string }) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   checkTermsAcceptance: () => Promise<boolean>;
   setSession: (session: Session | null) => void;
 }
@@ -115,6 +121,86 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { data, error } = await supabase.auth.updateUser({ data: fields });
     if (error) throw error;
     set({ user: data.user });
+  },
+
+  signInWithGoogle: async () => {
+    const redirectTo = makeRedirectUri({ scheme: 'puplog', path: 'auth/callback' });
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo, skipBrowserRedirect: true },
+    });
+    if (error) throw error;
+    if (data?.url) {
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      if (result.type === 'success' && result.url) {
+        // Extract tokens from the callback URL fragment
+        const url = new URL(result.url);
+        const params = new URLSearchParams(url.hash.substring(1));
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        if (accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (sessionError) throw sessionError;
+          const { data: { session } } = await supabase.auth.getSession();
+          set({ session, user: session?.user ?? null });
+          if (session?.user) await get().checkTermsAcceptance();
+        }
+      }
+    }
+  },
+
+  signInWithApple: async () => {
+    if (Platform.OS === 'ios') {
+      // Native Apple Sign In on iOS (shows system dialog with Face ID/Touch ID)
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        throw new Error('No identity token received from Apple.');
+      }
+
+      const { error, data } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+      });
+      if (error) throw error;
+      set({ session: data.session, user: data.user });
+      if (data.session?.user) await get().checkTermsAcceptance();
+    } else {
+      // Web browser OAuth fallback for Android
+      const redirectTo = makeRedirectUri({ scheme: 'puplog', path: 'auth/callback' });
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: { redirectTo, skipBrowserRedirect: true },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+        if (result.type === 'success' && result.url) {
+          const url = new URL(result.url);
+          const params = new URLSearchParams(url.hash.substring(1));
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+          if (accessToken && refreshToken) {
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (sessionError) throw sessionError;
+            const { data: { session } } = await supabase.auth.getSession();
+            set({ session, user: session?.user ?? null });
+            if (session?.user) await get().checkTermsAcceptance();
+          }
+        }
+      }
+    }
   },
 
   checkTermsAcceptance: async () => {

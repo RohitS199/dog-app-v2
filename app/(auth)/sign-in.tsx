@@ -13,6 +13,7 @@ import { Link } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
 import { InputField } from '../../src/components/ui/InputField';
 import { Button } from '../../src/components/ui/Button';
+import { SocialAuthButton } from '../../src/components/ui/SocialAuthButton';
 import { COLORS, FONT_SIZES, SPACING, FONTS, MIN_TOUCH_TARGET } from '../../src/constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -21,7 +22,10 @@ export default function SignIn() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
   const signIn = useAuthStore((s) => s.signIn);
+  const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
+  const signInWithApple = useAuthStore((s) => s.signInWithApple);
 
   const handleSignIn = async () => {
     if (!email.trim() || !password) {
@@ -40,6 +44,24 @@ export default function SignIn() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSocialSignIn = async (provider: 'google' | 'apple') => {
+    setError('');
+    setSocialLoading(provider);
+    try {
+      if (provider === 'google') {
+        await signInWithGoogle();
+      } else {
+        await signInWithApple();
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : `Sign in with ${provider} failed. Please try again.`
+      );
+    } finally {
+      setSocialLoading(null);
     }
   };
 
@@ -109,8 +131,27 @@ export default function SignIn() {
               title="Sign In"
               onPress={handleSignIn}
               loading={isSubmitting}
-              disabled={isSubmitting}
+              disabled={isSubmitting || socialLoading !== null}
               icon="arrow-right"
+            />
+
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Social Auth */}
+            <SocialAuthButton
+              provider="apple"
+              onPress={() => handleSocialSignIn('apple')}
+              loading={socialLoading === 'apple'}
+            />
+            <SocialAuthButton
+              provider="google"
+              onPress={() => handleSocialSignIn('google')}
+              loading={socialLoading === 'google'}
             />
 
             <View style={styles.signUpRow}>
@@ -183,6 +224,21 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: 15,
     fontWeight: '600',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SPACING.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginHorizontal: SPACING.md,
   },
   signUpRow: {
     flexDirection: 'row',

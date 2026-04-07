@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
+  Animated,
   Pressable,
   StyleSheet,
   Text,
@@ -48,14 +49,39 @@ export function InputField({
 }: InputFieldProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isSecure, setIsSecure] = useState(secureTextEntry ?? false);
+  const borderAnim = useRef(new Animated.Value(0)).current;
+
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+    Animated.timing(borderAnim, {
+      toValue: 1,
+      duration: 0,
+      useNativeDriver: false,
+    }).start();
+  }, [borderAnim]);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+    Animated.timing(borderAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: false,
+    }).start();
+  }, [borderAnim]);
+
+  const animatedBorderColor = error
+    ? COLORS.error
+    : borderAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['transparent', COLORS.accent],
+      });
 
   return (
     <View style={styles.wrapper}>
-      <View
+      <Animated.View
         style={[
           styles.container,
-          isFocused && styles.focused,
-          error ? styles.errorBorder : undefined,
+          { borderColor: animatedBorderColor },
         ]}
       >
         {icon && (
@@ -80,8 +106,8 @@ export function InputField({
           accessibilityLabel={accessibilityLabel}
           maxLength={maxLength}
           editable={editable}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
         {eyeToggle && secureTextEntry && (
           <Pressable
@@ -101,7 +127,7 @@ export function InputField({
         {rightText && (
           <Text style={styles.rightText}>{rightText}</Text>
         )}
-      </View>
+      </Animated.View>
       {error ? (
         <Text style={styles.errorText} accessibilityRole="alert">
           {error}

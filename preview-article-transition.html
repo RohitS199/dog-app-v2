@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PupLog — Shared Element Transition Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #FAFAFA;
+    color: #3E2723;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  .page-header {
+    padding: 60px 16px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .page-title {
+    font-family: 'Georgia', serif;
+    font-size: 28px;
+    color: #3E2723;
+  }
+  .heart-toggle {
+    width: 48px; height: 48px;
+    border: none; background: none; cursor: pointer;
+    font-size: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .heart-toggle:hover { background: rgba(0,0,0,0.04); }
+
+  /* ── Section ── */
+  .section { margin-bottom: 24px; }
+  .section-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 16px; margin-bottom: 10px;
+  }
+  .section-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .section-title { font-size: 18px; font-weight: 700; }
+
+  /* ── Horizontal scroll row ── */
+  .article-row {
+    display: flex; gap: 10px;
+    padding: 0 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .article-row::-webkit-scrollbar { display: none; }
+
+  /* ── Card ── */
+  .article-card {
+    flex: 0 0 200px;
+    scroll-snap-align: start;
+    background: #FAFAFA;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+    position: relative;
+  }
+  .article-card:active {
+    transform: scale(0.97);
+    opacity: 0.85;
+  }
+  /* Hide the source card while the shared image is animating */
+  .article-card.transitioning {
+    opacity: 0 !important;
+    transition: none;
+  }
+  .card-image {
+    width: 200px; height: 160px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    position: relative;
+  }
+  .card-heart {
+    position: absolute; top: 8px; right: 8px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(0,0,0,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: #fff;
+    cursor: pointer; border: none; z-index: 2;
+  }
+  .card-body {
+    padding: 10px 8px;
+  }
+  .card-title {
+    font-size: 16px; font-weight: 600;
+    color: #3E2723; line-height: 1.3;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .card-meta {
+    font-size: 12px; color: #795548;
+  }
+
+  /* ══════════════════════════════════════════════
+     DETAIL SCREEN — loads instantly but transparent.
+     Pinterest-style: image keeps its rounded shape,
+     grows slowly, content slides open below.
+     ══════════════════════════════════════════════ */
+
+  .detail-screen {
+    position: fixed; inset: 0;
+    z-index: 1000;
+    pointer-events: none;
+    visibility: hidden;
+  }
+  .detail-screen.active {
+    pointer-events: auto;
+    visibility: visible;
+  }
+
+  /* Background fades in as image expands */
+  .detail-bg {
+    position: absolute; inset: 0;
+    background: #FAFAFA;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .detail-screen.expanding .detail-bg,
+  .detail-screen.expanded .detail-bg {
+    opacity: 1;
+  }
+
+  /* ── The SHARED ELEMENT — rounded image that KEEPS its shape ── */
+  .shared-image {
+    position: absolute;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10;
+    border-radius: 16px; /* stays rounded throughout! */
+    will-change: transform, width, height, top, left;
+  }
+
+  /* ── Detail screen scrollable content ── */
+  .detail-scroll {
+    position: absolute;
+    left: 0; right: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    z-index: 5;
+    /* Content top is driven by JS to follow the image's bottom edge */
+    transition: top 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  .detail-content {
+    padding: 16px;
+  }
+
+  /* Header buttons float on top */
+  .detail-header {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 56px 16px 12px;
+  }
+  .header-btn {
+    width: 44px; height: 44px; border-radius: 22px;
+    background: #fff; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    transition: transform 0.15s ease;
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  .detail-screen.expanding .header-btn,
+  .detail-screen.expanded .header-btn {
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 0.18s ease 0.2s, transform 0.2s ease 0.2s;
+  }
+  .header-btn:hover { transform: scale(1.05); }
+  .header-btn:active { transform: scale(0.95); }
+
+  /* ── Content elements — fade in after image settles ── */
+  .detail-badge,
+  .detail-title,
+  .detail-summary,
+  .detail-meta-row,
+  .detail-divider,
+  .detail-body {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  .detail-screen.expanding .detail-badge,
+  .detail-screen.expanded .detail-badge {
+    opacity: 1; transform: translateY(0);
+    transition: opacity 0.2s ease 0.15s, transform 0.2s ease 0.15s;
+  }
+  .detail-screen.expanding .detail-title,
+  .detail-screen.expanded .detail-title {
+    opacity: 1; transform: translateY(0);
+    transition: opacity 0.2s ease 0.2s, transform 0.2s ease 0.2s;
+  }
+  .detail-screen.expanding .detail-summary,
+  .detail-screen.expanded .detail-summary {
+    opacity: 1; transform: translateY(0);
+    transition: opacity 0.2s ease 0.25s, transform 0.2s ease 0.25s;
+  }
+  .detail-screen.expanding .detail-meta-row,
+  .detail-screen.expanded .detail-meta-row {
+    opacity: 1; transform: translateY(0);
+    transition: opacity 0.2s ease 0.28s, transform 0.2s ease 0.28s;
+  }
+  .detail-screen.expanding .detail-divider,
+  .detail-screen.expanded .detail-divider {
+    opacity: 1; transform: translateY(0);
+    transition: opacity 0.15s ease 0.3s, transform 0.15s ease 0.3s;
+  }
+  .detail-screen.expanding .detail-body,
+  .detail-screen.expanded .detail-body {
+    opacity: 1; transform: translateY(0);
+    transition: opacity 0.2s ease 0.32s, transform 0.2s ease 0.32s;
+  }
+
+  /* ── Closing — content exits fast, image springs back slowly ── */
+  .detail-screen.closing .detail-bg {
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .detail-screen.closing .header-btn {
+    opacity: 0; transform: scale(0.8);
+    transition: opacity 0.1s ease, transform 0.1s ease;
+  }
+  .detail-screen.closing .detail-badge,
+  .detail-screen.closing .detail-title,
+  .detail-screen.closing .detail-summary,
+  .detail-screen.closing .detail-meta-row,
+  .detail-screen.closing .detail-divider,
+  .detail-screen.closing .detail-body {
+    opacity: 0; transform: translateY(8px);
+    transition: opacity 0.1s ease, transform 0.1s ease;
+  }
+
+  /* ── Detail element styles ── */
+  .detail-badge {
+    display: inline-block;
+    border-radius: 20px;
+    padding: 3px 12px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+  .detail-title {
+    font-family: 'Georgia', serif;
+    font-size: 28px;
+    color: #3E2723;
+    margin-bottom: 10px;
+    line-height: 1.2;
+  }
+  .detail-summary {
+    font-size: 16px;
+    color: #795548;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .detail-meta-row {
+    font-size: 14px;
+    color: #795548;
+    margin-bottom: 16px;
+  }
+  .detail-divider {
+    width: 40px; height: 3px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+  }
+  .detail-body p {
+    font-size: 16px; line-height: 1.7;
+    color: #3E2723; margin-bottom: 16px;
+  }
+  .detail-body h2 {
+    font-family: 'Georgia', serif;
+    font-size: 20px; color: #3E2723;
+    margin: 24px 0 10px;
+  }
+  .detail-body ul {
+    padding-left: 20px; margin-bottom: 16px;
+  }
+  .detail-body li {
+    font-size: 16px; line-height: 1.7;
+    color: #3E2723; margin-bottom: 6px;
+  }
+  .detail-disclaimer {
+    background: #FFF8E1;
+    border-left: 3px solid #FFB300;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 24px;
+    font-size: 13px;
+    color: #795548;
+    line-height: 1.5;
+  }
+
+  /* ── Tab bar mock ── */
+  .tab-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 84px;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding-top: 10px;
+    z-index: 500;
+  }
+  .tab-item {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+    font-size: 10px; color: #795548;
+    border: none; background: none; cursor: pointer;
+    padding: 4px 16px;
+  }
+  .tab-item.active { color: #FF6F00; }
+  .tab-item .tab-icon { font-size: 22px; }
+
+  /* Bottom padding for tab bar */
+  .bottom-spacer { height: 100px; }
+
+  /* ── Hint banner ── */
+  .hint {
+    text-align: center;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #795548;
+    background: #FFF8E1;
+    margin: 0 16px 16px;
+    border-radius: 12px;
+  }
+  .hint strong { color: #3E2723; }
+</style>
+</head>
+<body>
+
+<!-- Page Header -->
+<div class="page-header">
+  <div class="page-title">Learn</div>
+  <button class="heart-toggle" title="Show favorites">&#9825;</button>
+</div>
+
+<div class="hint"><strong>Shared Element Transition demo</strong> — tap any card. The image is the shared element that "moves" between views.</div>
+
+<!-- Section 1: Know Your Dog -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background: rgba(76,175,80,0.1);">&#128054;</div>
+    <div class="section-title">Know Your Dog</div>
+  </div>
+  <div class="article-row">
+    <div class="article-card" data-slug="normal-poop" data-color="#4CAF50" data-icon="&#128203;" data-section="Know Your Dog">
+      <div class="card-image" style="background: rgba(76,175,80,0.1);">
+        <button class="card-heart">&#9825;</button>
+        &#128203;
+      </div>
+      <div class="card-body">
+        <div class="card-title">What's Normal Poop? A Visual Guide</div>
+        <div class="card-meta">4 min read</div>
+      </div>
+    </div>
+    <div class="article-card" data-slug="skin-turgor" data-color="#4CAF50" data-icon="&#128400;" data-section="Know Your Dog">
+      <div class="card-image" style="background: rgba(76,175,80,0.1);">
+        <button class="card-heart">&#9825;</button>
+        &#128400;
+      </div>
+      <div class="card-body">
+        <div class="card-title">The Skin Turgor Test</div>
+        <div class="card-meta">3 min read</div>
+      </div>
+    </div>
+    <div class="article-card" data-slug="monthly-check" data-color="#4CAF50" data-icon="&#129658;" data-section="Know Your Dog">
+      <div class="card-image" style="background: rgba(76,175,80,0.1);">
+        <button class="card-heart">&#9825;</button>
+        &#129658;
+      </div>
+      <div class="card-body">
+        <div class="card-title">Monthly Home Health Check</div>
+        <div class="card-meta">5 min read</div>
+      </div>
+    </div>
+    <div class="article-card" data-slug="what-vet-wishes" data-color="#4CAF50" data-icon="&#128221;" data-section="Know Your Dog">
+      <div class="card-image" style="background: rgba(76,175,80,0.1);">
+        <button class="card-heart">&#9825;</button>
+        &#128221;
+      </div>
+      <div class="card-body">
+        <div class="card-title">What Your Vet Wishes You Knew</div>
+        <div class="card-meta">4 min read</div>
+      </div>
+    </div>
+    <div class="article-card" data-slug="one-bad-day" data-color="#4CAF50" data-icon="&#128197;" data-section="Know Your Dog">
+      <div class="card-image" style="background: rgba(76,175,80,0.1);">
+        <button class="card-heart">&#9825;</button>
+        &#128197;
+      </div>
+      <div class="card-body">
+        <div class="card-title">One Bad Day vs. a Pattern</div>
+        <div class="card-meta">3 min read</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 2: When to Worry -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background: rgba(244,67,54,0.1);">&#9888;&#65039;</div>
+    <div class="section-title">When to Worry</div>
+  </div>
+  <div class="article-row">
+    <div class="article-card" data-slug="bloat-gdv" data-color="#F44336" data-icon="&#128680;" data-section="When to Worry">
+      <div class="card-image" style="background: rgba(244,67,54,0.1);">
+        <button class="card-heart">&#9825;</button>
+        &#128680;
+      </div>
+      <div class="card-body">
+        <div class="card-title">Bloat (GDV): The Silent Emergency</div>
+        <div class="card-meta">6 min read</div>
+      </div>
+    </div>
+    <div class="article-card" data-slug="urgent-vs-routine" data-color="#F44336" data-icon="&#127973;" data-section="When to Worry">
+      <div class="card-image" style="background: rgba(244,67,54,0.1);">
+        <button class="card-heart">&#9825;</button>
+        &#127973;
+      </div>
+      <div class="card-body">
+        <div class="card-title">Urgent vs. Routine: When to Act</div>
+        <div class="card-meta">5 min read</div>
+      </div>
+    </div>
+    <div class="article-card" data-slug="prepare-for-vet" data-color="#F44336" data-icon="&#128203;" data-section="When to Worry">
+      <div class="card-image" style="background: rgba(244,67,54,0.1);">
+        <button class="card-heart">&#9825;</button>
+        &#128203;
+      </div>
+      <div class="card-body">
+        <div class="card-title">How to Prepare for a Vet Visit</div>
+        <div class="card-meta">4 min read</div>
+      </div>
+    </div>
+    <div class="article-card" data-slug="dog-throwing-up" data-color="#F44336" data-icon="&#129314;" data-section="When to Worry">
+      <div class="card-image" style="background: rgba(244,67,54,0.1);">
+        <button class="card-heart">&#9825;</button>
+        &#129314;
+      </div>
+      <div class="card-body">
+        <div class="card-title">My Dog is Throwing Up</div>
+        <div class="card-meta">5 min read</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 3: Safety & First Aid -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background: rgba(255,152,0,0.1);">&#128721;</div>
+    <div class="section-title">Safety & First Aid</div>
+  </div>
+  <div class="article-row">
+    <div class="article-card" data-slug="toxic-foods" data-color="#FF9800" data-icon="&#9760;&#65039;" data-section="Safety & First Aid">
+      <div class="card-image" style="background: rgba(255,152,0,0.1);">
+        <button class="card-heart">&#9825;</button>
+        &#9760;&#65039;
+      </div>
+      <div class="card-body">
+        <div class="card-title">Toxic Foods Every Owner Should Know</div>
+        <div class="card-meta">5 min read</div>
+      </div>
+    </div>
+    <div class="article-card" data-slug="before-the-er" data-color="#FF9800" data-icon="&#128657;" data-section="Safety & First Aid">
+      <div class="card-image" style="background: rgba(255,152,0,0.1);">
+        <button class="card-heart">&#9825;</button>
+        &#128657;
+      </div>
+      <div class="card-body">
+        <div class="card-title">Before the ER: First Steps</div>
+        <div class="card-meta">4 min read</div>
+      </div>
+    </div>
+    <div class="article-card" data-slug="household-hazards" data-color="#FF9800" data-icon="&#127968;" data-section="Safety & First Aid">
+      <div class="card-image" style="background: rgba(255,152,0,0.1);">
+        <button class="card-heart">&#9825;</button>
+        &#127968;
+      </div>
+      <div class="card-body">
+        <div class="card-title">Hidden Household Hazards</div>
+        <div class="card-meta">4 min read</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-spacer"></div>
+
+<!-- Mock Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-item"><span class="tab-icon">&#127968;</span>Home</button>
+  <button class="tab-item"><span class="tab-icon">&#128197;</span>Health</button>
+  <button class="tab-item active"><span class="tab-icon">&#128214;</span>Learn</button>
+  <button class="tab-item"><span class="tab-icon">&#9881;&#65039;</span>Settings</button>
+</div>
+
+<!-- ═══════════════════════════════════════
+     DETAIL SCREEN
+     Loaded instantly but transparent.
+     The shared image starts at card coords.
+     ═══════════════════════════════════════ -->
+<div class="detail-screen" id="detailScreen">
+  <!-- Background surface -->
+  <div class="detail-bg"></div>
+
+  <!-- Header buttons (back + heart) -->
+  <div class="detail-header">
+    <button class="header-btn" id="backBtn" aria-label="Go back">&#8592;</button>
+    <button class="header-btn" aria-label="Favorite">&#9825;</button>
+  </div>
+
+  <!-- THE SHARED ELEMENT — image that transitions from card to hero -->
+  <div class="shared-image" id="sharedImage"></div>
+
+  <!-- Detail content — positioned below where the hero image will land -->
+  <div class="detail-scroll" id="detailScroll">
+    <div class="detail-content" id="detailContent"></div>
+  </div>
+</div>
+
+<script>
+  const detailScreen = document.getElementById('detailScreen');
+  const sharedImage = document.getElementById('sharedImage');
+  const detailScroll = document.getElementById('detailScroll');
+  const detailContent = document.getElementById('detailContent');
+  const backBtn = document.getElementById('backBtn');
+
+  // Safe area + hero image target dimensions
+  const SAFE_AREA_TOP = 56;
+  const HERO_HEIGHT = 220;
+  const HERO_TOP = SAFE_AREA_TOP;
+  const HERO_MARGIN = 16; // horizontal margin — image stays padded
+  const CONTENT_TOP = HERO_TOP + HERO_HEIGHT;
+
+  // Easing — natural pace, ease-out
+  const EASE = 'cubic-bezier(0.25, 0.1, 0.25, 1)';
+
+  let originRect = null;
+  let sourceCard = null;
+  let isAnimating = false;
+
+  // ── Article data ──
+
+  const sampleBodies = {
+    'normal-poop': `
+      <h2>Why Poop Matters</h2>
+      <p>Your dog's stool is one of the best indicators of their overall health. Changes in color, consistency, or frequency can signal dietary issues, stress, or underlying health conditions.</p>
+      <h2>The 4 C's of Healthy Poop</h2>
+      <ul>
+        <li><strong>Color:</strong> Chocolate brown is ideal. Black may indicate upper GI bleeding. Red streaks suggest lower GI issues.</li>
+        <li><strong>Consistency:</strong> Should be firm but not hard — like Play-Doh. Too soft or watery may signal dietary sensitivity.</li>
+        <li><strong>Coating:</strong> Healthy poop leaves no residue. Mucus coating may indicate inflammation.</li>
+        <li><strong>Content:</strong> Should be uniform. Visible worms, foreign objects, or grass warrant attention.</li>
+      </ul>
+      <p>Keep a mental note of your dog's normal. PupLog's daily check-in helps you track changes over time so you can spot patterns early.</p>`,
+    'bloat-gdv': `
+      <h2>What is GDV?</h2>
+      <p>Gastric Dilatation-Volvulus (GDV), commonly called bloat, is one of the most serious emergencies in veterinary medicine. The stomach fills with gas and rotates, cutting off blood supply.</p>
+      <h2>Warning Signs</h2>
+      <ul>
+        <li>Distended, hard abdomen</li>
+        <li>Non-productive retching (trying to vomit but nothing comes up)</li>
+        <li>Restlessness, pacing, inability to get comfortable</li>
+        <li>Excessive drooling</li>
+        <li>Rapid breathing or pale gums</li>
+      </ul>
+      <p><strong>This is a true emergency.</strong> If you see these signs, go to the nearest emergency vet immediately. Minutes matter.</p>
+      <h2>Risk Factors</h2>
+      <p>Large, deep-chested breeds (Great Danes, German Shepherds, Standard Poodles) are most at risk. Eating too fast, exercising after meals, and stress can contribute.</p>`,
+  };
+
+  const defaultBody = `
+    <h2>Understanding the Basics</h2>
+    <p>This is a preview of the article content. In the real app, this is Markdown from the database.</p>
+    <p>Notice how the image is the <strong>shared element</strong> — it starts at the card's exact screen coordinates and expands to its final hero position. The detail screen loads behind it with a transparent background, then fades in simultaneously.</p>
+    <h2>The Choreography</h2>
+    <ul>
+      <li>Image expands from card position to full-width hero (shared element)</li>
+      <li>Background fades in simultaneously — the detail screen "appears"</li>
+      <li>Badge, title, summary, meta each slide up with staggered delays</li>
+      <li>Body content fades in last</li>
+      <li>On close — content exits fast, then image shrinks back to the card</li>
+    </ul>
+    <p>Try cards from different scroll positions — the animation always starts from the correct origin.</p>`;
+
+  const summaries = {
+    'normal-poop': "Learn the 4 C's of healthy dog poop and what changes might mean for your pup's health.",
+    'skin-turgor': "A simple pinch test that can help you check your dog's hydration level at home.",
+    'monthly-check': 'A step-by-step guide to performing a basic health check on your dog each month.',
+    'what-vet-wishes': 'Common misconceptions and tips straight from veterinarians.',
+    'one-bad-day': 'How to tell if a symptom is a one-off or something that needs attention.',
+    'bloat-gdv': "Recognize the signs of this life-threatening emergency before it's too late.",
+    'urgent-vs-routine': 'A framework for deciding when to call the vet now vs. scheduling a visit.',
+    'prepare-for-vet': 'Make the most of your vet appointment with these preparation tips.',
+    'dog-throwing-up': 'When vomiting is normal and when it signals something serious.',
+    'toxic-foods': 'The most common household foods that are dangerous for dogs.',
+    'before-the-er': 'What to do in the critical minutes before you reach the emergency vet.',
+    'household-hazards': 'Everyday items in your home that could be dangerous for your dog.',
+  };
+
+  // ── Card click handlers ──
+
+  document.querySelectorAll('.article-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.card-heart')) return;
+      if (isAnimating) return;
+      openArticle(card);
+    });
+  });
+
+  function openArticle(card) {
+    isAnimating = true;
+    sourceCard = card;
+    const slug = card.dataset.slug;
+    const color = card.dataset.color;
+    const icon = card.dataset.icon;
+    const section = card.dataset.section;
+    const title = card.querySelector('.card-title').textContent;
+    const meta = card.querySelector('.card-meta').textContent;
+    const imageBg = card.querySelector('.card-image').style.background;
+
+    // ── STEP 1: Calculate the math ──
+    // Get the card image's exact screen coordinates
+    const imageEl = card.querySelector('.card-image');
+    const rect = imageEl.getBoundingClientRect();
+    originRect = rect;
+
+    // ── STEP 2: Place shared image at card's exact position ──
+    sharedImage.style.transition = 'none';
+    sharedImage.style.left = rect.left + 'px';
+    sharedImage.style.top = rect.top + 'px';
+    sharedImage.style.width = rect.width + 'px';
+    sharedImage.style.height = rect.height + 'px';
+    // borderRadius stays 16px throughout — shape doesn't change
+    sharedImage.style.background = imageBg;
+    sharedImage.innerHTML = `<span style="font-size: 48px; transition: font-size 0.3s ${EASE};">${icon}</span>`;
+
+    // ── Hide the source card (the image IS now the shared element) ──
+    card.classList.add('transitioning');
+
+    // ── STEP 3: Load the detail screen content (instantly, but invisible) ──
+    const summary = summaries[slug] || "An educational article about your dog's health.";
+    const body = sampleBodies[slug] || defaultBody;
+    detailContent.innerHTML = `
+      <div class="detail-badge" style="background: ${color};">${section}</div>
+      <div class="detail-title">${title}</div>
+      <div class="detail-summary">${summary}</div>
+      <div class="detail-meta-row">${meta} &middot; March 25, 2026</div>
+      <div class="detail-divider" style="background: ${color};"></div>
+      <div class="detail-body">
+        ${body}
+        <div class="detail-disclaimer">
+          This article is for educational purposes only and is not a substitute for professional veterinary advice, diagnosis, or treatment.
+        </div>
+      </div>
+    `;
+
+    // Position content initially right below the card image (will slide down as image grows)
+    detailScroll.style.transition = 'none';
+    detailScroll.style.top = (rect.top + rect.height + 8) + 'px';
+    detailScroll.style.bottom = '0';
+    detailScroll.scrollTop = 0;
+
+    // Make detail screen visible (but bg still transparent)
+    detailScreen.classList.add('active');
+    detailScreen.classList.remove('expanding', 'expanded', 'closing');
+
+    // ── Force reflow so the browser registers the starting position ──
+    sharedImage.offsetHeight;
+
+    // ── STEP 4: Animate the shared element to its hero position ──
+    // Pinterest-style: slow, smooth, image keeps rounded shape
+    requestAnimationFrame(() => {
+      sharedImage.style.transition = `all 0.3s ${EASE}`;
+      sharedImage.style.left = HERO_MARGIN + 'px';
+      sharedImage.style.top = HERO_TOP + 'px';
+      sharedImage.style.width = `calc(100% - ${HERO_MARGIN * 2}px)`;
+      sharedImage.style.height = HERO_HEIGHT + 'px';
+
+      const iconEl = sharedImage.querySelector('span');
+      if (iconEl) iconEl.style.fontSize = '64px';
+
+      detailScroll.style.transition = `top 0.3s ${EASE}`;
+      detailScroll.style.top = CONTENT_TOP + 'px';
+
+      detailScreen.classList.add('expanding');
+
+      setTimeout(() => {
+        detailScreen.classList.add('expanded');
+        isAnimating = false;
+      }, 350);
+    });
+  }
+
+  function closeArticle() {
+    if (isAnimating || !originRect) return;
+    isAnimating = true;
+
+    // ── STEP 1: Fade out content fast ──
+    detailScreen.classList.remove('expanding', 'expanded');
+    detailScreen.classList.add('closing');
+
+    // ── STEP 2: Shrink image back to card — no delay ──
+    setTimeout(() => {
+      sharedImage.style.transition = `all 0.25s ${EASE}`;
+      sharedImage.style.left = originRect.left + 'px';
+      sharedImage.style.top = originRect.top + 'px';
+      sharedImage.style.width = originRect.width + 'px';
+      sharedImage.style.height = originRect.height + 'px';
+
+      detailScroll.style.transition = `top 0.25s ${EASE}`;
+      detailScroll.style.top = (originRect.top + originRect.height + 8) + 'px';
+
+      const iconEl = sharedImage.querySelector('span');
+      if (iconEl) {
+        iconEl.style.transition = `font-size 0.25s ${EASE}`;
+        iconEl.style.fontSize = '48px';
+      }
+    }, 50);
+
+    // ── STEP 3: Clean up ──
+    setTimeout(() => {
+      detailScreen.classList.remove('active', 'closing');
+      if (sourceCard) {
+        sourceCard.classList.remove('transitioning');
+        sourceCard = null;
+      }
+      originRect = null;
+      isAnimating = false;
+    }, 300);
+  }
+
+  // ── Close triggers ──
+  backBtn.addEventListener('click', closeArticle);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeArticle();
+  });
+
+  // Swipe down to close (touch)
+  let touchStartY = 0;
+  let touchDragging = false;
+  detailScroll.addEventListener('touchstart', (e) => {
+    if (detailScroll.scrollTop <= 0) {
+      touchStartY = e.touches[0].clientY;
+      touchDragging = true;
+    }
+  });
+  detailScroll.addEventListener('touchmove', (e) => {
+    if (!touchDragging) return;
+    const dy = e.touches[0].clientY - touchStartY;
+    if (dy > 80) {
+      touchDragging = false;
+      closeArticle();
+    }
+  });
+  detailScroll.addEventListener('touchend', () => { touchDragging = false; });
+</script>
+
+</body>
+</html>

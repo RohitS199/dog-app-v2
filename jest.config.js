@@ -6,6 +6,8 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^@expo/vector-icons$': '<rootDir>/__mocks__/@expo/vector-icons.js',
+    '^expo-superwall$': '<rootDir>/__mocks__/expo-superwall.js',
+    '^react-native-purchases$': '<rootDir>/__mocks__/react-native-purchases.js',
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   testMatch: ['**/__tests__/**/*.(ts|tsx)', '**/*.(test|spec).(ts|tsx)'],

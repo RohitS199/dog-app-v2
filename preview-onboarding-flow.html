@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PupLog Onboarding Flow — All 19 Screens</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #3E2723;
+      --primary-light: #5D4037;
+      --accent: #FF6F00;
+      --accent-light: rgba(255, 111, 0, 0.12);
+      --background: #FAFAFA;
+      --surface: #D7CCC8;
+      --card-bg: #FFFFFF;
+      --input-bg: #F5F0ED;
+      --text-primary: #3E2723;
+      --text-secondary: #5D4037;
+      --text-disabled: #795548;
+      --border: #BCAAA4;
+      --divider: #C8B8B0;
+      --error: #D32F2F;
+      --success: #388E3C;
+      --emergency: #C62828;
+      --monitor: #00897B;
+      --shadow-card: 0 2px 8px rgba(0,0,0,0.08);
+      --shadow-elevated: 0 4px 12px rgba(0,0,0,0.12);
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-xxl: 20px;
+      --radius-full: 9999px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #E8E0D8;
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Page layout */
+    .page-header {
+      text-align: center; padding: 40px 20px 20px;
+      background: var(--primary); color: white;
+      position: sticky; top: 0; z-index: 1000;
+    }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: 28px; margin-bottom: 4px; }
+    .page-header p { font-size: 14px; opacity: 0.7; }
+    .nav-bar {
+      display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+      padding: 12px 20px; background: var(--primary-light);
+      position: sticky; top: 88px; z-index: 999;
+    }
+    .nav-btn {
+      padding: 6px 14px; border-radius: var(--radius-full); border: 1px solid rgba(255,255,255,0.3);
+      background: transparent; color: white; font-size: 13px; font-weight: 500; cursor: pointer;
+    }
+    .nav-btn.active { background: var(--accent); border-color: var(--accent); }
+
+    /* Section headers */
+    .section-header {
+      padding: 48px 40px 24px;
+      max-width: 1400px; margin: 0 auto;
+    }
+    .section-header h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 24px; color: var(--primary); margin-bottom: 4px;
+    }
+    .section-header .phase-label {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--accent); margin-bottom: 8px;
+    }
+    .section-header p { font-size: 14px; color: var(--text-secondary); }
+    .section-divider {
+      max-width: 1400px; margin: 0 auto;
+      border: none; border-top: 2px dashed var(--border); margin-top: 48px;
+    }
+
+    /* Screen grid */
+    .screen-row {
+      display: flex; gap: 32px; padding: 0 40px 0;
+      max-width: 1400px; margin: 0 auto;
+      flex-wrap: wrap; justify-content: flex-start;
+    }
+    .screen-container {
+      display: flex; flex-direction: column; align-items: center;
+      margin-bottom: 24px;
+    }
+    .screen-label {
+      font-size: 13px; font-weight: 700; color: var(--text-disabled);
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 12px; text-align: center;
+    }
+
+    /* iPhone frame */
+    .iphone {
+      width: 375px; height: 812px;
+      background: var(--background);
+      border-radius: 44px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.2), inset 0 0 0 3px #1a1a1a;
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+
+    /* Status bar */
+    .status-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 28px 0; height: 50px; font-size: 15px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .status-icons { display: flex; gap: 4px; align-items: center; }
+
+    /* Progress bar */
+    .progress-bar-track {
+      height: 4px; background: rgba(188,170,164,0.3);
+      margin: 0 20px; border-radius: 2px; flex-shrink: 0;
+    }
+    .progress-bar-fill {
+      height: 100%; background: var(--accent);
+      border-radius: 2px; transition: width 0.3s ease-out;
+    }
+
+    /* Scrollable content */
+    .screen-content {
+      flex: 1; overflow-y: auto; padding-bottom: 24px;
+    }
+    .screen-content::-webkit-scrollbar { display: none; }
+
+    /* Back header */
+    .back-header {
+      display: flex; align-items: center; padding: 8px 20px;
+      flex-shrink: 0;
+    }
+    .back-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--card-bg); border: none; box-shadow: var(--shadow-card);
+      cursor: pointer; font-size: 18px; color: var(--text-primary);
+    }
+
+    /* Typography */
+    .heading { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--text-primary); line-height: 1.2; }
+    .heading-lg { font-family: 'DM Serif Display', serif; font-size: 32px; color: var(--text-primary); line-height: 1.15; }
+    .subtext { font-size: 15px; color: var(--text-secondary); line-height: 1.5; }
+    .label { font-size: 13px; font-weight: 600; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Content padding */
+    .px { padding-left: 24px; padding-right: 24px; }
+
+    /* Buttons */
+    .btn-primary {
+      background: var(--accent); color: white; border: none;
+      border-radius: var(--radius-xxl); padding: 16px 24px;
+      font-size: 17px; font-weight: 600; width: 100%; min-height: 52px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .btn-primary:active { opacity: 0.9; transform: scale(0.99); }
+    .btn-secondary {
+      background: var(--primary); color: white; border: none;
+      border-radius: var(--radius-xxl); padding: 16px 24px;
+      font-size: 17px; font-weight: 600; width: 100%; min-height: 52px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .btn-outline {
+      background: transparent; color: var(--primary);
+      border: 1.5px solid var(--border); border-radius: var(--radius-xxl);
+      padding: 16px 24px; font-size: 17px; font-weight: 600;
+      width: 100%; min-height: 52px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .link-text {
+      text-align: center; font-size: 15px; color: var(--text-disabled);
+      padding: 12px 0; cursor: pointer;
+    }
+    .link-text b { color: var(--accent); font-weight: 600; }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg); border-radius: var(--radius-xxl);
+      padding: 16px 18px; box-shadow: var(--shadow-card);
+      margin-bottom: 12px;
+    }
+    .option-card {
+      background: var(--card-bg); border-radius: var(--radius-xl);
+      padding: 16px 18px; box-shadow: var(--shadow-card);
+      margin-bottom: 10px; cursor: pointer;
+      border: 2px solid transparent;
+      display: flex; align-items: center; gap: 14px;
+      min-height: 56px; transition: all 0.15s ease;
+    }
+    .option-card:hover { border-color: rgba(255,111,0,0.3); }
+    .option-card.selected { border-color: var(--accent); background: var(--accent-light); }
+    .option-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .option-content { flex: 1; }
+    .option-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+    .option-desc { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* Input fields */
+    .input-group { margin-bottom: 14px; }
+    .input-label { font-size: 12px; font-weight: 600; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .text-input {
+      width: 100%; height: 48px; background: var(--input-bg);
+      border-radius: var(--radius-xl); padding: 0 16px;
+      border: none; font-size: 16px; color: var(--text-primary);
+      outline: none;
+    }
+    .text-input::placeholder { color: var(--text-disabled); }
+    .form-row { display: flex; gap: 12px; }
+    .form-row .input-group { flex: 1; }
+
+    /* Photo circle */
+    .photo-circle {
+      width: 100px; height: 100px; border-radius: 50%;
+      border: 3px dashed var(--accent); background: var(--accent-light);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px; font-size: 36px; color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* Toggle */
+    .toggle-row {
+      display: flex; gap: 8px; margin-bottom: 14px;
+    }
+    .toggle-opt {
+      flex: 1; padding: 12px 8px; text-align: center; font-size: 15px; font-weight: 500;
+      border-radius: var(--radius-xl); border: 1.5px solid var(--border);
+      background: var(--card-bg); cursor: pointer; color: var(--text-primary);
+    }
+    .toggle-opt.selected { background: var(--accent); color: white; border-color: var(--accent); }
+
+    /* Chips */
+    .chips-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      display: inline-flex; padding: 10px 16px; border-radius: var(--radius-full);
+      font-size: 14px; border: 1.5px solid var(--border); background: var(--card-bg);
+      color: var(--text-primary); cursor: pointer;
+    }
+    .chip.selected { background: var(--accent); color: white; border-color: var(--accent); }
+
+    /* Breed health card */
+    .breed-card {
+      background: var(--card-bg); border-radius: var(--radius-xl);
+      padding: 14px 16px; box-shadow: var(--shadow-card);
+      margin-bottom: 10px; display: flex; align-items: flex-start; gap: 12px;
+      border-left: 4px solid var(--accent);
+    }
+    .breed-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: #FFF3E0; display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+
+    /* Check-in card */
+    .checkin-card {
+      background: var(--card-bg); border-radius: var(--radius-xxl);
+      padding: 20px; box-shadow: var(--shadow-card); margin-bottom: 12px;
+    }
+    .checkin-question { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 14px; }
+    .checkin-option {
+      padding: 14px 16px; border-radius: var(--radius-xl);
+      border: 1.5px solid var(--border); background: var(--card-bg);
+      margin-bottom: 8px; font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .checkin-option:hover { border-color: rgba(255,111,0,0.4); }
+    .checkin-option.selected { border-color: var(--accent); background: var(--accent-light); }
+    .checkin-radio {
+      width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+    .checkin-option.selected .checkin-radio {
+      border-color: var(--accent); background: var(--accent);
+      box-shadow: inset 0 0 0 3px white;
+    }
+
+    /* Progress dots */
+    .progress-dots {
+      display: flex; justify-content: center; gap: 6px; margin-bottom: 16px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+    .dot.active { background: var(--accent); width: 20px; border-radius: 4px; }
+    .dot.done { background: var(--accent); }
+
+    /* Loading spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+    .spinner {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 3px solid transparent; border-top-color: var(--accent); border-right-color: var(--accent);
+      animation: spin 1s linear infinite; margin: 0 auto 20px;
+    }
+    .loading-msg { text-align: center; font-size: 15px; color: var(--text-secondary); animation: pulse 2s ease-in-out infinite; }
+
+    /* Summary card */
+    .summary-card {
+      background: var(--card-bg); border-radius: var(--radius-xxl);
+      padding: 20px; box-shadow: var(--shadow-card);
+      border-left: 4px solid var(--success);
+    }
+    .summary-badge {
+      display: inline-flex; padding: 4px 12px; border-radius: var(--radius-full);
+      font-size: 12px; font-weight: 700; margin-bottom: 8px;
+    }
+
+    /* Timeline */
+    .timeline { padding: 0 4px; }
+    .timeline-item {
+      display: flex; gap: 14px; padding-bottom: 20px;
+      position: relative;
+    }
+    .timeline-item:not(:last-child)::before {
+      content: ''; position: absolute; left: 15px; top: 34px; bottom: 0;
+      width: 2px; background: var(--border);
+    }
+    .timeline-dot {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; flex-shrink: 0; z-index: 1;
+    }
+    .timeline-dot.done { background: var(--success); color: white; }
+    .timeline-dot.locked { background: var(--surface); color: var(--text-disabled); }
+
+    /* Blurred teaser */
+    .blurred-teaser {
+      filter: blur(3px); opacity: 0.5; pointer-events: none;
+      position: relative;
+    }
+    .teaser-overlay {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: var(--primary); color: white; padding: 8px 20px;
+      border-radius: var(--radius-full); font-size: 13px; font-weight: 600;
+      white-space: nowrap; z-index: 2; filter: none;
+    }
+
+    /* Plan card */
+    .plan-card {
+      background: var(--card-bg); border-radius: var(--radius-xxl);
+      padding: 20px; box-shadow: var(--shadow-card); margin-bottom: 12px;
+      border: 2px solid transparent; cursor: pointer;
+    }
+    .plan-card.recommended { border-color: var(--accent); box-shadow: var(--shadow-elevated); }
+    .plan-badge {
+      position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: white; padding: 3px 12px;
+      border-radius: var(--radius-full); font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .plan-header { display: flex; justify-content: space-between; align-items: center; }
+    .plan-name { font-family: 'DM Serif Display', serif; font-size: 20px; }
+    .plan-price { font-size: 24px; font-weight: 700; }
+    .plan-price span { font-size: 14px; font-weight: 400; color: var(--text-disabled); }
+
+    /* Social auth */
+    .social-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; min-height: 52px; padding: 14px 24px;
+      border-radius: var(--radius-xxl); font-size: 16px; font-weight: 600;
+      cursor: pointer; margin-bottom: 10px; border: 1.5px solid var(--border);
+      background: var(--card-bg); color: var(--text-primary);
+    }
+    .social-btn img { width: 20px; height: 20px; }
+
+    /* Checkbox */
+    .checkbox-row {
+      display: flex; align-items: flex-start; gap: 10px; padding: 12px 0;
+    }
+    .checkbox-box {
+      width: 22px; height: 22px; border-radius: 4px;
+      border: 2px solid var(--accent); background: var(--accent);
+      color: white; font-size: 14px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .checkbox-text { font-size: 14px; color: var(--text-secondary); line-height: 1.4; }
+    .checkbox-text b { color: var(--accent); }
+
+    /* Divider */
+    .or-divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 16px 0; color: var(--text-disabled); font-size: 13px;
+    }
+    .or-divider::before, .or-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--divider);
+    }
+
+    /* Alert */
+    .inline-alert {
+      background: #FFF3E0; border: 1px solid #FFB74D; border-radius: var(--radius-lg);
+      padding: 10px 14px; margin-top: 8px; font-size: 13px; color: #E65100;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Education stat cards */
+    .edu-card {
+      background: var(--card-bg); border-radius: var(--radius-xl);
+      padding: 16px; box-shadow: var(--shadow-card); margin-bottom: 12px;
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .edu-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+
+    /* Notification prompt */
+    .notif-overlay {
+      background: rgba(0,0,0,0.3); position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 44px;
+    }
+    .notif-card {
+      background: white; border-radius: var(--radius-xxl);
+      padding: 24px; margin: 20px; text-align: center;
+      box-shadow: var(--shadow-elevated);
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>PupLog Onboarding Flow</h1>
+  <p>19 Screens &middot; 4 Phases &middot; 7 Psychology Principles</p>
+</div>
+<div class="nav-bar">
+  <a class="nav-btn active" href="#phase1">Phase 1: Intent</a>
+  <a class="nav-btn" href="#phase2">Phase 2: Dog Profile</a>
+  <a class="nav-btn" href="#phase3">Phase 3: Check-In</a>
+  <a class="nav-btn" href="#phase3b">Phase 3: Results</a>
+  <a class="nav-btn" href="#phase4">Phase 4: Conversion</a>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PHASE 1: INTENT & DISCOVERY (Steps 0-3)                   -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div id="phase1">
+  <div class="section-header">
+    <div class="phase-label">Phase 1 &mdash; Intent &amp; Discovery</div>
+    <h2>Steps 0&ndash;3: Identify Motivation</h2>
+    <p>Tiny identity-affirming actions create Commitment &amp; Consistency. Reciprocity via free education. Goal Gradient starts.</p>
+  </div>
+
+  <div class="screen-row">
+
+    <!-- STEP 0: Welcome -->
+    <div class="screen-container">
+      <div class="screen-label">Step 0 &mdash; Welcome</div>
+      <div class="iphone" id="step0">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <!-- No progress bar on welcome -->
+        <div class="screen-content" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 32px;">
+          <div style="width:100px;height:100px;border-radius:28px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:24px;box-shadow:0 8px 32px rgba(255,111,0,0.35);">
+            <span style="font-size:48px;">🐾</span>
+          </div>
+          <div style="font-family:'DM Serif Display',serif;font-size:34px;color:var(--primary);margin-bottom:8px;">PupLog</div>
+          <div style="font-size:12px;color:rgba(62,39,35,0.5);letter-spacing:3px;font-weight:500;margin-bottom:32px;">KNOW BEFORE THE VET</div>
+          <div class="heading-lg" style="margin-bottom:12px;">Every dog deserves a health advocate</div>
+          <div class="subtext" style="margin-bottom:40px;">Track health in 2 minutes a day. Spot patterns before the vet visit.</div>
+          <button class="btn-primary" onclick="alert('→ Step 1: Goal Selection')">Get Started →</button>
+          <div class="link-text" style="margin-top:16px;">Already have an account? <b>Sign In</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 1: Goal Selection -->
+    <div class="screen-container">
+      <div class="screen-label">Step 1 &mdash; Goal Selection</div>
+      <div class="iphone" id="step1">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:19%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 0: Welcome')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:24px;">
+            <div class="heading" style="margin-bottom:8px;">What matters most to you?</div>
+            <div class="subtext">This helps us personalize your experience</div>
+          </div>
+          <div class="px">
+            <div class="option-card" onclick="this.classList.toggle('selected');setTimeout(()=>alert('→ Step 2: Attribution (auto-advance 400ms)'),400)">
+              <div class="option-icon" style="background:#FFF3E0;">🛡️</div>
+              <div class="option-content">
+                <div class="option-title">Peace of mind</div>
+                <div class="option-desc">Know your dog is healthy day to day</div>
+              </div>
+            </div>
+            <div class="option-card" onclick="this.classList.toggle('selected')">
+              <div class="option-icon" style="background:#E8F5E9;">🔍</div>
+              <div class="option-content">
+                <div class="option-title">Catch problems early</div>
+                <div class="option-desc">Spot health changes before they get serious</div>
+              </div>
+            </div>
+            <div class="option-card" onclick="this.classList.toggle('selected')">
+              <div class="option-icon" style="background:#E3F2FD;">📊</div>
+              <div class="option-content">
+                <div class="option-title">Track daily health</div>
+                <div class="option-desc">Build a health record over time</div>
+              </div>
+            </div>
+            <div class="option-card" onclick="this.classList.toggle('selected')">
+              <div class="option-icon" style="background:#F3E5F5;">🩺</div>
+              <div class="option-content">
+                <div class="option-title">Be prepared for the vet</div>
+                <div class="option-desc">Have data ready for vet visits</div>
+              </div>
+            </div>
+          </div>
+          <div class="px" style="margin-top:8px;">
+            <div style="text-align:center;font-size:12px;color:var(--text-disabled);padding:16px 0;">
+              ℹ️ Auto-advances 400ms after selection &middot; Commitment &amp; Consistency
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Attribution -->
+    <div class="screen-container">
+      <div class="screen-label">Step 2 &mdash; Attribution</div>
+      <div class="iphone" id="step2">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:24%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 1: Goal Selection')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:24px;">
+            <div class="heading" style="margin-bottom:8px;">How did you discover PupLog?</div>
+            <div class="subtext">Helps us reach more dog parents like you</div>
+          </div>
+          <div class="px">
+            <div class="option-card" onclick="this.classList.toggle('selected');setTimeout(()=>alert('→ Step 3: Education (auto-advance)'),400)">
+              <div class="option-icon" style="background:#E3F2FD;">📱</div>
+              <div class="option-content"><div class="option-title">Social media</div></div>
+            </div>
+            <div class="option-card" onclick="this.classList.toggle('selected')">
+              <div class="option-icon" style="background:#E8F5E9;">👋</div>
+              <div class="option-content"><div class="option-title">A friend or family member</div></div>
+            </div>
+            <div class="option-card" onclick="this.classList.toggle('selected')">
+              <div class="option-icon" style="background:#FFF3E0;">🩺</div>
+              <div class="option-content"><div class="option-title">My vet</div></div>
+            </div>
+            <div class="option-card" onclick="this.classList.toggle('selected')">
+              <div class="option-icon" style="background:#F3E5F5;">🔎</div>
+              <div class="option-content"><div class="option-title">Search engine</div></div>
+            </div>
+            <div class="option-card" onclick="this.classList.toggle('selected')">
+              <div class="option-icon" style="background:#EFEBE9;">📲</div>
+              <div class="option-content"><div class="option-title">App Store browsing</div></div>
+            </div>
+          </div>
+          <div class="px" style="margin-top:12px;">
+            <div class="link-text" onclick="alert('→ Step 3: Education (skip)')">Skip</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: Education -->
+    <div class="screen-container">
+      <div class="screen-label">Step 3 &mdash; Education</div>
+      <div class="iphone" id="step3">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:29%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 2: Attribution')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:24px;">
+            <div class="heading" style="margin-bottom:8px;">Daily tracking catches what you might miss</div>
+            <div class="subtext">Real facts about dog health — no fluff</div>
+          </div>
+          <div class="px">
+            <div class="edu-card">
+              <div class="edu-icon" style="background:#FFF3E0;">🐕</div>
+              <div>
+                <div style="font-weight:600;font-size:15px;margin-bottom:4px;">Dogs hide pain instinctively</div>
+                <div style="font-size:14px;color:var(--text-secondary);line-height:1.4;">Subtle appetite and energy changes over 3-5 days can signal developing issues — but they're nearly impossible to track in your head.</div>
+              </div>
+            </div>
+            <div class="edu-card">
+              <div class="edu-icon" style="background:#E8F5E9;">📋</div>
+              <div>
+                <div style="font-weight:600;font-size:15px;margin-bottom:4px;">Your vet sees snapshots, not trends</div>
+                <div style="font-size:14px;color:var(--text-secondary);line-height:1.4;">Day-over-day patterns in eating, drinking, and energy are the data your vet needs most — and it lives only in your memory.</div>
+              </div>
+            </div>
+            <div class="edu-card">
+              <div class="edu-icon" style="background:#E3F2FD;">⏱️</div>
+              <div>
+                <div style="font-weight:600;font-size:15px;margin-bottom:4px;">2 minutes a day, a complete picture</div>
+                <div style="font-size:14px;color:var(--text-secondary);line-height:1.4;">PupLog's daily check-in takes less time than scrolling your feed. After 5 days, pattern detection activates.</div>
+              </div>
+            </div>
+          </div>
+          <div class="px" style="margin-top:20px;">
+            <button class="btn-primary" onclick="alert('→ Step 4: Dog Profile')">Let's set up your dog →</button>
+          </div>
+          <div class="px" style="margin-top:8px;">
+            <div style="text-align:center;font-size:12px;color:var(--text-disabled);padding:12px 0;">
+              ℹ️ Reciprocity: Free value before asking for anything
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PHASE 2: DOG PROFILE (Steps 4-6)                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div id="phase2">
+  <div class="section-header">
+    <div class="phase-label">Phase 2 &mdash; Dog Profile (Emotional Investment)</div>
+    <h2>Steps 4&ndash;6: Build Their Dog's Profile</h2>
+    <p>IKEA Effect + Endowment Effect peak. Once they type a name and add a photo, abandonment drops dramatically.</p>
+  </div>
+
+  <div class="screen-row">
+
+    <!-- STEP 4: Dog Profile -->
+    <div class="screen-container">
+      <div class="screen-label">Step 4 &mdash; Dog Profile</div>
+      <div class="iphone" id="step4">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:37%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 3: Education')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:16px;">
+            <div class="photo-circle">📷</div>
+            <div class="heading" style="margin-bottom:6px;">Tell us about your dog</div>
+            <div class="subtext">We'll personalize health tracking for them</div>
+          </div>
+          <div class="px">
+            <div class="input-group">
+              <div class="input-label">Dog's Name *</div>
+              <input class="text-input" type="text" placeholder="e.g. Cooper, Bella, Max" value="Luna">
+            </div>
+            <div class="input-group">
+              <div class="input-label">Breed *</div>
+              <input class="text-input" type="text" placeholder="e.g. Golden Retriever, Mixed" value="Golden Retriever">
+            </div>
+            <div class="form-row">
+              <div class="input-group">
+                <div class="input-label">Age (years) *</div>
+                <input class="text-input" type="text" placeholder="e.g. 3" value="4">
+              </div>
+              <div class="input-group">
+                <div class="input-label">Weight (lbs) *</div>
+                <input class="text-input" type="text" placeholder="e.g. 65" value="62">
+              </div>
+            </div>
+          </div>
+          <div class="px" style="margin-top:16px;">
+            <button class="btn-primary" onclick="alert('→ Step 5: Extended Profile')">Continue →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5: Extended Profile -->
+    <div class="screen-container">
+      <div class="screen-label">Step 5 &mdash; Extended Profile</div>
+      <div class="iphone" id="step5">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:42%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 4: Dog Profile')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:20px;">
+            <div class="heading" style="margin-bottom:6px;">Luna's health details</div>
+            <div class="subtext">Optional but helps us personalize</div>
+          </div>
+          <div class="px">
+            <div class="input-group">
+              <div class="input-label">Spayed / Neutered</div>
+              <div class="toggle-row">
+                <div class="toggle-opt selected">Yes</div>
+                <div class="toggle-opt">No</div>
+                <div class="toggle-opt">Not sure</div>
+              </div>
+            </div>
+            <div class="input-group">
+              <div class="input-label">Known Conditions</div>
+              <div class="chips-wrap">
+                <div class="chip selected">Allergies</div>
+                <div class="chip">Arthritis</div>
+                <div class="chip">Diabetes</div>
+                <div class="chip">Epilepsy</div>
+                <div class="chip">Heart Disease</div>
+                <div class="chip">Kidney</div>
+                <div class="chip">Thyroid</div>
+                <div class="chip">Cancer</div>
+                <div class="chip">None</div>
+              </div>
+            </div>
+            <div class="input-group" style="margin-top:16px;">
+              <div class="input-label">Vet Phone <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-disabled);">(optional)</span></div>
+              <input class="text-input" type="tel" placeholder="(555) 123-4567">
+            </div>
+          </div>
+          <div class="px" style="margin-top:16px;">
+            <button class="btn-primary" onclick="alert('→ Step 6: Breed Health Concerns')">Continue →</button>
+            <div class="link-text" onclick="alert('→ Step 6: Breed Health (skip)')">Skip for now</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6: Breed Health Concerns -->
+    <div class="screen-container">
+      <div class="screen-label">Step 6 &mdash; Breed Health</div>
+      <div class="iphone" id="step6">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:47%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 5: Extended Profile')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:20px;">
+            <div class="heading" style="margin-bottom:6px;">Luna's Breed Profile</div>
+            <div class="subtext">Common health concerns for Golden Retrievers</div>
+          </div>
+          <div class="px">
+            <div class="breed-card">
+              <div class="breed-icon">🦴</div>
+              <div>
+                <div style="font-weight:600;font-size:15px;margin-bottom:3px;">Hip &amp; Elbow Dysplasia</div>
+                <div style="font-size:13px;color:var(--text-secondary);line-height:1.4;">Large breeds are prone to joint development issues. Watch for stiffness after rest or reluctance to climb stairs.</div>
+              </div>
+            </div>
+            <div class="breed-card">
+              <div class="breed-icon">🌿</div>
+              <div>
+                <div style="font-weight:600;font-size:15px;margin-bottom:3px;">Skin Allergies</div>
+                <div style="font-size:13px;color:var(--text-secondary);line-height:1.4;">Golden Retrievers commonly develop environmental and food allergies. Daily scratching tracking helps spot patterns.</div>
+              </div>
+            </div>
+            <div class="breed-card">
+              <div class="breed-icon">❤️</div>
+              <div>
+                <div style="font-weight:600;font-size:15px;margin-bottom:3px;">Heart Conditions</div>
+                <div style="font-size:13px;color:var(--text-secondary);line-height:1.4;">Subvalvular aortic stenosis is more common in this breed. Energy level monitoring can flag early signs.</div>
+              </div>
+            </div>
+          </div>
+          <div class="px" style="margin-top:4px;">
+            <div style="text-align:center;font-size:14px;color:var(--text-secondary);margin-bottom:20px;line-height:1.5;">Daily check-ins help catch these early. Let's do Luna's first one.</div>
+            <button class="btn-primary" onclick="alert('→ Step 7: Check-In Q1 (Appetite)')">Start Luna's first check-in →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PHASE 3: CHECK-IN QUESTIONS (Steps 7-13)                  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div id="phase3">
+  <div class="section-header">
+    <div class="phase-label">Phase 3a &mdash; Real Data Investment (The Hook)</div>
+    <h2>Steps 7&ndash;13: Full 7-Question Check-In</h2>
+    <p>IKEA Effect + Learn by Doing. Real health data, not a demo. Golden Rule enforced (blood in stool &amp; dry heaving alerts). Auto-advance 400ms.</p>
+  </div>
+
+  <div class="screen-row">
+
+    <!-- STEP 7: Appetite -->
+    <div class="screen-container">
+      <div class="screen-label">Step 7 &mdash; Appetite</div>
+      <div class="iphone" id="step7">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:52%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 6: Breed Health')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:8px;">
+            <div style="font-size:14px;color:var(--accent);font-weight:600;margin-bottom:4px;">Luna's Daily Check-In</div>
+          </div>
+          <div class="progress-dots">
+            <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <div class="px">
+            <div class="checkin-card">
+              <div class="checkin-question">How is Luna's appetite today?</div>
+              <div class="checkin-option selected" onclick="setTimeout(()=>alert('→ Step 8: Water (auto-advance)'),400)"><div class="checkin-radio"></div>Normal</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Eating less than usual</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Barely eating</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Refusing food</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Eating more than usual</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 8: Water -->
+    <div class="screen-container">
+      <div class="screen-label">Step 8 &mdash; Water Intake</div>
+      <div class="iphone" id="step8">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:56%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 7: Appetite')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:8px;">
+            <div style="font-size:14px;color:var(--accent);font-weight:600;margin-bottom:4px;">Luna's Daily Check-In</div>
+          </div>
+          <div class="progress-dots">
+            <div class="dot done"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <div class="px">
+            <div class="checkin-card">
+              <div class="checkin-question">How is Luna's water intake?</div>
+              <div class="checkin-option selected"><div class="checkin-radio"></div>Normal</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Drinking less</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Much less than usual</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Drinking more</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Excessive drinking</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 9: Energy -->
+    <div class="screen-container">
+      <div class="screen-label">Step 9 &mdash; Energy Level</div>
+      <div class="iphone" id="step9">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:61%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 8: Water')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:8px;">
+            <div style="font-size:14px;color:var(--accent);font-weight:600;margin-bottom:4px;">Luna's Daily Check-In</div>
+          </div>
+          <div class="progress-dots">
+            <div class="dot done"></div><div class="dot done"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <div class="px">
+            <div class="checkin-card">
+              <div class="checkin-question">How is Luna's energy level?</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Normal</div>
+              <div class="checkin-option selected"><div class="checkin-radio"></div>Low energy</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Lethargic</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Barely moving</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Hyperactive</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 10: Stool (with alert) -->
+    <div class="screen-container">
+      <div class="screen-label">Step 10 &mdash; Stool Quality ⚠️</div>
+      <div class="iphone" id="step10">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:66%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 9: Energy')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:8px;">
+            <div style="font-size:14px;color:var(--accent);font-weight:600;margin-bottom:4px;">Luna's Daily Check-In</div>
+          </div>
+          <div class="progress-dots">
+            <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <div class="px">
+            <div class="checkin-card">
+              <div class="checkin-question">How is Luna's stool quality?</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Normal</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Soft</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Diarrhea</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Constipated</div>
+              <div class="checkin-option selected" style="border-color:var(--emergency);"><div class="checkin-radio" style="border-color:var(--emergency);background:var(--emergency);box-shadow:inset 0 0 0 3px white;"></div>Blood in stool</div>
+              <div class="inline-alert">⚠️ <strong>Blood in stool can be serious.</strong> If your dog is also lethargic or refusing food, contact your vet immediately.</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Haven't noticed</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="screen-row">
+
+    <!-- STEP 11: Vomiting (with alert) -->
+    <div class="screen-container">
+      <div class="screen-label">Step 11 &mdash; Vomiting ⚠️</div>
+      <div class="iphone" id="step11">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:71%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 10: Stool')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:8px;">
+            <div style="font-size:14px;color:var(--accent);font-weight:600;margin-bottom:4px;">Luna's Daily Check-In</div>
+          </div>
+          <div class="progress-dots">
+            <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <div class="px">
+            <div class="checkin-card">
+              <div class="checkin-question">Any vomiting?</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>None</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Once</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Multiple times</div>
+              <div class="checkin-option selected" style="border-color:var(--emergency);"><div class="checkin-radio" style="border-color:var(--emergency);background:var(--emergency);box-shadow:inset 0 0 0 3px white;"></div>Dry heaving / retching</div>
+              <div class="inline-alert">⚠️ <strong>Dry heaving can indicate bloat (GDV),</strong> which is a life-threatening emergency. If your dog's abdomen looks swollen or they're restless, seek emergency vet care now.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 12: Mobility -->
+    <div class="screen-container">
+      <div class="screen-label">Step 12 &mdash; Mobility</div>
+      <div class="iphone" id="step12">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:76%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 11: Vomiting')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:8px;">
+            <div style="font-size:14px;color:var(--accent);font-weight:600;margin-bottom:4px;">Luna's Daily Check-In</div>
+          </div>
+          <div class="progress-dots">
+            <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot active"></div><div class="dot"></div>
+          </div>
+          <div class="px">
+            <div class="checkin-card">
+              <div class="checkin-question">How is Luna's mobility?</div>
+              <div class="checkin-option selected"><div class="checkin-radio"></div>Normal</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Stiff</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Limping</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Reluctant to move</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Difficulty rising</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 13: Mood -->
+    <div class="screen-container">
+      <div class="screen-label">Step 13 &mdash; Mood</div>
+      <div class="iphone" id="step13">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:80%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 12: Mobility')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:8px;">
+            <div style="font-size:14px;color:var(--accent);font-weight:600;margin-bottom:4px;">Luna's Daily Check-In</div>
+          </div>
+          <div class="progress-dots">
+            <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot active"></div>
+          </div>
+          <div class="px">
+            <div class="checkin-card">
+              <div class="checkin-question">How is Luna's mood?</div>
+              <div class="checkin-option selected"><div class="checkin-radio"></div>Normal / happy</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Quiet / withdrawn</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Anxious / restless</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Clingy</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Hiding</div>
+              <div class="checkin-option"><div class="checkin-radio"></div>Aggressive</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PHASE 3B: RESULTS & PROMISE (Steps 14-16)                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div id="phase3b">
+  <div class="section-header">
+    <div class="phase-label">Phase 3b &mdash; Results &amp; AI Promise</div>
+    <h2>Steps 14&ndash;16: Show Value, Create Open Loop</h2>
+    <p>Labor Illusion makes snapshot feel computed. Endowment Effect — it's THEIR data. Zeigarnik Effect — "5 more check-ins to unlock AI."</p>
+  </div>
+
+  <div class="screen-row">
+
+    <!-- STEP 14: Loading -->
+    <div class="screen-container">
+      <div class="screen-label">Step 14 &mdash; Loading (Labor Illusion)</div>
+      <div class="iphone" id="step14">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:84%;"></div></div>
+        <div class="screen-content" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 32px;">
+          <div class="spinner"></div>
+          <div class="heading" style="font-size:24px;margin-bottom:16px;">Building Luna's health profile...</div>
+          <div class="loading-msg">Analyzing breed-specific health markers...</div>
+          <div style="margin-top:40px;font-size:12px;color:var(--text-disabled);">
+            ℹ️ 3-4 second hold even if processing is instant<br>Messages cycle: "Analyzing...", "Checking patterns...", "Building baseline...", "Generating snapshot..."
+          </div>
+          <div style="margin-top:24px;">
+            <div style="font-size:13px;color:var(--text-disabled);">Auto-advances to Step 15</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 15: Health Snapshot -->
+    <div class="screen-container">
+      <div class="screen-label">Step 15 &mdash; Health Snapshot</div>
+      <div class="iphone" id="step15">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:87%;"></div></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:20px;margin-top:16px;">
+            <div class="heading" style="margin-bottom:8px;">Luna's First Health Snapshot</div>
+          </div>
+          <div class="px">
+            <div class="summary-card">
+              <div class="summary-badge" style="background:#E8F5E9;color:var(--success);">✓ Looking Good</div>
+              <div style="font-weight:600;font-size:16px;margin-bottom:6px;">All Normal</div>
+              <div style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">Luna's check-in looks great today. All metrics are within normal range.</div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--accent-light);border-radius:var(--radius-lg);">
+                <span style="font-size:18px;">🔥</span>
+                <span style="font-size:14px;font-weight:600;color:var(--accent);">First check-in complete!</span>
+              </div>
+            </div>
+            <div style="text-align:center;font-size:14px;color:var(--text-secondary);line-height:1.5;margin-top:16px;margin-bottom:20px;">
+              This is real — based on what you just told us about Luna. It gets smarter with each daily check-in.
+            </div>
+            <button class="btn-primary" onclick="alert('→ Step 16: AI Promise')">See what happens next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 16: AI Promise -->
+    <div class="screen-container">
+      <div class="screen-label">Step 16 &mdash; AI Promise</div>
+      <div class="iphone" id="step16">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:90%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 15: Health Snapshot')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:20px;">
+            <div class="heading" style="margin-bottom:8px;">Unlock AI-Powered Health Intelligence</div>
+            <div class="subtext">The more you log, the smarter PupLog gets for Luna</div>
+          </div>
+          <div class="px">
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-dot done">✓</div>
+                <div>
+                  <div style="font-weight:600;font-size:15px;">Day 1 — First Health Snapshot</div>
+                  <div style="font-size:13px;color:var(--success);margin-top:2px;">Complete!</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot locked">5</div>
+                <div>
+                  <div style="font-weight:600;font-size:15px;">Day 5 — Pattern Detection Activates</div>
+                  <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">PupLog starts spotting health trends</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot locked">14</div>
+                <div>
+                  <div style="font-weight:600;font-size:15px;">Day 14 — Deeper AI Insights</div>
+                  <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">Personalized analysis for Luna</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="px" style="margin-top:8px;">
+            <div style="position:relative;">
+              <div class="blurred-teaser">
+                <div class="card" style="border-left:4px solid var(--success);padding:14px;">
+                  <div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:4px;">AI INSIGHT</div>
+                  <div style="font-weight:600;font-size:14px;">Luna's appetite is consistently normal</div>
+                  <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Based on 7 days of check-in data...</div>
+                </div>
+              </div>
+              <div class="teaser-overlay">🔒 5 daily check-ins to unlock</div>
+            </div>
+          </div>
+          <div class="px" style="margin-top:24px;">
+            <button class="btn-primary" onclick="alert('→ Step 17: Paywall')">Continue →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PHASE 4: CONVERSION (Steps 17-18)                         -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<div id="phase4">
+  <div class="section-header">
+    <div class="phase-label">Phase 4 &mdash; Conversion</div>
+    <h2>Steps 17&ndash;18: Paywall &amp; Account Creation</h2>
+    <p>Peak sunk cost + Goal Gradient (~90%). Endowment framing: "Save Luna's profile." Anchoring on yearly plan.</p>
+  </div>
+
+  <div class="screen-row">
+
+    <!-- STEP 17: Paywall (Stub) -->
+    <div class="screen-container">
+      <div class="screen-label">Step 17 &mdash; Paywall (Stub)</div>
+      <div class="iphone" id="step17">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:93%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 16: AI Promise')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:16px;">
+            <div class="heading" style="margin-bottom:6px;">Start Luna's health journey</div>
+            <div class="subtext">Choose the plan that works for you</div>
+          </div>
+          <div class="px">
+            <div class="plan-card recommended" style="position:relative;margin-top:16px;">
+              <div class="plan-badge">Recommended</div>
+              <div class="plan-header" style="margin-bottom:8px;">
+                <div class="plan-name">Annual</div>
+                <div><span class="plan-price">$4<span>/mo</span></span></div>
+              </div>
+              <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">$47.99/year &middot; 7-day free trial</div>
+              <div style="display:inline-block;background:#E8F5E9;color:var(--success);padding:2px 8px;border-radius:var(--radius-full);font-size:11px;font-weight:700;">Save 50%</div>
+            </div>
+            <div class="plan-card">
+              <div class="plan-header">
+                <div class="plan-name">Monthly</div>
+                <div><span class="plan-price">$8<span>/mo</span></span></div>
+              </div>
+              <div style="font-size:13px;color:var(--text-secondary);">Billed monthly &middot; No trial</div>
+            </div>
+          </div>
+          <div class="px" style="margin-top:16px;">
+            <button class="btn-primary" onclick="alert('→ Step 18: Create Account')">Start Free Trial →</button>
+            <div style="text-align:center;font-size:12px;color:var(--text-disabled);margin-top:10px;line-height:1.4;">
+              No charge during trial. Cancel anytime.<br>
+              Payment charged to App Store account after trial ends.
+            </div>
+            <div class="link-text" style="font-size:13px;margin-top:8px;">Restore Purchases</div>
+          </div>
+          <div class="px" style="margin-top:4px;">
+            <div style="text-align:center;font-size:11px;color:var(--text-disabled);padding:8px;background:var(--input-bg);border-radius:var(--radius-lg);">
+              ⚙️ STUB — RevenueCat/Superwall will replace this screen
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 18: Create Account -->
+    <div class="screen-container">
+      <div class="screen-label">Step 18 &mdash; Create Account</div>
+      <div class="iphone" id="step18">
+        <div class="status-bar"><span>9:41</span><div class="status-icons">📶🔋</div></div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:96%;"></div></div>
+        <div class="back-header"><button class="back-btn" onclick="alert('← Step 17: Paywall')">‹</button></div>
+        <div class="screen-content">
+          <div class="px" style="text-align:center;margin-bottom:16px;">
+            <div class="heading" style="margin-bottom:6px;">Save Luna's Profile</div>
+            <div class="subtext">Create an account to keep Luna's health data safe</div>
+          </div>
+          <div class="px">
+            <button class="social-btn" onclick="alert('Google OAuth → Session → Sync → Home')">
+              <span style="font-size:18px;">G</span> Continue with Google
+            </button>
+            <button class="social-btn" onclick="alert('Apple OAuth → Session → Sync → Home')">
+              <span style="font-size:18px;"></span> Continue with Apple
+            </button>
+
+            <div class="or-divider">or</div>
+
+            <div class="input-group">
+              <div class="input-label">Email</div>
+              <input class="text-input" type="email" placeholder="you@email.com">
+            </div>
+            <div class="input-group">
+              <div class="input-label">Password</div>
+              <input class="text-input" type="password" placeholder="Min. 8 characters">
+            </div>
+            <div class="input-group">
+              <div class="input-label">Confirm Password</div>
+              <input class="text-input" type="password" placeholder="Re-enter password">
+            </div>
+            <div class="input-group">
+              <div class="input-label">Date of Birth</div>
+              <div class="form-row" style="gap:8px;">
+                <input class="text-input" type="text" placeholder="MM" style="text-align:center;">
+                <input class="text-input" type="text" placeholder="DD" style="text-align:center;">
+                <input class="text-input" type="text" placeholder="YYYY" style="text-align:center;">
+              </div>
+              <div style="font-size:12px;color:var(--text-disabled);margin-top:4px;">Must be 13 or older (COPPA)</div>
+            </div>
+
+            <div class="checkbox-row">
+              <div class="checkbox-box">✓</div>
+              <div class="checkbox-text">I agree to the <b>Terms of Service</b> and <b>Privacy Policy</b>. I understand PupLog provides educational information, not veterinary advice.</div>
+            </div>
+          </div>
+          <div class="px" style="margin-top:12px;">
+            <button class="btn-primary" onclick="alert('Sign Up → Check Email → Verify → Sign In → Sync → Home 🎉')">Save Luna's Profile →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="max-width:1400px;margin:0 auto;padding:48px 40px;">
+  <div style="background:var(--card-bg);border-radius:var(--radius-xxl);padding:24px;box-shadow:var(--shadow-card);">
+    <h3 style="font-family:'DM Serif Display',serif;margin-bottom:12px;">Psychology Principles Applied</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;font-size:14px;color:var(--text-secondary);">
+      <div><strong style="color:var(--accent);">1. IKEA Effect</strong> — Steps 4-6: building dog profile feels like creation</div>
+      <div><strong style="color:var(--accent);">2. Zeigarnik Effect</strong> — Step 16: "5 more check-ins" creates open loop</div>
+      <div><strong style="color:var(--accent);">3. Goal Gradient</strong> — Progress bar: 15% → 96% drives completion</div>
+      <div><strong style="color:var(--accent);">4. Commitment &amp; Consistency</strong> — Step 1: identity declaration</div>
+      <div><strong style="color:var(--accent);">5. Reciprocity</strong> — Step 3: free education before asking anything</div>
+      <div><strong style="color:var(--accent);">6. Endowment Effect</strong> — Step 18: "Save Luna's Profile" framing</div>
+      <div><strong style="color:var(--accent);">7. Labor Illusion</strong> — Step 14: processing animation for instant ops</div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:24px;font-size:13px;color:var(--text-disabled);">
+  PupLog Onboarding Mockup &middot; 19 Screens &middot; March 2026
+</div>
+
+</body>
+</html>

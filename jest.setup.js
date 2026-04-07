@@ -72,6 +72,32 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 
+// Mock expo-web-browser
+jest.mock('expo-web-browser', () => ({
+  openAuthSessionAsync: jest.fn(() => Promise.resolve({ type: 'cancel' })),
+  maybeCompleteAuthSession: jest.fn(),
+}));
+
+// Mock expo-auth-session
+jest.mock('expo-auth-session', () => ({
+  makeRedirectUri: jest.fn(() => 'puplog://auth/callback'),
+}));
+
+// Mock expo-apple-authentication
+jest.mock('expo-apple-authentication', () => ({
+  signInAsync: jest.fn(() =>
+    Promise.resolve({
+      identityToken: 'mock-apple-identity-token',
+      email: 'test@example.com',
+      fullName: { givenName: 'Test', familyName: 'User' },
+    })
+  ),
+  AppleAuthenticationScope: {
+    FULL_NAME: 0,
+    EMAIL: 1,
+  },
+}));
+
 // Mock expo-image-picker
 jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn(),

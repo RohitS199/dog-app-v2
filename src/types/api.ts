@@ -54,6 +54,8 @@ export interface Dog {
   weight_lbs: number;
   photo_url: string | null;
   vet_phone: string | null;
+  spayed_neutered: boolean | null;
+  known_conditions: string[];
   created_at: string;
   updated_at: string;
   last_checkin_date: string | null;

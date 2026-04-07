@@ -1,0 +1,1322 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390, initial-scale=1">
+<title>PupLog — Beach Journey Home (v2)</title>
+<style>
+  /* ── CSS Custom Properties ── */
+  :root {
+    /* Core Earthy Dog Park */
+    --primary: #3E2723;
+    --accent: #FF6F00;
+    --bg: #FAFAFA;
+    --surface: #D7CCC8;
+    --card: #FFFFFF;
+    --text-primary: #3E2723;
+    --text-secondary: #6D5D54;
+    --text-disabled: #795548;
+    --divider: #E8E0DC;
+
+    /* Beach Scene */
+    --sky-top: #87CEEB;
+    --sky-bottom: #B8E0F0;
+    --water: #4DD0E1;
+    --water-deep: #26C6DA;
+    --water-foam: rgba(255,255,255,0.6);
+    --sand: #F5E6C8;
+    --wet-sand: #E8D5B0;
+    --palm-green: #4CAF50;
+    --palm-green-dark: #2E7D32;
+    --palm-trunk: #795548;
+
+    /* Node sizing */
+    --node-size: 58px;
+    --node-size-current: 66px;
+    --milestone-size: 72px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #E8E0DC;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Phone Frame ── */
+  .phone-frame {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    border-radius: 40px;
+    overflow: hidden;
+    background: var(--bg);
+    box-shadow:
+      0 0 0 2px #1a1a1a,
+      0 20px 60px rgba(0,0,0,0.3),
+      0 0 0 14px #2a2a2a,
+      inset 0 0 4px rgba(0,0,0,0.1);
+  }
+
+  /* ── Status Bar ── */
+  .status-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 8px;
+    background: linear-gradient(
+      to bottom,
+      rgba(135,206,235,0.95) 0%,
+      rgba(135,206,235,0.7) 70%,
+      rgba(135,206,235,0) 100%
+    );
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .status-bar .time { font-weight: 700; font-size: 15px; }
+  .status-bar .icons { display: flex; gap: 5px; align-items: center; font-size: 12px; }
+
+  /* ── Header ── */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px 12px;
+    background: linear-gradient(
+      to bottom,
+      rgba(135,206,235,0.5) 0%,
+      rgba(184,224,240,0.3) 60%,
+      transparent 100%
+    );
+  }
+  .dog-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.85);
+    padding: 6px 14px 6px 6px;
+    border-radius: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    cursor: pointer;
+  }
+  .dog-chip .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFE0B2, #FFCC80);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .dog-chip .name {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--primary);
+  }
+  .dog-chip .dropdown {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-left: 2px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .streak-pill {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,255,255,0.85);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .profile-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    cursor: pointer;
+  }
+
+  /* ── Progress Card ── */
+  .progress-card {
+    background: var(--card);
+    margin: 0 20px 12px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    position: relative;
+    z-index: 5;
+  }
+  .progress-card .title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+  }
+  .progress-card .fraction {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .progress-card .fraction span {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .progress-bar-track {
+    width: 100%;
+    height: 8px;
+    background: #F0EBE7;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    width: 57%;
+    background: linear-gradient(90deg, #FF8F00, #FF6F00);
+    border-radius: 4px;
+    transition: width 0.6s ease;
+  }
+  .progress-card .subtitle {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.35;
+  }
+
+  /* ── Scroll Container ── */
+  .scroll-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  .scroll-container::-webkit-scrollbar { display: none; }
+
+  /* ── Sticky Top Section ── */
+  .sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 80;
+  }
+
+  /* ── Beach Background ── */
+  .beach-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .beach-bg .sky {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 35%;
+    background: linear-gradient(to bottom, var(--sky-top), var(--sky-bottom));
+  }
+  .beach-bg .water {
+    position: absolute;
+    top: 33%;
+    left: 0;
+    width: 100%;
+    height: 12%;
+    background: linear-gradient(to bottom, var(--water-deep), var(--water));
+    overflow: hidden;
+  }
+  .beach-bg .sand {
+    position: absolute;
+    top: 44%;
+    left: 0;
+    width: 100%;
+    height: 56%;
+    background: var(--sand);
+  }
+  .beach-bg .wet-sand-line {
+    position: absolute;
+    top: 44%;
+    left: 0;
+    width: 100%;
+    height: 3%;
+    background: linear-gradient(to bottom, var(--wet-sand), var(--sand));
+  }
+
+  /* ── Clouds ── */
+  .cloud {
+    position: absolute;
+    background: rgba(255,255,255,0.7);
+    border-radius: 50%;
+  }
+  .cloud-1 {
+    width: 90px; height: 30px;
+    top: 8%; left: 15%;
+    animation: cloudDrift1 18s ease-in-out infinite;
+  }
+  .cloud-1::before {
+    content: '';
+    position: absolute;
+    width: 50px; height: 40px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 50%;
+    top: -18px; left: 20px;
+  }
+  .cloud-2 {
+    width: 70px; height: 24px;
+    top: 14%; left: 65%;
+    opacity: 0.5;
+    animation: cloudDrift2 22s ease-in-out infinite;
+  }
+  .cloud-2::before {
+    content: '';
+    position: absolute;
+    width: 40px; height: 30px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 50%;
+    top: -14px; left: 15px;
+  }
+  .cloud-3 {
+    width: 60px; height: 20px;
+    top: 20%; left: 40%;
+    opacity: 0.4;
+    animation: cloudDrift3 15s ease-in-out infinite;
+  }
+  @keyframes cloudDrift1 {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(30px); }
+  }
+  @keyframes cloudDrift2 {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-25px); }
+  }
+  @keyframes cloudDrift3 {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(20px); }
+  }
+
+  /* ── Waves ── */
+  .wave {
+    position: absolute;
+    width: 200%;
+    left: -50%;
+    height: 20px;
+    bottom: -2px;
+  }
+  .wave-1 {
+    animation: waveMove1 4s ease-in-out infinite;
+    opacity: 0.6;
+  }
+  .wave-2 {
+    animation: waveMove2 5s ease-in-out infinite;
+    bottom: 2px;
+    opacity: 0.4;
+  }
+  @keyframes waveMove1 {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(3%); }
+  }
+  @keyframes waveMove2 {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-4%); }
+  }
+
+  /* ── Scene Content Container ── */
+  .scene-content {
+    position: relative;
+    z-index: 1;
+    min-height: 100%;
+  }
+
+  /* ── Fixed top elements inside scroll ── */
+  .top-fixed {
+    position: relative;
+    z-index: 10;
+  }
+
+  /* ── Beach Scene Area ── */
+  .beach-scene {
+    position: relative;
+    width: 100%;
+    height: 1300px;
+  }
+  .beach-scene-bg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    will-change: transform;
+  }
+
+  /* ── SVG Path Area ── */
+  .path-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+  }
+  .path-svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── Date Nodes ── */
+  .node {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 10;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .node-circle {
+    width: var(--node-size);
+    height: var(--node-size);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    position: relative;
+    transition: transform 0.2s ease;
+  }
+  .node:active .node-circle {
+    transform: scale(0.92);
+  }
+  .node-shadow {
+    width: 50px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.1);
+    margin-top: 4px;
+    filter: blur(2px);
+  }
+  .node-label {
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 4px;
+    white-space: nowrap;
+  }
+
+  /* Node States */
+  .node--completed .node-circle {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 3px 12px rgba(255,111,0,0.3);
+  }
+  .node--completed .node-shadow {
+    background: rgba(255,111,0,0.15);
+  }
+  .node--completed .node-label {
+    color: var(--accent);
+  }
+
+  .node--current .node-circle {
+    width: var(--node-size-current);
+    height: var(--node-size-current);
+    background: var(--accent);
+    color: white;
+    font-size: 20px;
+    font-weight: 800;
+    box-shadow: 0 0 0 5px rgba(255,111,0,0.25);
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+  .node--current .node-shadow {
+    width: 56px;
+    background: rgba(255,111,0,0.2);
+  }
+  .node--current .node-label {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .node--upcoming .node-circle {
+    background: var(--sand);
+    border: 2.5px dashed rgba(62,39,35,0.2);
+    color: rgba(62,39,35,0.3);
+    font-size: 14px;
+  }
+  .node--upcoming .node-label {
+    color: var(--text-disabled);
+    font-weight: 500;
+  }
+  .node--upcoming .node-shadow {
+    background: rgba(0,0,0,0.05);
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 5px rgba(255,111,0,0.25), 0 4px 16px rgba(255,111,0,0.3); }
+    50% { box-shadow: 0 0 0 10px rgba(255,111,0,0.12), 0 4px 24px rgba(255,111,0,0.4); }
+  }
+
+  /* ── Checkmark SVG ── */
+  .checkmark {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* ── Milestone Node ── */
+  .milestone-node {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 10;
+    transform: translate(-50%, -50%);
+    opacity: 0.4;
+  }
+  .milestone-circle {
+    width: var(--milestone-size);
+    height: var(--milestone-size);
+    border-radius: 50%;
+    background: var(--card);
+    border: 3px dashed var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+  }
+  .milestone-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-top: 8px;
+  }
+  .milestone-sub {
+    font-size: 11px;
+    color: var(--text-disabled);
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  /* ── Dog Mascot ── */
+  .mascot-wrapper {
+    position: absolute;
+    z-index: 20;
+    width: 110px;
+    height: 110px;
+    transform: translate(-50%, -100%);
+    animation: dogFloat 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .mascot-svg {
+    width: 100%;
+    height: 100%;
+  }
+  @keyframes dogFloat {
+    0%, 100% { transform: translate(-50%, -100%) translateY(0); }
+    50% { transform: translate(-50%, -100%) translateY(-12px); }
+  }
+
+  /* ── Mascot Animations ── */
+  @keyframes tailWag {
+    0%, 100% { transform: rotate(-15deg); }
+    50% { transform: rotate(20deg); }
+  }
+  .m-tail {
+    transform-origin: 148px 270px;
+    animation: tailWag 0.6s ease-in-out infinite;
+  }
+  @keyframes bodyBreathe {
+    0%, 100% { transform: scaleY(1) translateY(0); }
+    50% { transform: scaleY(1.012) translateY(-1px); }
+  }
+  .m-body-group {
+    transform-origin: 230px 300px;
+    animation: bodyBreathe 3s ease-in-out infinite;
+  }
+  @keyframes headTilt {
+    0%, 100% { transform: rotate(0deg); }
+    30% { transform: rotate(2deg); }
+    70% { transform: rotate(-1.5deg); }
+  }
+  .m-head-group {
+    transform-origin: 235px 195px;
+    animation: headTilt 4s ease-in-out infinite;
+  }
+  @keyframes earFlopL {
+    0%, 100% { transform: rotate(0deg); }
+    40% { transform: rotate(-3deg); }
+  }
+  @keyframes earFlopR {
+    0%, 100% { transform: rotate(0deg); }
+    40% { transform: rotate(3deg); }
+  }
+  .m-ear-left {
+    transform-origin: 185px 195px;
+    animation: earFlopL 4s ease-in-out infinite;
+  }
+  .m-ear-right {
+    transform-origin: 280px 195px;
+    animation: earFlopR 4s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%, 42%, 44%, 100% { transform: scaleY(1); }
+    43% { transform: scaleY(0.1); }
+  }
+  .m-eye-left {
+    transform-origin: 218px 192px;
+    animation: blink 4s ease-in-out infinite;
+  }
+  .m-eye-right {
+    transform-origin: 248px 192px;
+    animation: blink 4s ease-in-out infinite 0.05s;
+  }
+  @keyframes noseTwitch {
+    0%, 90%, 100% { transform: scale(1); }
+    93% { transform: scale(1.08, 0.95); }
+    96% { transform: scale(0.95, 1.05); }
+  }
+  .m-nose {
+    transform-origin: 233px 205px;
+    animation: noseTwitch 5s ease-in-out infinite;
+  }
+  @keyframes butterflyPath {
+    0%   { transform: translate(0, 0) rotate(0deg); }
+    15%  { transform: translate(10px, -14px) rotate(5deg); }
+    30%  { transform: translate(-3px, -24px) rotate(-3deg); }
+    50%  { transform: translate(7px, -10px) rotate(4deg); }
+    70%  { transform: translate(-7px, -18px) rotate(-5deg); }
+    85%  { transform: translate(3px, -5px) rotate(2deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+  }
+  .m-butterfly-group {
+    animation: butterflyPath 5s ease-in-out infinite;
+  }
+  @keyframes wingFlap {
+    0%, 100% { transform: scaleX(1); }
+    50% { transform: scaleX(0.3); }
+  }
+  .m-wing-left {
+    transform-origin: 320px 245px;
+    animation: wingFlap 0.25s ease-in-out infinite;
+  }
+  .m-wing-right {
+    transform-origin: 320px 245px;
+    animation: wingFlap 0.25s ease-in-out infinite 0.05s;
+  }
+
+  /* ── Palm tree sway ── */
+  @keyframes palmSway {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(2deg); }
+    75% { transform: rotate(-1.5deg); }
+  }
+  .palm-canopy {
+    animation: palmSway 5s ease-in-out infinite;
+  }
+  .palm-left .palm-canopy {
+    transform-origin: 55px 320px;
+  }
+  .palm-right .palm-canopy {
+    transform-origin: 340px 280px;
+    animation-delay: 1.5s;
+  }
+
+  /* ── Speech Bubble ── */
+  .speech-bubble {
+    position: absolute;
+    z-index: 25;
+    background: var(--card);
+    border-radius: 16px;
+    padding: 12px 30px 12px 14px;
+    max-width: 190px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.4;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: auto;
+  }
+  .speech-bubble.hidden {
+    opacity: 0;
+    transform: scale(0.9);
+    pointer-events: none;
+  }
+  .speech-bubble::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 10px solid var(--card);
+  }
+  .speech-dismiss {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: none;
+    font-size: 14px;
+    color: var(--text-disabled);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s;
+  }
+  .speech-dismiss:hover {
+    background: rgba(0,0,0,0.05);
+  }
+
+  /* ── Tab Bar ── */
+  .tab-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: var(--card);
+    box-shadow: 0 -2px 16px rgba(0,0,0,0.06);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;
+    padding-top: 8px;
+    height: 84px;
+    border-top: 1px solid var(--divider);
+  }
+  .tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    flex: 1;
+  }
+  .tab-icon {
+    font-size: 22px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tab-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-disabled);
+  }
+  .tab-item.active .tab-icon { color: var(--accent); }
+  .tab-item.active .tab-label { color: var(--accent); font-weight: 600; }
+  .tab-item:not(.active) .tab-icon { color: var(--text-disabled); }
+
+  /* FAB */
+  .fab-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    margin-top: -22px;
+    cursor: pointer;
+  }
+  .fab {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF8F00, var(--accent));
+    color: white;
+    font-size: 28px;
+    font-weight: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(255,111,0,0.35);
+    transition: transform 0.2s;
+  }
+  .fab:active { transform: scale(0.92); }
+
+  /* ── Home Indicator ── */
+  .home-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 134px;
+    height: 5px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 3px;
+    z-index: 60;
+  }
+
+  /* ── Paw Prints ── */
+  .paw-print {
+    position: absolute;
+    z-index: 3;
+    opacity: 0.25;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="scroll-container" id="scrollContainer">
+
+    <!-- ── Beach Background (parallax) ── -->
+    <div class="beach-bg" id="beachBg">
+      <!-- Sky -->
+      <div class="sky">
+        <div class="cloud cloud-1"></div>
+        <div class="cloud cloud-2"></div>
+        <div class="cloud cloud-3"></div>
+      </div>
+      <!-- Water with waves -->
+      <div class="water">
+        <svg class="wave wave-1" viewBox="0 0 800 20" preserveAspectRatio="none">
+          <path d="M0,10 C100,0 200,20 300,10 C400,0 500,20 600,10 C700,0 800,20 800,10 L800,20 L0,20 Z" fill="rgba(255,255,255,0.5)"/>
+        </svg>
+        <svg class="wave wave-2" viewBox="0 0 800 20" preserveAspectRatio="none">
+          <path d="M0,12 C80,4 160,18 240,12 C320,4 400,18 480,12 C560,4 640,18 720,12 C800,4 800,12 800,20 L0,20 Z" fill="rgba(255,255,255,0.35)"/>
+        </svg>
+      </div>
+      <!-- Wet sand line -->
+      <div class="wet-sand-line"></div>
+      <!-- Sand -->
+      <div class="sand"></div>
+    </div>
+
+    <!-- ── Scene Content ── -->
+    <div class="scene-content">
+
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <span class="time">9:41</span>
+        <span class="icons">
+          <span style="font-size:13px">&#9679;&#9679;&#9679;&#9679;&#9675;</span>
+          <span style="font-size:11px;margin-left:3px">5G</span>
+          <span style="font-size:15px;margin-left:3px">&#128267;</span>
+        </span>
+      </div>
+
+      <!-- Header -->
+      <div class="header">
+        <div class="dog-chip">
+          <div class="avatar">&#128054;</div>
+          <span class="name">Luna</span>
+          <span class="dropdown">&#9662;</span>
+        </div>
+        <div class="header-right">
+          <div class="streak-pill">&#128293; 4</div>
+          <div class="profile-btn">&#128100;</div>
+        </div>
+      </div>
+
+      <!-- Progress Card -->
+      <div class="progress-card">
+        <div class="title">This Week's Journey</div>
+        <div class="fraction">4 <span>/ 7</span></div>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill"></div>
+        </div>
+        <div class="subtitle">3 more days until your weekly health insights!</div>
+      </div>
+
+      <!-- ── Beach Scene with Journey Path ── -->
+      <div class="beach-scene">
+
+        <!-- Beach scene background SVG (decorations) -->
+        <svg class="beach-scene-bg" id="beachSceneBg" viewBox="0 0 390 1300" preserveAspectRatio="xMidYMin slice" xmlns="http://www.w3.org/2000/svg">
+
+          <!-- Sky gradient fill -->
+          <defs>
+            <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#87CEEB"/>
+              <stop offset="100%" stop-color="#B8E0F0"/>
+            </linearGradient>
+            <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#26C6DA"/>
+              <stop offset="100%" stop-color="#4DD0E1"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Sky -->
+          <rect x="0" y="0" width="390" height="260" fill="url(#skyGrad)"/>
+
+          <!-- Clouds in SVG -->
+          <ellipse cx="80" cy="60" rx="45" ry="15" fill="rgba(255,255,255,0.6)">
+            <animateTransform attributeName="transform" type="translate" values="0,0;20,0;0,0" dur="18s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse cx="95" cy="48" rx="28" ry="18" fill="rgba(255,255,255,0.5)">
+            <animateTransform attributeName="transform" type="translate" values="0,0;20,0;0,0" dur="18s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse cx="290" cy="90" rx="35" ry="12" fill="rgba(255,255,255,0.4)">
+            <animateTransform attributeName="transform" type="translate" values="0,0;-15,0;0,0" dur="22s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse cx="300" cy="80" rx="22" ry="14" fill="rgba(255,255,255,0.35)">
+            <animateTransform attributeName="transform" type="translate" values="0,0;-15,0;0,0" dur="22s" repeatCount="indefinite"/>
+          </ellipse>
+
+          <!-- Water band -->
+          <rect x="0" y="220" width="390" height="90" fill="url(#waterGrad)"/>
+          <!-- Foam lines -->
+          <path d="M0,295 Q30,288 60,295 Q90,302 120,295 Q150,288 180,295 Q210,302 240,295 Q270,288 300,295 Q330,302 360,295 Q390,288 390,295" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="3">
+            <animateTransform attributeName="transform" type="translate" values="0,0;8,0;0,0" dur="4s" repeatCount="indefinite"/>
+          </path>
+          <path d="M0,300 Q40,292 80,300 Q120,308 160,300 Q200,292 240,300 Q280,308 320,300 Q360,292 390,300" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2">
+            <animateTransform attributeName="transform" type="translate" values="0,0;-6,0;0,0" dur="5s" repeatCount="indefinite"/>
+          </path>
+
+          <!-- Wet sand -->
+          <rect x="0" y="300" width="390" height="35" fill="#E8D5B0"/>
+          <!-- Dry sand -->
+          <rect x="0" y="330" width="390" height="970" fill="#F5E6C8"/>
+
+          <!-- ══ PALM TREE LEFT ══ -->
+          <g class="palm-left">
+            <!-- Trunk -->
+            <path d="M55,580 C52,520 45,440 50,360 C52,330 58,320 55,310"
+                  fill="none" stroke="#795548" stroke-width="12" stroke-linecap="round"/>
+            <path d="M55,580 C52,520 45,440 50,360 C52,330 58,320 55,310"
+                  fill="none" stroke="#6D4C41" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 25"/>
+            <!-- Canopy -->
+            <g class="palm-canopy">
+              <!-- Leaves -->
+              <path d="M55,310 C30,290 5,300 -15,320" fill="none" stroke="#4CAF50" stroke-width="5" stroke-linecap="round"/>
+              <path d="M55,310 C25,280 0,270 -20,275" fill="none" stroke="#2E7D32" stroke-width="4" stroke-linecap="round"/>
+              <path d="M55,310 C40,270 30,250 15,245" fill="none" stroke="#4CAF50" stroke-width="5" stroke-linecap="round"/>
+              <path d="M55,310 C70,270 85,250 105,248" fill="none" stroke="#4CAF50" stroke-width="5" stroke-linecap="round"/>
+              <path d="M55,310 C80,280 110,270 130,278" fill="none" stroke="#2E7D32" stroke-width="4" stroke-linecap="round"/>
+              <path d="M55,310 C85,295 115,305 135,325" fill="none" stroke="#4CAF50" stroke-width="4" stroke-linecap="round"/>
+              <!-- Coconuts -->
+              <circle cx="50" cy="318" r="6" fill="#8D6E63"/>
+              <circle cx="62" cy="315" r="5" fill="#795548"/>
+            </g>
+          </g>
+
+          <!-- ══ PALM TREE RIGHT ══ -->
+          <g class="palm-right">
+            <!-- Trunk -->
+            <path d="M340,530 C345,470 350,400 345,320 C343,290 338,280 340,270"
+                  fill="none" stroke="#795548" stroke-width="11" stroke-linecap="round"/>
+            <path d="M340,530 C345,470 350,400 345,320 C343,290 338,280 340,270"
+                  fill="none" stroke="#6D4C41" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 22"/>
+            <!-- Canopy -->
+            <g class="palm-canopy">
+              <path d="M340,270 C360,250 385,258 405,275" fill="none" stroke="#4CAF50" stroke-width="5" stroke-linecap="round"/>
+              <path d="M340,270 C365,240 390,235 410,240" fill="none" stroke="#2E7D32" stroke-width="4" stroke-linecap="round"/>
+              <path d="M340,270 C355,235 365,215 380,210" fill="none" stroke="#4CAF50" stroke-width="5" stroke-linecap="round"/>
+              <path d="M340,270 C320,235 305,220 285,218" fill="none" stroke="#4CAF50" stroke-width="5" stroke-linecap="round"/>
+              <path d="M340,270 C315,245 290,240 265,248" fill="none" stroke="#2E7D32" stroke-width="4" stroke-linecap="round"/>
+              <path d="M340,270 C310,260 285,268 265,285" fill="none" stroke="#4CAF50" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="345" cy="278" r="5" fill="#8D6E63"/>
+              <circle cx="333" cy="275" r="5" fill="#795548"/>
+            </g>
+          </g>
+
+          <!-- ══ BEACH TOWEL ══ -->
+          <g transform="translate(290, 420) rotate(12)">
+            <rect x="0" y="0" width="55" height="28" rx="2" fill="#EF5350" opacity="0.85"/>
+            <rect x="0" y="7" width="55" height="3" fill="#FFCDD2" opacity="0.6"/>
+            <rect x="0" y="14" width="55" height="3" fill="#FFCDD2" opacity="0.6"/>
+            <rect x="0" y="21" width="55" height="3" fill="#FFCDD2" opacity="0.6"/>
+          </g>
+
+          <!-- ══ BEACH BALL ══ -->
+          <g transform="translate(310, 460)">
+            <circle cx="0" cy="0" r="12" fill="#FFEB3B"/>
+            <path d="M-12,0 A12,12 0 0,1 0,-12" fill="#F44336" opacity="0.8"/>
+            <path d="M0,-12 A12,12 0 0,1 12,0" fill="#2196F3" opacity="0.8"/>
+            <path d="M0,12 A12,12 0 0,1 -12,0" fill="white" opacity="0.6"/>
+            <circle cx="0" cy="0" r="12" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+            <!-- Highlight -->
+            <ellipse cx="-4" cy="-5" rx="3" ry="2" fill="rgba(255,255,255,0.5)" transform="rotate(-20)"/>
+          </g>
+
+          <!-- ══ SEASHELLS ══ -->
+          <!-- Shell 1 — spiral -->
+          <g transform="translate(85, 480)">
+            <path d="M0,0 C3,-8 10,-10 12,-5 C14,0 8,5 4,3 C1,1 1,-2 3,-4" fill="none" stroke="#FFCCBC" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="3" cy="-3" r="1.5" fill="#FFCCBC" opacity="0.7"/>
+          </g>
+          <!-- Shell 2 — fan -->
+          <g transform="translate(200, 1050)">
+            <path d="M0,8 L-5,0 L-3,-2 L0,6 L3,-2 L5,0 Z" fill="#FFCCBC" opacity="0.7" stroke="#E0B0A0" stroke-width="0.5"/>
+            <line x1="-3" y1="1" x2="0" y2="7" stroke="#E0B0A0" stroke-width="0.5"/>
+            <line x1="3" y1="1" x2="0" y2="7" stroke="#E0B0A0" stroke-width="0.5"/>
+          </g>
+          <!-- Shell 3 — small spiral -->
+          <g transform="translate(320, 780)">
+            <path d="M0,0 C2,-6 8,-8 9,-3 C10,1 6,4 3,2" fill="none" stroke="#FFCCBC" stroke-width="1.8" stroke-linecap="round"/>
+          </g>
+
+          <!-- ══ SMALL PUDDLE ══ -->
+          <ellipse cx="300" cy="680" rx="22" ry="10" fill="#B2EBF2" opacity="0.4"/>
+          <ellipse cx="302" cy="678" rx="14" ry="6" fill="#E0F7FA" opacity="0.3"/>
+
+          <!-- ══ PAW PRINTS along completed path ══ -->
+          <!-- Between node 1 and 2 -->
+          <g class="paw-print" transform="translate(160, 430)">
+            <circle cx="0" cy="0" r="3.5" fill="#E8D5B0"/>
+            <circle cx="-3" cy="-5" r="1.8" fill="#E8D5B0"/>
+            <circle cx="3" cy="-5" r="1.8" fill="#E8D5B0"/>
+            <circle cx="-5" cy="-2" r="1.5" fill="#E8D5B0"/>
+            <circle cx="5" cy="-2" r="1.5" fill="#E8D5B0"/>
+          </g>
+          <g class="paw-print" transform="translate(200, 490) rotate(20)">
+            <circle cx="0" cy="0" r="3.5" fill="#E8D5B0"/>
+            <circle cx="-3" cy="-5" r="1.8" fill="#E8D5B0"/>
+            <circle cx="3" cy="-5" r="1.8" fill="#E8D5B0"/>
+            <circle cx="-5" cy="-2" r="1.5" fill="#E8D5B0"/>
+            <circle cx="5" cy="-2" r="1.5" fill="#E8D5B0"/>
+          </g>
+          <!-- Between node 2 and 3 -->
+          <g class="paw-print" transform="translate(240, 570) rotate(-10)">
+            <circle cx="0" cy="0" r="3.5" fill="#E8D5B0"/>
+            <circle cx="-3" cy="-5" r="1.8" fill="#E8D5B0"/>
+            <circle cx="3" cy="-5" r="1.8" fill="#E8D5B0"/>
+            <circle cx="-5" cy="-2" r="1.5" fill="#E8D5B0"/>
+            <circle cx="5" cy="-2" r="1.5" fill="#E8D5B0"/>
+          </g>
+          <g class="paw-print" transform="translate(190, 630) rotate(15)">
+            <circle cx="0" cy="0" r="3.5" fill="#E8D5B0"/>
+            <circle cx="-3" cy="-5" r="1.8" fill="#E8D5B0"/>
+            <circle cx="3" cy="-5" r="1.8" fill="#E8D5B0"/>
+            <circle cx="-5" cy="-2" r="1.5" fill="#E8D5B0"/>
+            <circle cx="5" cy="-2" r="1.5" fill="#E8D5B0"/>
+          </g>
+          <!-- Between node 3 and 4 -->
+          <g class="paw-print" transform="translate(165, 720) rotate(-5)">
+            <circle cx="0" cy="0" r="3.5" fill="#E8D5B0"/>
+            <circle cx="-3" cy="-5" r="1.8" fill="#E8D5B0"/>
+            <circle cx="3" cy="-5" r="1.8" fill="#E8D5B0"/>
+            <circle cx="-5" cy="-2" r="1.5" fill="#E8D5B0"/>
+            <circle cx="5" cy="-2" r="1.5" fill="#E8D5B0"/>
+          </g>
+          <g class="paw-print" transform="translate(210, 790) rotate(25)">
+            <circle cx="0" cy="0" r="3.5" fill="#E8D5B0"/>
+            <circle cx="-3" cy="-5" r="1.8" fill="#E8D5B0"/>
+            <circle cx="3" cy="-5" r="1.8" fill="#E8D5B0"/>
+            <circle cx="-5" cy="-2" r="1.5" fill="#E8D5B0"/>
+            <circle cx="5" cy="-2" r="1.5" fill="#E8D5B0"/>
+          </g>
+
+        </svg>
+
+        <!-- ── Journey Path SVG (overlay) ── -->
+        <div class="path-layer">
+          <svg class="path-svg" viewBox="0 0 390 1300" preserveAspectRatio="xMidYMin slice" xmlns="http://www.w3.org/2000/svg">
+
+            <!-- ── COMPLETED PATH (Nodes 1-4) ── -->
+            <path d="M195,380 C195,400 140,400 120,430
+                     C100,460 120,490 150,510
+                     C200,540 270,540 270,580
+                     C270,620 200,640 150,670
+                     C100,700 120,730 130,760
+                     C140,790 200,810 230,830
+                     C260,850 260,870 260,890"
+                  fill="none"
+                  stroke="#FF6F00"
+                  stroke-width="5"
+                  stroke-dasharray="14 10"
+                  stroke-linecap="round"
+                  opacity="0.4"/>
+
+            <!-- ── UPCOMING PATH (Nodes 5-7 + milestone) ── -->
+            <path d="M260,890 C260,920 200,940 160,960
+                     C120,980 130,1010 140,1040
+                     C150,1070 200,1090 240,1100
+                     C280,1110 260,1130 250,1150
+                     C240,1170 210,1190 195,1210
+                     C180,1230 195,1260 195,1280"
+                  fill="none"
+                  stroke="rgba(62,39,35,0.1)"
+                  stroke-width="5"
+                  stroke-dasharray="14 10"
+                  stroke-linecap="round"/>
+
+          </svg>
+        </div>
+
+        <!-- ── DATE NODES ── -->
+
+        <!-- Node 1: Mar 24 — Completed -->
+        <div class="node node--completed" style="left: 120px; top: 400px;" onclick="alert('Check-in complete for Mar 24! &#10003;')">
+          <div class="node-circle">
+            <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="5 12 10 17 19 7"/>
+            </svg>
+          </div>
+          <div class="node-shadow"></div>
+          <div class="node-label">Mar 24th</div>
+        </div>
+
+        <!-- Node 2: Mar 25 — Completed -->
+        <div class="node node--completed" style="left: 270px; top: 570px;" onclick="alert('Check-in complete for Mar 25! &#10003;')">
+          <div class="node-circle">
+            <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="5 12 10 17 19 7"/>
+            </svg>
+          </div>
+          <div class="node-shadow"></div>
+          <div class="node-label">Mar 25th</div>
+        </div>
+
+        <!-- Node 3: Mar 26 — Completed -->
+        <div class="node node--completed" style="left: 130px; top: 740px;" onclick="alert('Check-in complete for Mar 26! &#10003;')">
+          <div class="node-circle">
+            <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="5 12 10 17 19 7"/>
+            </svg>
+          </div>
+          <div class="node-shadow"></div>
+          <div class="node-label">Mar 26th</div>
+        </div>
+
+        <!-- Node 4: Mar 27 — Completed -->
+        <div class="node node--completed" style="left: 260px; top: 890px;" onclick="alert('Check-in complete for Mar 27! &#10003;')">
+          <div class="node-circle">
+            <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="5 12 10 17 19 7"/>
+            </svg>
+          </div>
+          <div class="node-shadow"></div>
+          <div class="node-label">Mar 27th</div>
+        </div>
+
+        <!-- Node 5: Mar 28 — CURRENT/TODAY -->
+        <div class="node node--current" style="left: 140px; top: 1040px;" onclick="alert('Start today\'s check-in for Mar 28!')">
+          <div class="node-circle">28</div>
+          <div class="node-shadow"></div>
+          <div class="node-label">Today</div>
+        </div>
+
+        <!-- Node 6: Mar 29 — Upcoming -->
+        <div class="node node--upcoming" style="left: 250px; top: 1150px;" onclick="alert('Come back on Mar 29 for this check-in!')">
+          <div class="node-circle">29</div>
+          <div class="node-shadow"></div>
+          <div class="node-label">Mar 29th</div>
+        </div>
+
+        <!-- Node 7: Mar 30 — Upcoming -->
+        <div class="node node--upcoming" style="left: 195px; top: 1240px;" onclick="alert('Come back on Mar 30 for this check-in!')">
+          <div class="node-circle">30</div>
+          <div class="node-shadow"></div>
+          <div class="node-label">Mar 30th</div>
+        </div>
+
+        <!-- ── DOG MASCOT ── -->
+        <div class="mascot-wrapper" style="left: 140px; top: 1020px;" id="mascot">
+          <svg class="mascot-svg" viewBox="100 130 220 240" xmlns="http://www.w3.org/2000/svg">
+
+            <!-- ══ TAIL ══ -->
+            <g class="m-tail">
+              <path d="M 148 275 C 130 260, 115 235, 125 210 C 132 195, 145 200, 148 215"
+                    fill="#8D6E63" stroke="none"/>
+              <path d="M 140 270 C 125 255, 112 230, 122 208"
+                    fill="none" stroke="#3E2723" stroke-width="3.5" stroke-linecap="round"/>
+            </g>
+
+            <!-- ══ BODY GROUP ══ -->
+            <g class="m-body-group">
+              <!-- Body -->
+              <ellipse cx="232" cy="295" rx="65" ry="52" fill="#8D6E63"/>
+              <!-- Belly lighter area -->
+              <ellipse cx="228" cy="305" rx="40" ry="32" fill="#A1887F" opacity="0.6"/>
+
+              <!-- Body outline -->
+              <path d="M 218 260 C 215 280, 215 310, 218 340"
+                    fill="none" stroke="#3E2723" stroke-width="3.5" stroke-linecap="round"/>
+
+              <!-- Front legs -->
+              <rect x="200" y="310" width="22" height="36" rx="10" fill="#8D6E63"/>
+              <rect x="238" y="310" width="22" height="36" rx="10" fill="#8D6E63"/>
+              <path d="M 202 310 C 200 325, 199 335, 200 345" fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+              <path d="M 220 310 C 221 325, 222 335, 222 345" fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+              <path d="M 240 310 C 239 325, 238 335, 238 345" fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+              <path d="M 258 310 C 259 325, 260 335, 261 345" fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+
+              <!-- Paws -->
+              <ellipse cx="211" cy="344" rx="12" ry="4" fill="#8D6E63"/>
+              <ellipse cx="249" cy="344" rx="12" ry="4" fill="#8D6E63"/>
+
+              <!-- Back leg hints -->
+              <path d="M 170 320 C 168 330, 170 340, 175 345"
+                    fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+              <path d="M 290 320 C 292 330, 290 340, 285 345"
+                    fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+
+              <!-- Ground line -->
+              <line x1="165" y1="345" x2="300" y2="345" stroke="#3E2723" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+            </g>
+
+            <!-- ══ HEAD GROUP ══ -->
+            <g class="m-head-group">
+              <!-- Head -->
+              <circle cx="235" cy="190" r="60" fill="#8D6E63"/>
+              <!-- Lighter muzzle area -->
+              <ellipse cx="233" cy="210" rx="25" ry="18" fill="#A1887F" opacity="0.5"/>
+
+              <!-- Ears -->
+              <g class="m-ear-left">
+                <ellipse cx="185" cy="200" rx="18" ry="32" transform="rotate(15, 185, 200)" fill="#8D6E63"/>
+                <ellipse cx="185" cy="205" rx="10" ry="22" transform="rotate(15, 185, 205)" fill="#6D4C41" opacity="0.4"/>
+                <path d="M 188 178 C 178 190, 172 210, 178 225"
+                      fill="none" stroke="#3E2723" stroke-width="3.5" stroke-linecap="round"/>
+              </g>
+              <g class="m-ear-right">
+                <ellipse cx="280" cy="195" rx="18" ry="30" transform="rotate(-15, 280, 195)" fill="#8D6E63"/>
+                <ellipse cx="280" cy="200" rx="10" ry="20" transform="rotate(-15, 280, 200)" fill="#6D4C41" opacity="0.4"/>
+                <path d="M 276 175 C 288 188, 293 208, 288 220"
+                      fill="none" stroke="#3E2723" stroke-width="3.5" stroke-linecap="round"/>
+              </g>
+
+              <!-- Eyes -->
+              <g class="m-eye-left">
+                <circle cx="218" cy="192" r="5.5" fill="#3E2723"/>
+                <circle cx="216" cy="190" r="1.5" fill="white" opacity="0.7"/>
+              </g>
+              <g class="m-eye-right">
+                <circle cx="248" cy="192" r="5.5" fill="#3E2723"/>
+                <circle cx="246" cy="190" r="1.5" fill="white" opacity="0.7"/>
+              </g>
+
+              <!-- Nose -->
+              <g class="m-nose">
+                <ellipse cx="233" cy="207" rx="7" ry="5.5" fill="#3E2723"/>
+                <ellipse cx="231" cy="206" rx="2" ry="1.2" fill="rgba(255,255,255,0.15)"/>
+              </g>
+
+              <!-- Mouth -->
+              <path d="M 233 212 C 228 220, 222 222, 218 218"
+                    fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+              <path d="M 233 212 C 238 220, 244 222, 248 218"
+                    fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+            </g>
+
+            <!-- ══ BUTTERFLY (recolored wings to orange) ══ -->
+            <g class="m-butterfly-group">
+              <g class="m-wing-left">
+                <path d="M 320 245 C 308 232, 302 218, 312 212 C 322 208, 320 230, 320 245"
+                      fill="#FF6F00" fill-opacity="0.3" stroke="#FF6F00" stroke-width="2" stroke-linecap="round"/>
+              </g>
+              <g class="m-wing-right">
+                <path d="M 320 245 C 332 232, 338 218, 328 212 C 318 208, 320 230, 320 245"
+                      fill="#FF6F00" fill-opacity="0.3" stroke="#FF6F00" stroke-width="2" stroke-linecap="round"/>
+              </g>
+              <line x1="320" y1="240" x2="320" y2="252" stroke="#3E2723" stroke-width="2" stroke-linecap="round"/>
+              <path d="M 320 240 C 316 234, 314 230, 312 228" fill="none" stroke="#3E2723" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M 320 240 C 324 234, 326 230, 328 228" fill="none" stroke="#3E2723" stroke-width="1.5" stroke-linecap="round"/>
+            </g>
+
+          </svg>
+        </div>
+
+        <!-- ── SPEECH BUBBLE ── -->
+        <div class="speech-bubble" id="speechBubble" style="left: 195px; top: 942px;">
+          Great progress! &#128062; Just 3 more check-ins this week!
+          <button class="speech-dismiss" onclick="dismissBubble()" aria-label="Dismiss">&times;</button>
+        </div>
+
+        <!-- ── MILESTONE NODE ── -->
+        <div class="milestone-node" style="left: 195px; top: 1350px;">
+          <div class="milestone-circle">&#127942;</div>
+          <div class="milestone-label">Week Complete!</div>
+          <div class="milestone-sub">Week 2 Preview...</div>
+        </div>
+
+      </div><!-- /beach-scene -->
+
+      <!-- Spacer for scrolling past milestone + tab bar -->
+      <div style="height: 200px;"></div>
+
+    </div><!-- /scene-content -->
+  </div><!-- /scroll-container -->
+
+  <!-- ── TAB BAR ── -->
+  <div class="tab-bar">
+    <div class="tab-item active">
+      <div class="tab-icon">&#127968;</div>
+      <div class="tab-label">Home</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon">&#10084;&#65039;</div>
+      <div class="tab-label">Health</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon">&#128214;</div>
+      <div class="tab-label">Learn</div>
+    </div>
+    <div class="fab-container">
+      <div class="fab">+</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon">&#129658;</div>
+      <div class="tab-label">Triage</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon">&#9881;&#65039;</div>
+      <div class="tab-label">Settings</div>
+    </div>
+  </div>
+
+  <!-- Home Indicator -->
+  <div class="home-indicator"></div>
+</div>
+
+<script>
+  // ── Speech Bubble Dismiss ──
+  function dismissBubble() {
+    const bubble = document.getElementById('speechBubble');
+    bubble.classList.add('hidden');
+  }
+
+  // ── Parallax Scroll ──
+  const scrollContainer = document.getElementById('scrollContainer');
+  const beachSceneBg = document.getElementById('beachSceneBg');
+
+  scrollContainer.addEventListener('scroll', function() {
+    const scrollY = scrollContainer.scrollTop;
+    const parallaxOffset = scrollY * 0.4;
+    beachSceneBg.style.transform = 'translateY(' + (parallaxOffset * 0.15) + 'px)';
+  }, { passive: true });
+</script>
+
+</body>
+</html>

@@ -17,9 +17,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useDogStore } from '../src/stores/dogStore';
 import { InputField } from '../src/components/ui/InputField';
+import { BreedPicker } from '../src/components/ui/BreedPicker';
 import { Button } from '../src/components/ui/Button';
 import { COLORS, FONT_SIZES, SPACING, SHADOWS, FONTS, MIN_TOUCH_TARGET } from '../src/constants/theme';
 import { LIMITS } from '../src/constants/config';
+import { DOG_BREEDS } from '../src/constants/dogBreeds';
 
 export default function EditDog() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -90,6 +92,10 @@ export default function EditDog() {
     }
     if (!breed.trim()) {
       setError("Please enter your dog's breed.");
+      return;
+    }
+    if (!DOG_BREEDS.some((b) => b.toLowerCase() === breed.trim().toLowerCase())) {
+      setError('Please select a breed from the list.');
       return;
     }
 
@@ -204,12 +210,9 @@ export default function EditDog() {
               accessibilityLabel="Dog's name"
             />
 
-            <InputField
-              icon="dog"
-              placeholder="Breed"
+            <BreedPicker
               value={breed}
               onChangeText={setBreed}
-              autoCapitalize="words"
               accessibilityLabel="Dog's breed"
             />
 

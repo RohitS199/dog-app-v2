@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=600, initial-scale=1">
+<title>PupLog Mascot — SVG Recreation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #F5E6D0;
+    font-family: system-ui, sans-serif;
+  }
+
+  .scene {
+    position: relative;
+    width: 500px;
+    height: 450px;
+  }
+
+  .dog-svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── Tail wag ── */
+  @keyframes tailWag {
+    0%, 100% { transform: rotate(-15deg); }
+    50% { transform: rotate(20deg); }
+  }
+  .tail {
+    transform-origin: 148px 270px;
+    animation: tailWag 0.6s ease-in-out infinite;
+  }
+
+  /* ── Gentle body breathe ── */
+  @keyframes bodyBreathe {
+    0%, 100% { transform: scaleY(1) translateY(0); }
+    50% { transform: scaleY(1.012) translateY(-1px); }
+  }
+  .body-group {
+    transform-origin: 230px 300px;
+    animation: bodyBreathe 3s ease-in-out infinite;
+  }
+
+  /* ── Head tilt (subtle) ── */
+  @keyframes headTilt {
+    0%, 100% { transform: rotate(0deg); }
+    30% { transform: rotate(2deg); }
+    70% { transform: rotate(-1.5deg); }
+  }
+  .head-group {
+    transform-origin: 235px 195px;
+    animation: headTilt 4s ease-in-out infinite;
+  }
+
+  /* ── Ear flop ── */
+  @keyframes earFlopL {
+    0%, 100% { transform: rotate(0deg); }
+    40% { transform: rotate(-3deg); }
+  }
+  @keyframes earFlopR {
+    0%, 100% { transform: rotate(0deg); }
+    40% { transform: rotate(3deg); }
+  }
+  .ear-left {
+    transform-origin: 195px 175px;
+    animation: earFlopL 4s ease-in-out infinite;
+  }
+  .ear-right {
+    transform-origin: 270px 175px;
+    animation: earFlopR 4s ease-in-out infinite;
+  }
+
+  /* ── Blink ── */
+  @keyframes blink {
+    0%, 42%, 44%, 100% { transform: scaleY(1); }
+    43% { transform: scaleY(0.1); }
+  }
+  .eye-left {
+    transform-origin: 218px 192px;
+    animation: blink 4s ease-in-out infinite;
+  }
+  .eye-right {
+    transform-origin: 248px 192px;
+    animation: blink 4s ease-in-out infinite 0.05s;
+  }
+
+  /* ── Butterfly flutter ── */
+  @keyframes butterflyPath {
+    0%   { transform: translate(0, 0) rotate(0deg); }
+    15%  { transform: translate(15px, -20px) rotate(5deg); }
+    30%  { transform: translate(-5px, -35px) rotate(-3deg); }
+    50%  { transform: translate(10px, -15px) rotate(4deg); }
+    70%  { transform: translate(-10px, -25px) rotate(-5deg); }
+    85%  { transform: translate(5px, -8px) rotate(2deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+  }
+  .butterfly-group {
+    animation: butterflyPath 5s ease-in-out infinite;
+  }
+
+  @keyframes wingFlap {
+    0%, 100% { transform: scaleX(1); }
+    50% { transform: scaleX(0.3); }
+  }
+  .wing-left {
+    transform-origin: 320px 245px;
+    animation: wingFlap 0.25s ease-in-out infinite;
+  }
+  .wing-right {
+    transform-origin: 320px 245px;
+    animation: wingFlap 0.25s ease-in-out infinite 0.05s;
+  }
+
+  /* ── Nose twitch ── */
+  @keyframes noseTwitch {
+    0%, 90%, 100% { transform: scale(1); }
+    93% { transform: scale(1.08, 0.95); }
+    96% { transform: scale(0.95, 1.05); }
+  }
+  .nose {
+    transform-origin: 233px 205px;
+    animation: noseTwitch 5s ease-in-out infinite;
+  }
+</style>
+</head>
+<body>
+
+<div class="scene">
+  <svg class="dog-svg" viewBox="0 0 500 450" xmlns="http://www.w3.org/2000/svg">
+
+    <!-- Ground line -->
+    <line x1="140" y1="345" x2="340" y2="345" stroke="#2D2D2D" stroke-width="4" stroke-linecap="round" />
+
+    <!-- ══ TAIL ══ -->
+    <g class="tail">
+      <path d="M 148 275 C 130 260, 115 235, 125 210 C 132 195, 145 200, 148 215"
+            fill="#6B8CFF" stroke="none" />
+      <path d="M 140 270 C 125 255, 112 230, 122 208"
+            fill="none" stroke="#2D2D2D" stroke-width="3.5" stroke-linecap="round" />
+    </g>
+
+    <!-- ══ BODY GROUP (breathe) ══ -->
+    <g class="body-group">
+
+      <!-- Body -->
+      <ellipse cx="232" cy="295" rx="65" ry="52" fill="#6B8CFF" />
+
+      <!-- Body outline details -->
+      <!-- Chest/front line -->
+      <path d="M 218 260 C 215 280, 215 310, 218 340"
+            fill="none" stroke="#2D2D2D" stroke-width="3.5" stroke-linecap="round" />
+
+      <!-- Front legs -->
+      <!-- Left front leg -->
+      <path d="M 210 310 L 208 342" fill="none" stroke="#2D2D2D" stroke-width="3.5" stroke-linecap="round" />
+      <!-- Right front leg -->
+      <path d="M 245 310 C 246 320, 248 330, 250 342" fill="none" stroke="#2D2D2D" stroke-width="3.5" stroke-linecap="round" />
+
+      <!-- Left front leg fill -->
+      <rect x="200" y="310" width="22" height="36" rx="10" fill="#6B8CFF" />
+      <!-- Right front leg fill -->
+      <rect x="238" y="310" width="22" height="36" rx="10" fill="#6B8CFF" />
+
+      <!-- Redraw leg outlines on top -->
+      <path d="M 202 310 C 200 325, 199 335, 200 345" fill="none" stroke="#2D2D2D" stroke-width="3" stroke-linecap="round" />
+      <path d="M 220 310 C 221 325, 222 335, 222 345" fill="none" stroke="#2D2D2D" stroke-width="3" stroke-linecap="round" />
+      <path d="M 240 310 C 239 325, 238 335, 238 345" fill="none" stroke="#2D2D2D" stroke-width="3" stroke-linecap="round" />
+      <path d="M 258 310 C 259 325, 260 335, 261 345" fill="none" stroke="#2D2D2D" stroke-width="3" stroke-linecap="round" />
+
+      <!-- Paw lines -->
+      <ellipse cx="211" cy="344" rx="12" ry="4" fill="#6B8CFF" />
+      <ellipse cx="249" cy="344" rx="12" ry="4" fill="#6B8CFF" />
+
+      <!-- Back leg hint -->
+      <path d="M 170 320 C 168 330, 170 340, 175 345"
+            fill="none" stroke="#2D2D2D" stroke-width="3" stroke-linecap="round" />
+      <path d="M 290 320 C 292 330, 290 340, 285 345"
+            fill="none" stroke="#2D2D2D" stroke-width="3" stroke-linecap="round" />
+
+    </g>
+
+    <!-- ══ HEAD GROUP (tilt) ══ -->
+    <g class="head-group">
+
+      <!-- Head base circle -->
+      <circle cx="235" cy="190" r="60" fill="#6B8CFF" />
+
+      <!-- Ears -->
+      <g class="ear-left">
+        <ellipse cx="185" cy="200" rx="18" ry="32" transform="rotate(15, 185, 200)" fill="#6B8CFF" />
+        <path d="M 188 178 C 178 190, 172 210, 178 225"
+              fill="none" stroke="#2D2D2D" stroke-width="3.5" stroke-linecap="round" />
+      </g>
+      <g class="ear-right">
+        <ellipse cx="280" cy="195" rx="18" ry="30" transform="rotate(-15, 280, 195)" fill="#6B8CFF" />
+        <path d="M 276 175 C 288 188, 293 208, 288 220"
+              fill="none" stroke="#2D2D2D" stroke-width="3.5" stroke-linecap="round" />
+      </g>
+
+      <!-- Eyes -->
+      <g class="eye-left">
+        <circle cx="218" cy="192" r="5" fill="#2D2D2D" />
+      </g>
+      <g class="eye-right">
+        <circle cx="248" cy="192" r="5" fill="#2D2D2D" />
+      </g>
+
+      <!-- Nose -->
+      <g class="nose">
+        <ellipse cx="233" cy="207" rx="7" ry="5.5" fill="#2D2D2D" />
+      </g>
+
+      <!-- Mouth -->
+      <path d="M 233 212 C 228 220, 222 222, 218 218"
+            fill="none" stroke="#2D2D2D" stroke-width="3" stroke-linecap="round" />
+      <path d="M 233 212 C 238 220, 244 222, 248 218"
+            fill="none" stroke="#2D2D2D" stroke-width="3" stroke-linecap="round" />
+
+    </g>
+
+    <!-- ══ BUTTERFLY ══ -->
+    <g class="butterfly-group">
+      <!-- Left wing -->
+      <g class="wing-left">
+        <path d="M 320 245 C 308 232, 302 218, 312 212 C 322 208, 320 230, 320 245"
+              fill="none" stroke="#2D2D2D" stroke-width="2.5" stroke-linecap="round" />
+      </g>
+      <!-- Right wing -->
+      <g class="wing-right">
+        <path d="M 320 245 C 332 232, 338 218, 328 212 C 318 208, 320 230, 320 245"
+              fill="none" stroke="#2D2D2D" stroke-width="2.5" stroke-linecap="round" />
+      </g>
+      <!-- Body -->
+      <line x1="320" y1="240" x2="320" y2="252" stroke="#2D2D2D" stroke-width="2.5" stroke-linecap="round" />
+      <!-- Antennae -->
+      <path d="M 320 240 C 316 234, 314 230, 312 228" fill="none" stroke="#2D2D2D" stroke-width="1.8" stroke-linecap="round" />
+      <path d="M 320 240 C 324 234, 326 230, 328 228" fill="none" stroke="#2D2D2D" stroke-width="1.8" stroke-linecap="round" />
+    </g>
+
+  </svg>
+</div>
+
+</body>
+</html>

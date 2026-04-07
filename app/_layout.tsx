@@ -1,10 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, DMSerifDisplay_400Regular } from '@expo-google-fonts/dm-serif-display';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../src/stores/authStore';
+import { useOnboardingStore } from '../src/stores/onboardingStore';
 import { useAppState } from '../src/hooks/useAppState';
+import { SuperwallProviderWrapper } from '../src/providers/SuperwallProvider';
 import { Animated, Image, StyleSheet, Text, View } from 'react-native';
 import { COLORS, FONTS } from '../src/constants/theme';
 
@@ -150,6 +153,7 @@ export default function RootLayout() {
   const { session, isLoading, hasAcceptedTerms, initialize } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
 
   const [fontsLoaded] = useFonts({
     DMSerifDisplay_400Regular,
@@ -158,44 +162,60 @@ export default function RootLayout() {
   useAppState();
 
   useEffect(() => {
+    // Check onboarding completion flag and initialize auth in parallel
+    AsyncStorage.getItem('puplog-onboarding-complete').then((val) => {
+      setHasSeenOnboarding(val === 'true');
+    });
     initialize();
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded && !isLoading) {
+    if (fontsLoaded && !isLoading && hasSeenOnboarding !== null) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, isLoading]);
+  }, [fontsLoaded, isLoading, hasSeenOnboarding]);
+
+  // Sync onboarding data after authentication + terms acceptance
+  useEffect(() => {
+    if (!session || !hasAcceptedTerms) return;
+
+    const store = useOnboardingStore.getState();
+    // Check if there's pending onboarding data to sync (dogProfile has a name)
+    if (store.dogProfile.name.trim()) {
+      store.syncOnboardingData();
+    }
+  }, [session, hasAcceptedTerms]);
 
   useEffect(() => {
-    if (isLoading || !fontsLoaded) return;
+    if (isLoading || !fontsLoaded || hasSeenOnboarding === null) return;
 
     const inAuthGroup = segments[0] === '(auth)';
     const inTermsScreen = segments[0] === 'terms';
+    const inOnboarding = segments[0] === 'onboarding';
 
-    if (!session) {
-      if (!inAuthGroup) {
-        router.replace('/(auth)/sign-in');
-      }
-    } else if (!hasAcceptedTerms) {
-      if (!inTermsScreen) {
-        router.replace('/terms');
-      }
-    } else {
-      if (inAuthGroup || inTermsScreen) {
-        router.replace('/(tabs)');
-      }
+    if (!session && !hasSeenOnboarding && !inOnboarding) {
+      // New user: show onboarding first
+      router.replace('/onboarding');
+    } else if (!session && hasSeenOnboarding && !inAuthGroup && !inOnboarding) {
+      // Returning user without session: sign in
+      router.replace('/(auth)/sign-in');
+    } else if (session && !hasAcceptedTerms && !inTermsScreen) {
+      // Authenticated but hasn't accepted terms
+      router.replace('/terms');
+    } else if (session && hasAcceptedTerms && (inAuthGroup || inTermsScreen || inOnboarding)) {
+      // Fully authenticated: go to main app
+      router.replace('/(tabs)');
     }
-  }, [session, isLoading, hasAcceptedTerms, segments, fontsLoaded]);
+  }, [session, isLoading, hasAcceptedTerms, hasSeenOnboarding, segments, fontsLoaded]);
 
-  if (isLoading || !fontsLoaded) {
+  if (isLoading || !fontsLoaded || hasSeenOnboarding === null) {
     return <BrandedSplash />;
   }
 
   return (
-    <>
+    <SuperwallProviderWrapper>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.background } }} />
       <StatusBar style="auto" />
-    </>
+    </SuperwallProviderWrapper>
   );
 }

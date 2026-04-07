@@ -46,12 +46,13 @@ Every feature in PupLog exists in service of this principle.
 |-------|-----------|
 | Framework | React Native 0.81 (Expo SDK 54, TypeScript strict) |
 | Navigation | Expo Router v6 (file-based routing) |
-| State | Zustand v5 (6 stores: auth, dog, triage, checkIn, health, learn) |
+| State | Zustand v5 (9 stores: auth, dog, triage, checkIn, health, learn, onboarding, subscription, articleTransition) |
 | Backend | Supabase (Auth, Postgres, Edge Functions, pgvector RAG) |
 | AI | Claude Sonnet 4.5 (daily analysis), Claude Haiku 4.5 (weekly compression) |
 | Auth Storage | expo-secure-store (device secure enclave) |
+| Payments | expo-superwall (paywall) + react-native-purchases (RevenueCat) |
 | Animations | react-native-reanimated v4 + react-native-svg |
-| Testing | Jest 29 + React Native Testing Library (228 tests, 18 suites) |
+| Testing | Jest 29 + React Native Testing Library (279 tests, 22 suites) |
 
 ## Quick Start
 
@@ -74,9 +75,11 @@ npm install
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your Supabase credentials:
+# Edit .env with your keys:
 #   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 #   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+#   EXPO_PUBLIC_REVENUECAT_IOS_KEY=your-revenuecat-ios-key
+#   EXPO_PUBLIC_SUPERWALL_IOS_KEY=your-superwall-ios-key
 
 # Start the development server
 npx expo start
@@ -85,9 +88,15 @@ npx expo start
 ### Running Tests
 
 ```bash
-npm test              # Run all 228 tests
+npm test              # Run all 279 tests
 npx jest --no-cache   # Clear cache and run
 ```
+
+### Known Dependency Issues
+
+- `@react-native-async-storage/async-storage` may require `--legacy-peer-deps` (React peer dep conflict). An `.npmrc` with `legacy-peer-deps=true` is included.
+- `react-native-worklets` must be installed as a devDependency — required by reanimated's babel plugin.
+- Jest must be v29 (not v30) — `jest-expo` bundles Jest 29 internally.
 
 ### Seed Data for Testing
 
@@ -101,17 +110,19 @@ dog_app_ui/
 │   ├── (auth)/                   # Sign in, sign up, forgot password
 │   ├── (tabs)/                   # Home, Health, Learn, Triage, Settings
 │   ├── check-in.tsx              # 9-step daily check-in flow
+│   ├── onboarding.tsx            # 19-step onboarding flow
 │   ├── article/[slug].tsx        # Article detail with Markdown
 │   ├── emergency.tsx             # Emergency vet resources
 │   └── ...                       # Terms, add-dog, edit-dog, etc.
 ├── src/
 │   ├── components/
 │   │   ├── legal/                # Safety-critical components (5)
-│   │   └── ui/                   # General UI components (22)
-│   ├── constants/                # Theme, config, check-in questions
+│   │   └── ui/                   # General UI components (36+)
+│   ├── constants/                # Theme, config, breed data, check-in questions
 │   ├── hooks/                    # useAppState, useNetworkStatus
 │   ├── lib/                      # Supabase client, emergency keywords, pattern rules
-│   ├── stores/                   # Zustand stores (6)
+│   ├── providers/                # SuperwallProvider (paywall)
+│   ├── stores/                   # Zustand stores (9)
 │   └── types/                    # TypeScript type definitions
 ├── scripts/
 │   └── seed-data.sql             # Test data seed script
@@ -222,18 +233,18 @@ The backend runs on Supabase with five Edge Functions:
 
 ## Test Coverage
 
-228 tests across 18 suites:
+279 tests across 22 suites:
 
 | Category | Suites | Tests | Coverage |
 |----------|--------|-------|----------|
-| Lib | 5 | 105 | Emergency keywords, foreign body floor, consistency score, day summary, pattern rules |
-| Stores | 4 | 54 | Triage, check-in, health, learn stores |
-| Components | 9 | 69 | Urgency badge, triage result, legal, emergency alert, check-in cards, calendar, AI insights |
+| Lib | 6 | 105+ | Emergency keywords, foreign body floor, consistency score, day summary, pattern rules, breed health data |
+| Stores | 5 | 54+ | Triage, check-in, health, learn, onboarding stores |
+| Components | 11 | 69+ | Urgency badge, triage result, legal, emergency alert, check-in cards, calendar, AI insights, flippable dog card, alert card stack |
 
 ## Design System
 
 **"Earthy Dog Park" palette:**
-- Limestone (#EFEBE9) — main background
+- Limestone (#FAFAFA) — main background
 - Topsoil (#D7CCC8) — cards, containers
 - Dark Loam (#3E2723) — primary text, buttons
 - Orange Collar (#FF6F00) — accent, active states
@@ -250,6 +261,7 @@ The backend runs on Supabase with five Edge Functions:
 - [x] Backend Completion (security hardened, stress test passed)
 - [x] v2.6 Phase 1 — Daily Check-Ins + Rule-Based Pattern Detection
 - [x] v2.6 Phase 2 — AI Pattern Analysis (daily Sonnet + weekly Haiku + frontend dashboard)
+- [ ] UI Redesign — Playful overhaul (onboarding, social auth, subscriptions, breed data) — in progress
 - [ ] Milestone 6 — Beta Testing (TestFlight build + real user testers)
 
 ## License
