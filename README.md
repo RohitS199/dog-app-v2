@@ -68,7 +68,7 @@ Every feature in PupLog exists in service of this principle.
 ```bash
 # Clone the repository
 git clone https://github.com/RohitS199/dog-app-v2.git
-cd dog_app_ui
+cd dog-app-v2
 
 # Install dependencies
 npm install
@@ -113,6 +113,7 @@ dog_app_ui/
 │   ├── onboarding.tsx            # 19-step onboarding flow
 │   ├── article/[slug].tsx        # Article detail with Markdown
 │   ├── emergency.tsx             # Emergency vet resources
+│   ├── choose-plan.tsx            # Subscription plan selection
 │   └── ...                       # Terms, add-dog, edit-dog, etc.
 ├── src/
 │   ├── components/
@@ -257,7 +258,7 @@ The backend runs on Supabase with five Edge Functions:
 - [x] Dog Profiles + Onboarding
 - [x] Core Triage (16-step pipeline)
 - [x] Settings + Account Management
-- [x] Testing + Polish (228 tests, accessibility audit)
+- [x] Testing + Polish (279 tests, accessibility audit)
 - [x] Backend Completion (security hardened, stress test passed)
 - [x] v2.6 Phase 1 — Daily Check-Ins + Rule-Based Pattern Detection
 - [x] v2.6 Phase 2 — AI Pattern Analysis (daily Sonnet + weekly Haiku + frontend dashboard)
