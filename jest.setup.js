@@ -221,6 +221,50 @@ jest.mock('lottie-react-native', () => {
   return { __esModule: true, default: LottieView };
 });
 
+// Mock expo-store-review
+jest.mock('expo-store-review', () => ({
+  isAvailableAsync: jest.fn(() => Promise.resolve(true)),
+  requestReview: jest.fn(() => Promise.resolve()),
+}));
+
+// Mock expo-notifications
+jest.mock('expo-notifications', () => ({
+  getPermissionsAsync: jest.fn(() =>
+    Promise.resolve({ status: 'undetermined', granted: false })
+  ),
+  requestPermissionsAsync: jest.fn(() =>
+    Promise.resolve({ status: 'granted', granted: true })
+  ),
+  scheduleNotificationAsync: jest.fn(() => Promise.resolve('notification-id')),
+  cancelAllScheduledNotificationsAsync: jest.fn(() => Promise.resolve()),
+  setNotificationHandler: jest.fn(),
+}));
+
+// Mock expo-font
+jest.mock('expo-font', () => ({
+  useFonts: jest.fn(() => [true]),
+  isLoaded: jest.fn(() => true),
+}));
+
+// Mock @expo-google-fonts packages
+jest.mock('@expo-google-fonts/caveat', () => ({
+  Caveat_400Regular: 'Caveat_400Regular',
+  useFonts: jest.fn(() => [true]),
+}));
+jest.mock('@expo-google-fonts/patrick-hand', () => ({
+  PatrickHand_400Regular: 'PatrickHand_400Regular',
+  useFonts: jest.fn(() => [true]),
+}));
+jest.mock('@expo-google-fonts/kalam', () => ({
+  Kalam_700Bold: 'Kalam_700Bold',
+  useFonts: jest.fn(() => [true]),
+}));
+jest.mock('@expo-google-fonts/work-sans', () => ({
+  WorkSans_400Regular: 'WorkSans_400Regular',
+  WorkSans_500Medium: 'WorkSans_500Medium',
+  useFonts: jest.fn(() => [true]),
+}));
+
 // Mock react-native-svg
 jest.mock('react-native-svg', () => {
   const React = require('react');

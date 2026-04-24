@@ -3,49 +3,67 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { useDogStore } from './dogStore';
-import { generateDaySummary } from '../lib/daySummary';
-import type { MetricField } from '../types/checkIn';
-import type { DaySummary } from '../types/health';
-import type { DailyCheckIn } from '../types/checkIn';
+import { computeAge, getLifeStage, ageToDecimalYears } from '../lib/lifeStage';
 
-export type OnboardingGoal = 'peace_of_mind' | 'catch_early' | 'track_daily' | 'vet_prep';
-export type OnboardingAttribution = 'social' | 'friend' | 'vet' | 'search' | 'app_store';
+export type HealthBaseline =
+  | 'allergies'
+  | 'joint_arthritis'
+  | 'anxiety'
+  | 'digestive'
+  | 'skin_coat'
+  | 'heart_breathing'
+  | 'on_meds'
+  | 'none';
 
 export interface OnboardingDogProfile {
   name: string;
   breed: string;
-  ageYears: string;
-  weightLbs: string;
   photoUri: string | null;
-  spayedNeutered: boolean | null; // null = "Not sure"
-  knownConditions: string[];
-  vetPhone: string;
+  loveNote: string;
+  birthdayMonth: number | null;
+  birthdayDay: number | null;
+  birthdayYear: number | null;
+  lifeStage: string | null;
+  healthBaseline: HealthBaseline[];
 }
 
 interface OnboardingState {
-  // Persisted state
+  // Persisted (AsyncStorage)
   currentStep: number;
-  goal: OnboardingGoal | null;
-  attribution: OnboardingAttribution | null;
   dogProfile: OnboardingDogProfile;
-  checkInAnswers: Partial<Record<MetricField, string>>;
+  surveyAttribution: string | null;
+  surveyWorries: string[];
+  surveySeverity: string | null;
+  surveyHistory: string | null;
+  surveyBlindsides: string[];
+  signaturePathData: string | null;
+  notificationHour: number | null;
+  selectedPlan: 'yearly' | 'monthly' | null;
+  starRating: number | null;
   startedAt: number | null;
 
-  // Ephemeral state
+  // Ephemeral
   isSubmitting: boolean;
-  error: string | null;
-  daySummary: DaySummary | null;
   isSyncing: boolean;
+  error: string | null;
+  buildingStep: number;
 
   // Actions
-  setGoal: (goal: OnboardingGoal) => void;
-  setAttribution: (attribution: OnboardingAttribution) => void;
   setDogField: <K extends keyof OnboardingDogProfile>(field: K, value: OnboardingDogProfile[K]) => void;
-  setCheckInAnswer: (field: MetricField, value: string) => void;
+  setSurveyAttribution: (value: string) => void;
+  toggleSurveyWorry: (value: string) => void;
+  setSurveySeverity: (value: string) => void;
+  setSurveyHistory: (value: string) => void;
+  toggleSurveyBlindside: (value: string) => void;
+  toggleHealthBaseline: (value: HealthBaseline) => void;
+  setSignaturePathData: (data: string | null) => void;
+  setNotificationHour: (hour: number | null) => void;
+  setSelectedPlan: (plan: 'yearly' | 'monthly' | null) => void;
+  setStarRating: (rating: number | null) => void;
+  setBuildingStep: (step: number) => void;
   nextStep: () => void;
   prevStep: () => void;
   goToStep: (step: number) => void;
-  generateSnapshot: () => void;
   syncOnboardingData: () => Promise<void>;
   clearOnboarding: () => void;
 }
@@ -57,53 +75,146 @@ function createEmptyDogProfile(): OnboardingDogProfile {
   return {
     name: '',
     breed: '',
-    ageYears: '',
-    weightLbs: '',
     photoUri: null,
-    spayedNeutered: null,
-    knownConditions: [],
-    vetPhone: '',
+    loveNote: '',
+    birthdayMonth: null,
+    birthdayDay: null,
+    birthdayYear: null,
+    lifeStage: null,
+    healthBaseline: [],
   };
 }
 
-function getTodayDateString(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+// Map health baseline chips to known_conditions for dog profile
+function baselineToConditions(baseline: HealthBaseline[]): string[] {
+  const map: Record<string, string> = {
+    allergies: 'Allergies / itchiness',
+    joint_arthritis: 'Joint / arthritis',
+    anxiety: 'Anxiety / reactivity',
+    digestive: 'Digestive / GI',
+    skin_coat: 'Skin / coat',
+    heart_breathing: 'Heart / breathing',
+    on_meds: 'Currently on meds',
+  };
+  return baseline.filter((b) => b !== 'none').map((b) => map[b] || b);
 }
 
 export const useOnboardingStore = create<OnboardingState>()(
   persist(
     (set, get) => ({
       currentStep: 0,
-      goal: null,
-      attribution: null,
       dogProfile: createEmptyDogProfile(),
-      checkInAnswers: {},
+      surveyAttribution: null,
+      surveyWorries: [],
+      surveySeverity: null,
+      surveyHistory: null,
+      surveyBlindsides: [],
+      signaturePathData: null,
+      notificationHour: null,
+      selectedPlan: null,
+      starRating: null,
       startedAt: null,
 
       isSubmitting: false,
-      error: null,
-      daySummary: null,
       isSyncing: false,
-
-      setGoal: (goal) => {
-        set({ goal, startedAt: get().startedAt ?? Date.now() });
-      },
-
-      setAttribution: (attribution) => {
-        set({ attribution });
-      },
+      error: null,
+      buildingStep: 0,
 
       setDogField: (field, value) => {
-        set((state) => ({
-          dogProfile: { ...state.dogProfile, [field]: value },
-        }));
+        set((state) => {
+          const newProfile = { ...state.dogProfile, [field]: value };
+          // Auto-compute life stage when birthday fields change
+          if (
+            field === 'birthdayMonth' ||
+            field === 'birthdayDay' ||
+            field === 'birthdayYear'
+          ) {
+            const { birthdayMonth, birthdayDay, birthdayYear } = newProfile;
+            if (birthdayMonth && birthdayDay && birthdayYear) {
+              const age = computeAge(birthdayMonth, birthdayDay, birthdayYear);
+              newProfile.lifeStage = getLifeStage(age.years + age.months / 12);
+            }
+          }
+          return {
+            dogProfile: newProfile,
+            startedAt: state.startedAt ?? Date.now(),
+          };
+        });
       },
 
-      setCheckInAnswer: (field, value) => {
-        set((state) => ({
-          checkInAnswers: { ...state.checkInAnswers, [field]: value },
-        }));
+      setSurveyAttribution: (value) => {
+        set({ surveyAttribution: value, startedAt: get().startedAt ?? Date.now() });
+      },
+
+      toggleSurveyWorry: (value) => {
+        set((state) => {
+          const exists = state.surveyWorries.includes(value);
+          return {
+            surveyWorries: exists
+              ? state.surveyWorries.filter((w) => w !== value)
+              : [...state.surveyWorries, value],
+          };
+        });
+      },
+
+      setSurveySeverity: (value) => {
+        set({ surveySeverity: value });
+      },
+
+      setSurveyHistory: (value) => {
+        set({ surveyHistory: value });
+      },
+
+      toggleSurveyBlindside: (value) => {
+        set((state) => {
+          const exists = state.surveyBlindsides.includes(value);
+          return {
+            surveyBlindsides: exists
+              ? state.surveyBlindsides.filter((b) => b !== value)
+              : [...state.surveyBlindsides, value],
+          };
+        });
+      },
+
+      toggleHealthBaseline: (value) => {
+        set((state) => {
+          const current = state.dogProfile.healthBaseline;
+          if (value === 'none') {
+            return {
+              dogProfile: { ...state.dogProfile, healthBaseline: ['none'] },
+            };
+          }
+          const withoutNone = current.filter((b) => b !== 'none');
+          const exists = withoutNone.includes(value);
+          return {
+            dogProfile: {
+              ...state.dogProfile,
+              healthBaseline: exists
+                ? withoutNone.filter((b) => b !== value)
+                : [...withoutNone, value],
+            },
+          };
+        });
+      },
+
+      setSignaturePathData: (data) => {
+        set({ signaturePathData: data });
+      },
+
+      setNotificationHour: (hour) => {
+        set({ notificationHour: hour });
+      },
+
+      setSelectedPlan: (plan) => {
+        set({ selectedPlan: plan });
+      },
+
+      setStarRating: (rating) => {
+        set({ starRating: rating });
+      },
+
+      setBuildingStep: (step) => {
+        set({ buildingStep: step });
       },
 
       nextStep: () => {
@@ -126,36 +237,8 @@ export const useOnboardingStore = create<OnboardingState>()(
         }
       },
 
-      generateSnapshot: () => {
-        const { checkInAnswers, dogProfile } = get();
-
-        // Build a synthetic DailyCheckIn for generateDaySummary
-        const syntheticCheckIn: DailyCheckIn = {
-          id: 'onboarding-preview',
-          user_id: '',
-          dog_id: '',
-          check_in_date: getTodayDateString(),
-          appetite: (checkInAnswers.appetite as any) ?? 'normal',
-          water_intake: (checkInAnswers.water_intake as any) ?? 'normal',
-          energy_level: (checkInAnswers.energy_level as any) ?? 'normal',
-          stool_quality: (checkInAnswers.stool_quality as any) ?? 'normal',
-          vomiting: (checkInAnswers.vomiting as any) ?? 'none',
-          mobility: (checkInAnswers.mobility as any) ?? 'normal',
-          mood: (checkInAnswers.mood as any) ?? 'normal',
-          additional_symptoms: ['none'],
-          free_text: null,
-          emergency_flagged: false,
-          revision_history: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        const daySummary = generateDaySummary(syntheticCheckIn);
-        set({ daySummary });
-      },
-
       syncOnboardingData: async () => {
-        const { dogProfile, checkInAnswers, goal, attribution } = get();
+        const { dogProfile, surveyAttribution, surveyWorries, surveySeverity, surveyHistory, surveyBlindsides } = get();
 
         if (!dogProfile.name.trim() || !dogProfile.breed.trim()) {
           set({ error: 'Dog profile is incomplete.' });
@@ -168,19 +251,23 @@ export const useOnboardingStore = create<OnboardingState>()(
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) throw new Error('Not authenticated');
 
-          const ageNum = parseFloat(dogProfile.ageYears);
-          const weightNum = parseFloat(dogProfile.weightLbs);
+          // Compute age from birthday
+          let ageYears = 1;
+          if (dogProfile.birthdayMonth && dogProfile.birthdayDay && dogProfile.birthdayYear) {
+            const age = computeAge(dogProfile.birthdayMonth, dogProfile.birthdayDay, dogProfile.birthdayYear);
+            ageYears = ageToDecimalYears(age);
+          }
 
           // 1. Add dog via dogStore
           const newDog = await useDogStore.getState().addDog({
             name: dogProfile.name.trim(),
             breed: dogProfile.breed.trim(),
-            age_years: isNaN(ageNum) ? 1 : ageNum,
-            weight_lbs: isNaN(weightNum) ? 30 : weightNum,
-            vet_phone: dogProfile.vetPhone.trim() || null,
-            photo_url: null, // Will be updated after photo upload
-            spayed_neutered: dogProfile.spayedNeutered,
-            known_conditions: dogProfile.knownConditions,
+            age_years: ageYears,
+            weight_lbs: 30, // Default — not collected in new flow
+            vet_phone: null,
+            photo_url: null,
+            spayed_neutered: null,
+            known_conditions: baselineToConditions(dogProfile.healthBaseline),
           });
 
           // 2. Upload photo if present
@@ -192,59 +279,25 @@ export const useOnboardingStore = create<OnboardingState>()(
             }
           }
 
-          // 3. Insert daily check-in
-          const checkInData = {
-            user_id: user.id,
-            dog_id: newDog.id,
-            check_in_date: getTodayDateString(),
-            appetite: checkInAnswers.appetite ?? 'normal',
-            water_intake: checkInAnswers.water_intake ?? 'normal',
-            energy_level: checkInAnswers.energy_level ?? 'normal',
-            stool_quality: checkInAnswers.stool_quality ?? 'normal',
-            vomiting: checkInAnswers.vomiting ?? 'none',
-            mobility: checkInAnswers.mobility ?? 'normal',
-            mood: checkInAnswers.mood ?? 'normal',
-            additional_symptoms: ['none'],
-            free_text: null,
-            emergency_flagged: false,
-          };
+          // 3. Store survey data as user metadata (non-blocking)
+          const surveyData: Record<string, unknown> = {};
+          if (surveyAttribution) surveyData.onboarding_attribution = surveyAttribution;
+          if (surveyWorries.length) surveyData.onboarding_worries = surveyWorries;
+          if (surveySeverity) surveyData.onboarding_severity = surveySeverity;
+          if (surveyHistory) surveyData.onboarding_history = surveyHistory;
+          if (surveyBlindsides.length) surveyData.onboarding_blindsides = surveyBlindsides;
 
-          const { data: checkInResult, error: checkInError } = await supabase
-            .from('daily_check_ins')
-            .insert(checkInData)
-            .select()
-            .single();
-
-          if (checkInError) throw checkInError;
-
-          // 4. Fire post-save tasks (non-blocking)
-          supabase.functions
-            .invoke('analyze-patterns', { body: { dog_id: newDog.id } })
-            .catch(() => {});
-
-          supabase.functions
-            .invoke('ai-health-analysis', {
-              body: { dog_id: newDog.id, check_in_id: checkInResult.id },
-            })
-            .catch(() => {});
-
-          // 5. Re-fetch dogs for streak update
-          useDogStore.getState().fetchDogs().catch(() => {});
-
-          // 6. Mark onboarding complete
-          await AsyncStorage.setItem('puplog-onboarding-complete', 'true');
-
-          // 7. Store goal/attribution as user metadata (non-blocking)
-          if (goal || attribution) {
-            supabase.auth.updateUser({
-              data: {
-                ...(goal ? { onboarding_goal: goal } : {}),
-                ...(attribution ? { onboarding_attribution: attribution } : {}),
-              },
-            }).catch(() => {});
+          if (Object.keys(surveyData).length > 0) {
+            supabase.auth.updateUser({ data: surveyData }).catch(() => {});
           }
 
-          // 8. Clear store
+          // 4. Re-fetch dogs for UI update
+          useDogStore.getState().fetchDogs().catch(() => {});
+
+          // 5. Mark onboarding complete
+          await AsyncStorage.setItem('puplog-onboarding-complete', 'true');
+
+          // 6. Clear store
           get().clearOnboarding();
 
           set({ isSyncing: false });
@@ -259,15 +312,21 @@ export const useOnboardingStore = create<OnboardingState>()(
       clearOnboarding: () => {
         set({
           currentStep: 0,
-          goal: null,
-          attribution: null,
           dogProfile: createEmptyDogProfile(),
-          checkInAnswers: {},
+          surveyAttribution: null,
+          surveyWorries: [],
+          surveySeverity: null,
+          surveyHistory: null,
+          surveyBlindsides: [],
+          signaturePathData: null,
+          notificationHour: null,
+          selectedPlan: null,
+          starRating: null,
           startedAt: null,
           isSubmitting: false,
-          error: null,
-          daySummary: null,
           isSyncing: false,
+          error: null,
+          buildingStep: 0,
         });
       },
     }),
@@ -276,20 +335,31 @@ export const useOnboardingStore = create<OnboardingState>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         currentStep: state.currentStep,
-        goal: state.goal,
-        attribution: state.attribution,
         dogProfile: state.dogProfile,
-        checkInAnswers: state.checkInAnswers,
+        surveyAttribution: state.surveyAttribution,
+        surveyWorries: state.surveyWorries,
+        surveySeverity: state.surveySeverity,
+        surveyHistory: state.surveyHistory,
+        surveyBlindsides: state.surveyBlindsides,
+        signaturePathData: state.signaturePathData,
+        notificationHour: state.notificationHour,
+        selectedPlan: state.selectedPlan,
+        starRating: state.starRating,
         startedAt: state.startedAt,
       }),
       onRehydrateStorage: () => (state) => {
-        // Stale draft guard: discard if > 7 days old
         if (state?.startedAt && Date.now() - state.startedAt > STALE_DRAFT_MS) {
           state.currentStep = 0;
-          state.goal = null;
-          state.attribution = null;
           state.dogProfile = createEmptyDogProfile();
-          state.checkInAnswers = {};
+          state.surveyAttribution = null;
+          state.surveyWorries = [];
+          state.surveySeverity = null;
+          state.surveyHistory = null;
+          state.surveyBlindsides = [];
+          state.signaturePathData = null;
+          state.notificationHour = null;
+          state.selectedPlan = null;
+          state.starRating = null;
           state.startedAt = null;
         }
       },

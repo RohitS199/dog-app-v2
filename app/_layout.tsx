@@ -3,12 +3,17 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, DMSerifDisplay_400Regular } from '@expo-google-fonts/dm-serif-display';
+import { Caveat_400Regular } from '@expo-google-fonts/caveat';
+import { PatrickHand_400Regular } from '@expo-google-fonts/patrick-hand';
+import { Kalam_700Bold } from '@expo-google-fonts/kalam';
+import { WorkSans_400Regular, WorkSans_500Medium } from '@expo-google-fonts/work-sans';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../src/stores/authStore';
 import { useOnboardingStore } from '../src/stores/onboardingStore';
 import { useAppState } from '../src/hooks/useAppState';
 import { SuperwallProviderWrapper } from '../src/providers/SuperwallProvider';
 import { Animated, Image, StyleSheet, Text, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { COLORS, FONTS } from '../src/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -157,6 +162,11 @@ export default function RootLayout() {
 
   const [fontsLoaded] = useFonts({
     DMSerifDisplay_400Regular,
+    Caveat_400Regular,
+    PatrickHand_400Regular,
+    Kalam_700Bold,
+    WorkSans_400Regular,
+    WorkSans_500Medium,
   });
 
   useAppState();
@@ -213,9 +223,11 @@ export default function RootLayout() {
   }
 
   return (
-    <SuperwallProviderWrapper>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.background } }} />
-      <StatusBar style="auto" />
-    </SuperwallProviderWrapper>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SuperwallProviderWrapper>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.background } }} />
+        <StatusBar style="auto" />
+      </SuperwallProviderWrapper>
+    </GestureHandlerRootView>
   );
 }

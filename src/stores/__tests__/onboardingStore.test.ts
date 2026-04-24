@@ -1,8 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useOnboardingStore } from '../onboardingStore';
-import type { MetricField } from '../../types/checkIn';
+import type { HealthBaseline } from '../onboardingStore';
 
-// Reset store before each test
 beforeEach(async () => {
   await AsyncStorage.clear();
   useOnboardingStore.getState().clearOnboarding();
@@ -14,10 +13,13 @@ describe('onboardingStore', () => {
       expect(useOnboardingStore.getState().currentStep).toBe(0);
     });
 
-    it('has null goal and attribution', () => {
+    it('has null survey fields', () => {
       const state = useOnboardingStore.getState();
-      expect(state.goal).toBeNull();
-      expect(state.attribution).toBeNull();
+      expect(state.surveyAttribution).toBeNull();
+      expect(state.surveySeverity).toBeNull();
+      expect(state.surveyHistory).toBeNull();
+      expect(state.surveyWorries).toEqual([]);
+      expect(state.surveyBlindsides).toEqual([]);
     });
 
     it('has empty dog profile', () => {
@@ -25,36 +27,66 @@ describe('onboardingStore', () => {
       expect(dogProfile.name).toBe('');
       expect(dogProfile.breed).toBe('');
       expect(dogProfile.photoUri).toBeNull();
-      expect(dogProfile.knownConditions).toEqual([]);
+      expect(dogProfile.loveNote).toBe('');
+      expect(dogProfile.birthdayMonth).toBeNull();
+      expect(dogProfile.birthdayDay).toBeNull();
+      expect(dogProfile.birthdayYear).toBeNull();
+      expect(dogProfile.lifeStage).toBeNull();
+      expect(dogProfile.healthBaseline).toEqual([]);
     });
 
-    it('has empty check-in answers', () => {
-      expect(useOnboardingStore.getState().checkInAnswers).toEqual({});
+    it('has null engagement fields', () => {
+      const state = useOnboardingStore.getState();
+      expect(state.signaturePathData).toBeNull();
+      expect(state.notificationHour).toBeNull();
+      expect(state.selectedPlan).toBeNull();
+      expect(state.starRating).toBeNull();
+      expect(state.startedAt).toBeNull();
     });
   });
 
-  describe('setGoal', () => {
-    it('sets the goal value', () => {
-      useOnboardingStore.getState().setGoal('catch_early');
-      expect(useOnboardingStore.getState().goal).toBe('catch_early');
+  describe('survey actions', () => {
+    it('sets attribution', () => {
+      useOnboardingStore.getState().setSurveyAttribution('friend');
+      expect(useOnboardingStore.getState().surveyAttribution).toBe('friend');
     });
 
-    it('sets startedAt on first goal selection', () => {
+    it('sets startedAt on first attribution', () => {
       expect(useOnboardingStore.getState().startedAt).toBeNull();
-      useOnboardingStore.getState().setGoal('peace_of_mind');
+      useOnboardingStore.getState().setSurveyAttribution('social');
       expect(useOnboardingStore.getState().startedAt).toBeGreaterThan(0);
     });
-  });
 
-  describe('setAttribution', () => {
-    it('sets the attribution value', () => {
-      useOnboardingStore.getState().setAttribution('vet');
-      expect(useOnboardingStore.getState().attribution).toBe('vet');
+    it('toggles survey worries on/off', () => {
+      const store = useOnboardingStore.getState();
+      store.toggleSurveyWorry('aging');
+      expect(useOnboardingStore.getState().surveyWorries).toEqual(['aging']);
+      useOnboardingStore.getState().toggleSurveyWorry('behavior');
+      expect(useOnboardingStore.getState().surveyWorries).toEqual(['aging', 'behavior']);
+      useOnboardingStore.getState().toggleSurveyWorry('aging');
+      expect(useOnboardingStore.getState().surveyWorries).toEqual(['behavior']);
+    });
+
+    it('sets severity', () => {
+      useOnboardingStore.getState().setSurveySeverity('weekly');
+      expect(useOnboardingStore.getState().surveySeverity).toBe('weekly');
+    });
+
+    it('sets history', () => {
+      useOnboardingStore.getState().setSurveyHistory('yes_recently');
+      expect(useOnboardingStore.getState().surveyHistory).toBe('yes_recently');
+    });
+
+    it('toggles blindsides on/off', () => {
+      useOnboardingStore.getState().toggleSurveyBlindside('cancer');
+      expect(useOnboardingStore.getState().surveyBlindsides).toEqual(['cancer']);
+      useOnboardingStore.getState().toggleSurveyBlindside('cancer');
+      expect(useOnboardingStore.getState().surveyBlindsides).toEqual([]);
     });
   });
 
-  describe('setDogField', () => {
-    it('sets individual dog profile fields', () => {
+  describe('dog profile', () => {
+    it('sets individual dog fields', () => {
       useOnboardingStore.getState().setDogField('name', 'Luna');
       expect(useOnboardingStore.getState().dogProfile.name).toBe('Luna');
     });
@@ -64,25 +96,74 @@ describe('onboardingStore', () => {
       expect(useOnboardingStore.getState().dogProfile.photoUri).toBe('file:///photo.jpg');
     });
 
-    it('sets known conditions array', () => {
-      useOnboardingStore.getState().setDogField('knownConditions', ['Allergies', 'Arthritis']);
-      expect(useOnboardingStore.getState().dogProfile.knownConditions).toEqual(['Allergies', 'Arthritis']);
+    it('sets love note', () => {
+      useOnboardingStore.getState().setDogField('loveNote', 'Best snuggler');
+      expect(useOnboardingStore.getState().dogProfile.loveNote).toBe('Best snuggler');
+    });
+
+    it('auto-computes life stage when birthday is complete', () => {
+      const store = useOnboardingStore.getState();
+      store.setDogField('birthdayMonth', 4);
+      store.setDogField('birthdayDay', 12);
+      // lifeStage still null (year not set)
+      expect(useOnboardingStore.getState().dogProfile.lifeStage).toBeNull();
+      useOnboardingStore.getState().setDogField('birthdayYear', 2023);
+      expect(useOnboardingStore.getState().dogProfile.lifeStage).not.toBeNull();
     });
   });
 
-  describe('setCheckInAnswer', () => {
-    it('sets individual check-in answers', () => {
-      useOnboardingStore.getState().setCheckInAnswer('appetite' as MetricField, 'normal');
-      expect(useOnboardingStore.getState().checkInAnswers.appetite).toBe('normal');
+  describe('health baseline', () => {
+    it('toggles health conditions', () => {
+      useOnboardingStore.getState().toggleHealthBaseline('allergies');
+      expect(useOnboardingStore.getState().dogProfile.healthBaseline).toEqual(['allergies']);
+      useOnboardingStore.getState().toggleHealthBaseline('anxiety');
+      expect(useOnboardingStore.getState().dogProfile.healthBaseline).toEqual(['allergies', 'anxiety']);
     });
 
-    it('can set multiple answers', () => {
-      const store = useOnboardingStore.getState();
-      store.setCheckInAnswer('appetite' as MetricField, 'less');
-      store.setCheckInAnswer('energy_level' as MetricField, 'low');
-      const answers = useOnboardingStore.getState().checkInAnswers;
-      expect(answers.appetite).toBe('less');
-      expect(answers.energy_level).toBe('low');
+    it('selecting none clears all others', () => {
+      useOnboardingStore.getState().toggleHealthBaseline('allergies');
+      useOnboardingStore.getState().toggleHealthBaseline('anxiety');
+      useOnboardingStore.getState().toggleHealthBaseline('none');
+      expect(useOnboardingStore.getState().dogProfile.healthBaseline).toEqual(['none']);
+    });
+
+    it('selecting a condition removes none', () => {
+      useOnboardingStore.getState().toggleHealthBaseline('none');
+      useOnboardingStore.getState().toggleHealthBaseline('digestive');
+      expect(useOnboardingStore.getState().dogProfile.healthBaseline).toEqual(['digestive']);
+    });
+
+    it('toggles off a selected condition', () => {
+      useOnboardingStore.getState().toggleHealthBaseline('allergies');
+      useOnboardingStore.getState().toggleHealthBaseline('allergies');
+      expect(useOnboardingStore.getState().dogProfile.healthBaseline).toEqual([]);
+    });
+  });
+
+  describe('engagement fields', () => {
+    it('sets signature path data', () => {
+      useOnboardingStore.getState().setSignaturePathData('M 0 0 L 100 100');
+      expect(useOnboardingStore.getState().signaturePathData).toBe('M 0 0 L 100 100');
+    });
+
+    it('sets notification hour', () => {
+      useOnboardingStore.getState().setNotificationHour(8);
+      expect(useOnboardingStore.getState().notificationHour).toBe(8);
+    });
+
+    it('sets selected plan', () => {
+      useOnboardingStore.getState().setSelectedPlan('yearly');
+      expect(useOnboardingStore.getState().selectedPlan).toBe('yearly');
+    });
+
+    it('sets star rating', () => {
+      useOnboardingStore.getState().setStarRating(5);
+      expect(useOnboardingStore.getState().starRating).toBe(5);
+    });
+
+    it('sets building step', () => {
+      useOnboardingStore.getState().setBuildingStep(2);
+      expect(useOnboardingStore.getState().buildingStep).toBe(2);
     });
   });
 
@@ -123,92 +204,62 @@ describe('onboardingStore', () => {
     });
   });
 
-  describe('generateSnapshot', () => {
-    it('generates a day summary from answers', () => {
-      const store = useOnboardingStore.getState();
-      store.setCheckInAnswer('appetite', 'normal');
-      store.setCheckInAnswer('water_intake', 'normal');
-      store.setCheckInAnswer('energy_level', 'normal');
-      store.setCheckInAnswer('stool_quality', 'normal');
-      store.setCheckInAnswer('vomiting', 'none');
-      store.setCheckInAnswer('mobility', 'normal');
-      store.setCheckInAnswer('mood', 'normal');
-      store.generateSnapshot();
-
-      const { daySummary } = useOnboardingStore.getState();
-      expect(daySummary).toBeTruthy();
-      expect(daySummary!.type).toBe('all_normal');
-    });
-
-    it('generates attention_needed for significant abnormality', () => {
-      const store = useOnboardingStore.getState();
-      store.setCheckInAnswer('appetite', 'refusing');
-      store.setCheckInAnswer('water_intake', 'normal');
-      store.setCheckInAnswer('energy_level', 'normal');
-      store.setCheckInAnswer('stool_quality', 'normal');
-      store.setCheckInAnswer('vomiting', 'none');
-      store.setCheckInAnswer('mobility', 'normal');
-      store.setCheckInAnswer('mood', 'normal');
-      store.generateSnapshot();
-
-      const { daySummary } = useOnboardingStore.getState();
-      expect(daySummary!.type).toBe('attention_needed');
-    });
-  });
-
   describe('clearOnboarding', () => {
     it('resets all state to initial values', () => {
       const store = useOnboardingStore.getState();
-      store.setGoal('catch_early');
-      store.setAttribution('vet');
+      store.setSurveyAttribution('vet');
       store.setDogField('name', 'Luna');
-      store.setCheckInAnswer('appetite', 'normal');
+      store.toggleSurveyWorry('aging');
+      store.setSignaturePathData('M 0 0');
       store.goToStep(10);
       store.clearOnboarding();
 
       const state = useOnboardingStore.getState();
       expect(state.currentStep).toBe(0);
-      expect(state.goal).toBeNull();
-      expect(state.attribution).toBeNull();
+      expect(state.surveyAttribution).toBeNull();
       expect(state.dogProfile.name).toBe('');
-      expect(state.checkInAnswers).toEqual({});
+      expect(state.surveyWorries).toEqual([]);
+      expect(state.signaturePathData).toBeNull();
       expect(state.startedAt).toBeNull();
     });
   });
 
   describe('persist partialize', () => {
     it('only persists expected fields', () => {
-      // The persist middleware partialize function should include:
-      // currentStep, goal, attribution, dogProfile, checkInAnswers, startedAt
-      // and exclude: isSubmitting, error, daySummary, isSyncing
       const store = useOnboardingStore;
       const partialize = (store as any).persist?.getOptions?.()?.partialize;
       if (partialize) {
         const result = partialize({
           currentStep: 5,
-          goal: 'catch_early',
-          attribution: 'vet',
           dogProfile: { name: 'Luna' },
-          checkInAnswers: { appetite: 'normal' },
+          surveyAttribution: 'friend',
+          surveyWorries: ['aging'],
+          surveySeverity: 'weekly',
+          surveyHistory: 'yes_recently',
+          surveyBlindsides: ['cancer'],
+          signaturePathData: 'M 0 0',
+          notificationHour: 8,
+          selectedPlan: 'yearly',
+          starRating: 5,
           startedAt: 12345,
           isSubmitting: true,
-          error: 'some error',
-          daySummary: { type: 'all_normal' },
           isSyncing: true,
+          error: 'some error',
+          buildingStep: 2,
         });
         expect(result).toHaveProperty('currentStep', 5);
-        expect(result).toHaveProperty('goal', 'catch_early');
+        expect(result).toHaveProperty('surveyAttribution', 'friend');
+        expect(result).toHaveProperty('signaturePathData', 'M 0 0');
         expect(result).not.toHaveProperty('isSubmitting');
         expect(result).not.toHaveProperty('error');
-        expect(result).not.toHaveProperty('daySummary');
         expect(result).not.toHaveProperty('isSyncing');
+        expect(result).not.toHaveProperty('buildingStep');
       }
     });
   });
 
   describe('syncOnboardingData validation', () => {
     it('sets error when dog profile is incomplete', async () => {
-      // No name set
       await useOnboardingStore.getState().syncOnboardingData();
       expect(useOnboardingStore.getState().error).toBe('Dog profile is incomplete.');
     });
