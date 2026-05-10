@@ -38,6 +38,7 @@ yarn-error.*
 .rollback/
 .windsurf/
 .claude/
+.worktrees/
 
 # design mockups
 .figma-mockups/
