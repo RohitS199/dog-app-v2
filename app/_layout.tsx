@@ -7,6 +7,7 @@ import { Caveat_400Regular } from '@expo-google-fonts/caveat';
 import { PatrickHand_400Regular } from '@expo-google-fonts/patrick-hand';
 import { Kalam_700Bold } from '@expo-google-fonts/kalam';
 import { WorkSans_400Regular, WorkSans_500Medium } from '@expo-google-fonts/work-sans';
+import { Nunito_500Medium, Nunito_600SemiBold, Nunito_700Bold } from '@expo-google-fonts/nunito';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../src/stores/authStore';
 import { useOnboardingStore } from '../src/stores/onboardingStore';
@@ -167,6 +168,9 @@ export default function RootLayout() {
     Kalam_700Bold,
     WorkSans_400Regular,
     WorkSans_500Medium,
+    Nunito_500Medium,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
   });
 
   useAppState();
