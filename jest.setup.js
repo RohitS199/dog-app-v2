@@ -264,6 +264,12 @@ jest.mock('@expo-google-fonts/work-sans', () => ({
   WorkSans_500Medium: 'WorkSans_500Medium',
   useFonts: jest.fn(() => [true]),
 }));
+jest.mock('@expo-google-fonts/nunito', () => ({
+  Nunito_500Medium: 'Nunito_500Medium',
+  Nunito_600SemiBold: 'Nunito_600SemiBold',
+  Nunito_700Bold: 'Nunito_700Bold',
+  useFonts: jest.fn(() => [true]),
+}));
 
 // Mock react-native-svg
 jest.mock('react-native-svg', () => {
