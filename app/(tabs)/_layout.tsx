@@ -18,7 +18,7 @@ export default function TabsLayout() {
           name="triage"
           options={{ href: null }}
         />
-        <Tabs.Screen name="settings" />
+        <Tabs.Screen name="profile" />
       </Tabs>
       <ArticleExpandOverlay />
     </>
