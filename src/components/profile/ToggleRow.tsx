@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { OB_BORDERS, OB_COLORS, OB_FONTS, OB_RADII, OB_SHADOWS } from '../../constants/onboardingTheme';
 import { Toggle } from './Toggle';
 
@@ -14,7 +14,13 @@ interface ToggleRowProps {
 
 export function ToggleRow({ label, sub, icon, value, onValueChange, disabled }: ToggleRowProps) {
   return (
-    <View style={styles.container}>
+    <Pressable
+      onPress={() => !disabled && onValueChange(!value)}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value, disabled: !!disabled }}
+      accessibilityLabel={label}
+      style={({ pressed }) => [styles.container, pressed && !disabled && styles.pressed]}
+    >
       {icon ? <View style={styles.iconWrap}>{icon}</View> : null}
       <View style={styles.textStack}>
         <Text style={styles.label} numberOfLines={1}>
@@ -26,8 +32,18 @@ export function ToggleRow({ label, sub, icon, value, onValueChange, disabled }: 
           </Text>
         ) : null}
       </View>
-      <Toggle value={value} onValueChange={onValueChange} disabled={disabled} />
-    </View>
+      {/* pointerEvents="none" kills the nested-Pressable containment trap.
+          accessibilityElementsHidden + importantForAccessibility hide the inner
+          Toggle's own switch role from the accessibility tree on iOS and Android
+          respectively, so screen readers see exactly one switch per row. */}
+      <View
+        pointerEvents="none"
+        accessibilityElementsHidden={true}
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Toggle value={value} onValueChange={onValueChange} disabled={disabled} />
+      </View>
+    </Pressable>
   );
 }
 
@@ -43,6 +59,9 @@ const styles = StyleSheet.create({
     borderWidth: OB_BORDERS.standard,
     borderColor: OB_COLORS.sketch,
     ...OB_SHADOWS.card,
+  },
+  pressed: {
+    opacity: 0.85,
   },
   iconWrap: {
     width: 28,

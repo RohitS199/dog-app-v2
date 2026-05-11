@@ -50,4 +50,29 @@ describe('ToggleRow', () => {
       expect.objectContaining({ checked: true })
     );
   });
+
+  it('fires onValueChange when the row label (not the switch thumb) is pressed', () => {
+    const { getByLabelText } = render(
+      <ToggleRow label="Daily reminder" value={false} onValueChange={onValueChange} />
+    );
+    // getByLabelText finds the outer Pressable by its accessibilityLabel.
+    // Pre-fix, ToggleRow has no Pressable/accessibilityLabel — this throws.
+    // Post-fix, the outer row IS the switch with accessibilityLabel={label}.
+    fireEvent.press(getByLabelText('Daily reminder'));
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect(onValueChange).toHaveBeenCalledWith(true);
+  });
+
+  it('fires onValueChange exactly once when the row container is pressed (no containment double-fire)', () => {
+    const { getByRole } = render(
+      <ToggleRow label="Daily reminder" value={false} onValueChange={onValueChange} />
+    );
+    // After fix, getByRole('switch') resolves to the outer row Pressable (the inner
+    // Toggle is hidden from the accessibility tree). Pressing it must fire
+    // onValueChange exactly once — if both outer and inner Pressables fire,
+    // the count would be 2 and the value flips twice (net no-op).
+    fireEvent.press(getByRole('switch'));
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect(onValueChange).toHaveBeenCalledWith(true);
+  });
 });
