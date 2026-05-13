@@ -138,4 +138,14 @@ export const COPY = {
   SETTINGS_PRIVACY_PERSONALIZED_SUB: "Use my dog's data to tailor article recommendations",
   SETTINGS_PRIVACY_MARKETING: 'Marketing emails',
   SETTINGS_PRIVACY_MARKETING_SUB: 'Tips, updates, occasional promotions',
+
+  // Sticker subsystem
+  STICKER_CATEGORY_MILESTONE: 'milestone',
+  STICKER_CATEGORY_MASTERY: 'mastery',
+  STICKER_CATEGORY_ENGAGEMENT: 'engagement',
+  STICKER_CATEGORY_SEASONAL: 'seasonal',
+  STICKER_EARNED_PREFIX: 'Earned ',
+  STICKER_FLOWER_GATED_TEXT: 'Coming with the flower system',
+  STICKER_CELEBRATION_AWESOME: 'Awesome',
+  STICKER_DETAIL_CLOSE_LABEL: 'Close',
 } as const;
