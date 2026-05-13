@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { useUserAchievementsStore } from './userAchievementsStore';
 import type { Dog } from '../types/api';
 
 interface DogState {
@@ -90,6 +91,9 @@ export const useDogStore = create<DogState>((set, get) => ({
       dogs: [...state.dogs, newDog],
       selectedDogId: state.selectedDogId ?? newDog.id,
     }));
+
+    // Fire-and-forget — second dog triggers the multi_pup_parent sticker.
+    useUserAchievementsStore.getState().triggerEventCheck('dog_added').catch(() => {});
 
     return newDog;
   },

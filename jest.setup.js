@@ -227,6 +227,13 @@ jest.mock('expo-store-review', () => ({
   requestReview: jest.fn(() => Promise.resolve()),
 }));
 
+// Mock expo-local-authentication
+jest.mock('expo-local-authentication', () => ({
+  hasHardwareAsync: jest.fn().mockResolvedValue(true),
+  isEnrolledAsync: jest.fn().mockResolvedValue(true),
+  authenticateAsync: jest.fn().mockResolvedValue({ success: true }),
+}));
+
 // Mock expo-notifications
 jest.mock('expo-notifications', () => ({
   getPermissionsAsync: jest.fn(() =>

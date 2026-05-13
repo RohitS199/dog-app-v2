@@ -18,9 +18,9 @@ const TAB_ICONS: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = 
 };
 
 const TAB_LABELS: Record<string, string> = {
-  index: 'Home',
-  health: 'Health',
-  learn: 'Learn',
+  index: 'Journey',
+  health: 'My Dogs',
+  learn: 'Discovery',
   profile: 'Profile',
 };
 

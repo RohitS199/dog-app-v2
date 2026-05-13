@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '../src/stores/authStore';
 import { supabase } from '../src/lib/supabase';
 import { Button } from '../src/components/ui/Button';
@@ -71,6 +72,13 @@ We may update these Terms of Service from time to time. Continued use after chan
 By tapping "I Agree," you acknowledge that you have read, understood, and agree to these Terms of Service.`;
 
 export default function Terms() {
+  // /terms?mode=view renders the document as a static read for users who've
+  // already accepted (linked from Settings > Privacy and Terms). Skips the
+  // scroll-to-unlock + checkbox + Accept button; shows a back button instead.
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const router = useRouter();
+  const viewMode = params.mode === 'view';
+
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -131,6 +139,18 @@ export default function Terms() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
+        {viewMode && (
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            style={styles.viewModeBackBtn}
+            hitSlop={8}
+          >
+            <MaterialCommunityIcons name="chevron-left" size={24} color={COLORS.textPrimary} />
+            <Text style={styles.viewModeBackText}>Back</Text>
+          </Pressable>
+        )}
         <Text style={styles.header}>Terms of Service</Text>
         <Text style={styles.versionLabel}>Version {LEGAL.TERMS_VERSION}</Text>
 
@@ -155,7 +175,7 @@ export default function Terms() {
         </View>
 
         {/* Scroll hint */}
-        {!hasScrolledToBottom && (
+        {!viewMode && !hasScrolledToBottom && (
           <View style={styles.scrollHintRow}>
             <Text style={styles.scrollHintText}>Scroll to bottom to continue</Text>
             <Animated.View style={{ transform: [{ translateY: bounceAnim }] }}>
@@ -164,7 +184,7 @@ export default function Terms() {
           </View>
         )}
 
-        <View style={styles.footer}>
+        {!viewMode && <View style={styles.footer}>
           <Pressable
             style={styles.checkboxRow}
             onPress={() => hasScrolledToBottom && setIsChecked((c) => !c)}
@@ -206,7 +226,7 @@ export default function Terms() {
             disabled={!canAccept || isSubmitting}
             loading={isSubmitting}
           />
-        </View>
+        </View>}
       </View>
     </SafeAreaView>
   );
@@ -220,6 +240,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: SPACING.md,
+  },
+  viewModeBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    marginBottom: 4,
+  },
+  viewModeBackText: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textPrimary,
+    marginLeft: 2,
   },
   header: {
     fontFamily: FONTS.heading,

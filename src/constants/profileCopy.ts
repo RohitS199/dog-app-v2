@@ -1,9 +1,9 @@
 // Copy strings for Profile redesign. All user-facing text on Profile
 // screens references this file (i18n preparation per spec section 6.3).
-// Subsequent PRs (2-6) extend this with their screen-specific copy.
+// Extended incrementally across PRs 1-6.
 
 export const COPY = {
-  // Log Out modal (rendered in PR 1, wired to authStore in PR 6)
+  // Log Out modal (rendered in PR 1, wired to authStore.signOut in PR 6)
   PROFILE_LOGOUT_HEADING: 'Heading out?',
   PROFILE_LOGOUT_BODY_FALLBACK: "We'll keep your dog's logs safe. You can come back any time.",
   PROFILE_LOGOUT_BODY_TEMPLATE: (dogName: string) =>
@@ -11,6 +11,141 @@ export const COPY = {
   PROFILE_LOGOUT_CONFIRM: 'Yes, log me out',
   PROFILE_LOGOUT_CANCEL: 'Stay',
 
-  // Profile root (placeholder until PR 2 fills in)
+  // Profile root (PR 2 fills in real content)
   PROFILE_ROOT_PLACEHOLDER: 'Profile',
+  PROFILE_DEFAULT_DISPLAY_NAME: 'PupLog User',
+  PROFILE_NAV_MY_INFO: 'My Information',
+  PROFILE_NAV_MY_SUBSCRIPTION: 'My Subscription',
+  PROFILE_NAV_SETTINGS: 'Settings',
+  PROFILE_LOGOUT_BUTTON: 'Log Out',
+  PROFILE_DELETE_ACCOUNT_LABEL: 'Delete Account',
+
+  // My Information screen
+  MY_INFO_TITLE: 'My Information',
+  MY_INFO_NAME_LABEL: 'NAME',
+  MY_INFO_EMAIL_LABEL: 'EMAIL',
+  MY_INFO_PHONE_LABEL: 'PHONE',
+  MY_INFO_BIRTHDAY_LABEL: 'BIRTHDAY',
+  MY_INFO_LOCATION_LABEL: 'LOCATION',
+  MY_INFO_NAME_PLACEHOLDER: 'Your full name',
+  MY_INFO_PHONE_PLACEHOLDER: 'Add a phone number',
+  MY_INFO_BIRTHDAY_PLACEHOLDER: 'Pick a date',
+  MY_INFO_LOCATION_PLACEHOLDER: 'City, State',
+  MY_INFO_SAVE_BUTTON: 'Save Changes',
+  MY_INFO_SAVE_SUCCESS_TITLE: 'Saved',
+  MY_INFO_SAVE_SUCCESS_BODY: 'Your information has been updated.',
+  MY_INFO_SAVE_ERROR_TITLE: "Couldn't save",
+  MY_INFO_SAVE_ERROR_BODY: 'Please try again.',
+  MY_INFO_AVATAR_COMING_SOON_TITLE: 'Coming soon',
+  MY_INFO_AVATAR_COMING_SOON_BODY: 'Avatar uploads will arrive in a future update.',
+
+  // My Subscription screen (PR 3)
+  MY_SUBSCRIPTION_TITLE: 'My Subscription',
+  MY_SUBSCRIPTION_PLACEHOLDER: 'My Subscription',
+  MY_SUBSCRIPTION_PLAN_INCLUDED_LABEL: "what's included",
+  MY_SUBSCRIPTION_MANAGE_BILLING: 'Manage Billing',
+  MY_SUBSCRIPTION_CANCEL: 'Cancel Subscription',
+  MY_SUBSCRIPTION_BADGE_ACTIVE: 'active',
+  MY_SUBSCRIPTION_BADGE_INACTIVE: 'inactive',
+  MY_SUBSCRIPTION_RENEWS_PREFIX: 'Renews ',
+  MY_SUBSCRIPTION_EXPIRED_PREFIX: 'Expired ',
+  MY_SUBSCRIPTION_CANCEL_COMING_SOON_TITLE: 'Coming soon',
+  MY_SUBSCRIPTION_CANCEL_COMING_SOON_BODY: 'Subscription cancellation will arrive in a future update. For now, you can manage your plan in your phone\'s subscription settings.',
+  MY_SUBSCRIPTION_ERROR_TITLE: "Couldn't load subscription",
+  MY_SUBSCRIPTION_ERROR_RETRY: 'Try Again',
+
+  // Settings hub (PR 4 fills in)
+  SETTINGS_TITLE: 'Settings',
+  SETTINGS_PLACEHOLDER: 'Settings',
+
+  // Settings hub nav labels
+  SETTINGS_NAV_NOTIFICATIONS: 'Notifications',
+  SETTINGS_NAV_SECURITY: 'Security',
+  SETTINGS_NAV_HELP_CENTER: 'Help Center',
+  SETTINGS_NAV_ABOUT: 'About PupLog',
+  SETTINGS_NAV_PRIVACY: 'Privacy and Terms',
+
+  // Settings sub-screen placeholder headings (filled in by follow-up subagent)
+  SETTINGS_NOTIFICATIONS_PLACEHOLDER: 'Notifications',
+  SETTINGS_SECURITY_PLACEHOLDER: 'Security',
+  SETTINGS_HELP_CENTER_PLACEHOLDER: 'Help Center',
+  SETTINGS_ABOUT_PLACEHOLDER: 'About PupLog',
+  SETTINGS_PRIVACY_PLACEHOLDER: 'Privacy and Terms',
+
+  // Notifications screen (spec §9.5)
+  SETTINGS_NOTIFICATIONS_TITLE: 'Notifications',
+  SETTINGS_NOTIFICATIONS_ALERTS_LABEL: 'ALERTS',
+  SETTINGS_NOTIFICATIONS_DAILY_LOG: 'Daily log reminder',
+  SETTINGS_NOTIFICATIONS_WEEKLY_INSIGHT: 'Weekly insight ready',
+  SETTINGS_NOTIFICATIONS_VET_APPOINTMENTS: 'Vet appointments',
+  SETTINGS_NOTIFICATIONS_GARDEN_MILESTONES: 'Garden milestones',
+  SETTINGS_NOTIFICATIONS_QUIET_HOURS_LABEL: 'QUIET HOURS',
+  SETTINGS_NOTIFICATIONS_QUIET_HOURS_COMING_SOON_TITLE: 'Coming soon',
+  SETTINGS_NOTIFICATIONS_QUIET_HOURS_COMING_SOON_BODY: 'Custom quiet hours editing will arrive in a future update.',
+
+  // Security screen (spec §9.6)
+  SETTINGS_SECURITY_TITLE: 'Security',
+  SETTINGS_SECURITY_CHANGE_PASSWORD: 'Change Password',
+  SETTINGS_SECURITY_FACE_ID: 'Face ID',
+  SETTINGS_SECURITY_FACE_ID_SUB: 'Unlock with Face ID',
+  SETTINGS_SECURITY_FACE_ID_UNAVAILABLE_TITLE: 'Not available',
+  SETTINGS_SECURITY_FACE_ID_UNAVAILABLE_BODY: "Face ID isn't available on this device.",
+  SETTINGS_SECURITY_FACE_ID_PROMPT: 'Confirm to enable Face ID',
+  SETTINGS_SECURITY_TWO_FACTOR: 'Two-factor auth',
+  SETTINGS_SECURITY_TWO_FACTOR_SUB: 'Add an extra layer of security',
+  SETTINGS_SECURITY_TWO_FACTOR_COMING_SOON_TITLE: 'Coming soon',
+  SETTINGS_SECURITY_TWO_FACTOR_COMING_SOON_BODY: 'Two-factor auth setup will arrive in a future update.',
+  SETTINGS_SECURITY_ACTIVE_DEVICES: 'Active Devices · 2',
+  SETTINGS_SECURITY_DOWNLOAD_DATA: 'Download My Data',
+  SETTINGS_SECURITY_COMING_SOON_TITLE: 'Coming soon',
+  SETTINGS_SECURITY_COMING_SOON_BODY: 'This feature will arrive in a future update.',
+
+  // Help Center screen (spec §9.7)
+  SETTINGS_HELP_CENTER_TITLE: 'Help Center',
+  SETTINGS_HELP_CENTER_SEARCH_PLACEHOLDER: 'Search help...',
+  SETTINGS_HELP_CENTER_POPULAR_LABEL: 'POPULAR',
+  SETTINGS_HELP_CENTER_NO_MATCHES: 'No matches — try another term',
+  SETTINGS_HELP_CENTER_CONTACT_HEADING: 'Still need help?',
+  SETTINGS_HELP_CENTER_CONTACT_BUTTON: 'Email support',
+  SETTINGS_HELP_CENTER_CONTACT_SUBJECT: 'Help with PupLog',
+  SETTINGS_HELP_CENTER_SHEET_CLOSE: 'Close',
+
+  // About screen (spec §9.8)
+  SETTINGS_ABOUT_TITLE: 'About PupLog',
+  SETTINGS_ABOUT_APP_NAME: 'PupLog',
+  SETTINGS_ABOUT_MISSION: 'PupLog gives dog parents calm clarity. Quick daily check-ins, gentle insights, vet-ready exports — never a replacement for professional veterinary care.',
+  SETTINGS_ABOUT_RATE: 'Rate PupLog',
+  SETTINGS_ABOUT_TELL_FRIEND: 'Tell a friend',
+  SETTINGS_ABOUT_FOLLOW: 'Follow us',
+  SETTINGS_ABOUT_TELL_FRIEND_MESSAGE: 'Check out PupLog — daily health tracking for your dog. https://puplog.app',
+  SETTINGS_ABOUT_FOLLOW_COMING_SOON_TITLE: 'Coming soon',
+  SETTINGS_ABOUT_FOLLOW_COMING_SOON_BODY: "We'll share our social handle once the app launches.",
+
+  // Privacy screen (spec §9.9)
+  SETTINGS_PRIVACY_TITLE: 'Privacy and Terms',
+  SETTINGS_PRIVACY_DOCUMENTS_LABEL: 'DOCUMENTS',
+  SETTINGS_PRIVACY_YOUR_DATA_LABEL: 'YOUR DATA',
+  SETTINGS_PRIVACY_POLICY: 'Privacy Policy',
+  SETTINGS_PRIVACY_TERMS: 'Terms of Service',
+  SETTINGS_PRIVACY_COOKIE: 'Cookie Policy',
+  SETTINGS_PRIVACY_POLICY_COMING_SOON_TITLE: 'Coming soon',
+  SETTINGS_PRIVACY_POLICY_COMING_SOON_BODY: 'Privacy Policy is being finalized and will arrive in a future update.',
+  SETTINGS_PRIVACY_COOKIE_COMING_SOON_TITLE: 'Coming soon',
+  SETTINGS_PRIVACY_COOKIE_COMING_SOON_BODY: 'Cookie Policy is being finalized.',
+  SETTINGS_PRIVACY_ANALYTICS: 'Anonymous analytics',
+  SETTINGS_PRIVACY_ANALYTICS_SUB: 'Help improve PupLog with anonymized usage data',
+  SETTINGS_PRIVACY_PERSONALIZED: 'Personalized tips',
+  SETTINGS_PRIVACY_PERSONALIZED_SUB: "Use my dog's data to tailor article recommendations",
+  SETTINGS_PRIVACY_MARKETING: 'Marketing emails',
+  SETTINGS_PRIVACY_MARKETING_SUB: 'Tips, updates, occasional promotions',
+
+  // Sticker subsystem
+  STICKER_CATEGORY_MILESTONE: 'milestone',
+  STICKER_CATEGORY_MASTERY: 'mastery',
+  STICKER_CATEGORY_ENGAGEMENT: 'engagement',
+  STICKER_CATEGORY_SEASONAL: 'seasonal',
+  STICKER_EARNED_PREFIX: 'Earned ',
+  STICKER_FLOWER_GATED_TEXT: 'Coming with the flower system',
+  STICKER_CELEBRATION_AWESOME: 'Awesome',
+  STICKER_DETAIL_CLOSE_LABEL: 'Close',
 } as const;
