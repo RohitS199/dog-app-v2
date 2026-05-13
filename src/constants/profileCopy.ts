@@ -1,9 +1,9 @@
 // Copy strings for Profile redesign. All user-facing text on Profile
 // screens references this file (i18n preparation per spec section 6.3).
-// Subsequent PRs (2-6) extend this with their screen-specific copy.
+// Extended incrementally across PRs 1-6.
 
 export const COPY = {
-  // Log Out modal (rendered in PR 1, wired to authStore in PR 6)
+  // Log Out modal (rendered in PR 1, wired to authStore.signOut in PR 6)
   PROFILE_LOGOUT_HEADING: 'Heading out?',
   PROFILE_LOGOUT_BODY_FALLBACK: "We'll keep your dog's logs safe. You can come back any time.",
   PROFILE_LOGOUT_BODY_TEMPLATE: (dogName: string) =>
@@ -11,8 +11,14 @@ export const COPY = {
   PROFILE_LOGOUT_CONFIRM: 'Yes, log me out',
   PROFILE_LOGOUT_CANCEL: 'Stay',
 
-  // Profile root (placeholder until PR 2 fills in)
+  // Profile root (PR 2 fills in real content)
   PROFILE_ROOT_PLACEHOLDER: 'Profile',
+  PROFILE_DEFAULT_DISPLAY_NAME: 'PupLog User',
+  PROFILE_NAV_MY_INFO: 'My Information',
+  PROFILE_NAV_MY_SUBSCRIPTION: 'My Subscription',
+  PROFILE_NAV_SETTINGS: 'Settings',
+  PROFILE_LOGOUT_BUTTON: 'Log Out',
+  PROFILE_DELETE_ACCOUNT_LABEL: 'Delete Account',
 
   // My Information screen
   MY_INFO_TITLE: 'My Information',
@@ -32,4 +38,12 @@ export const COPY = {
   MY_INFO_SAVE_ERROR_BODY: 'Please try again.',
   MY_INFO_AVATAR_COMING_SOON_TITLE: 'Coming soon',
   MY_INFO_AVATAR_COMING_SOON_BODY: 'Avatar uploads will arrive in a future update.',
+
+  // My Subscription screen (PR 3 fills in)
+  MY_SUBSCRIPTION_TITLE: 'My Subscription',
+  MY_SUBSCRIPTION_PLACEHOLDER: 'My Subscription',
+
+  // Settings hub (PR 4 fills in)
+  SETTINGS_TITLE: 'Settings',
+  SETTINGS_PLACEHOLDER: 'Settings',
 } as const;
