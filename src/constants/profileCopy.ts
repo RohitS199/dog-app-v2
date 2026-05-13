@@ -57,4 +57,18 @@ export const COPY = {
   // Settings hub (PR 4 fills in)
   SETTINGS_TITLE: 'Settings',
   SETTINGS_PLACEHOLDER: 'Settings',
+
+  // Settings hub nav labels
+  SETTINGS_NAV_NOTIFICATIONS: 'Notifications',
+  SETTINGS_NAV_SECURITY: 'Security',
+  SETTINGS_NAV_HELP_CENTER: 'Help Center',
+  SETTINGS_NAV_ABOUT: 'About PupLog',
+  SETTINGS_NAV_PRIVACY: 'Privacy and Terms',
+
+  // Settings sub-screen placeholder headings (filled in by follow-up subagent)
+  SETTINGS_NOTIFICATIONS_PLACEHOLDER: 'Notifications',
+  SETTINGS_SECURITY_PLACEHOLDER: 'Security',
+  SETTINGS_HELP_CENTER_PLACEHOLDER: 'Help Center',
+  SETTINGS_ABOUT_PLACEHOLDER: 'About PupLog',
+  SETTINGS_PRIVACY_PLACEHOLDER: 'Privacy and Terms',
 } as const;
