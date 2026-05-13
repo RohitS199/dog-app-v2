@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import Animated, {
+  Easing,
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { OB_BORDERS, OB_COLORS } from '../../constants/onboardingTheme';
 
@@ -23,7 +24,10 @@ export function Toggle({ value, onValueChange, disabled }: ToggleProps) {
   const progress = useSharedValue(value ? 1 : 0);
 
   useEffect(() => {
-    progress.value = withSpring(value ? 1 : 0, { damping: 18, stiffness: 220 });
+    progress.value = withTiming(value ? 1 : 0, {
+      duration: 150,
+      easing: Easing.inOut(Easing.ease),
+    });
   }, [value, progress]);
 
   const trackStyle = useAnimatedStyle(() => ({
