@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useEffect } from 'react';
+import React, { useCallback, useRef, useEffect, useMemo } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import {
   OB_COLORS,
@@ -13,6 +13,11 @@ import {
 const ITEM_HEIGHT = 32;
 const VISIBLE_ITEMS = 3;
 const PICKER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS;
+
+// Onboarding uses this picker for dog birthdays (last 25 years is plenty).
+// My Information reuses it for user birthdays (needs to reach 1900). Caller
+// controls the range via minYear; default preserves the original 25-year window.
+const DEFAULT_YEAR_RANGE = 25;
 
 const MONTHS = [
   { label: 'Jan', value: 1 },
@@ -34,16 +39,14 @@ const DAYS = Array.from({ length: 31 }, (_, i) => ({
   value: i + 1,
 }));
 
-function buildYears(): { label: string; value: number }[] {
+function buildYears(minYear: number): { label: string; value: number }[] {
   const currentYear = new Date().getFullYear();
   const years: { label: string; value: number }[] = [];
-  for (let y = currentYear; y >= currentYear - 25; y--) {
+  for (let y = currentYear; y >= minYear; y--) {
     years.push({ label: String(y), value: y });
   }
   return years;
 }
-
-const YEARS = buildYears();
 
 interface WheelPickerProps {
   month: number;
@@ -52,6 +55,9 @@ interface WheelPickerProps {
   onChangeMonth: (month: number) => void;
   onChangeDay: (day: number) => void;
   onChangeYear: (year: number) => void;
+  // Earliest year shown in the year column. Defaults to currentYear - 25 to
+  // preserve the onboarding dog-birthday range. Pass 1900 for adult user birthdays.
+  minYear?: number;
 }
 
 interface ColumnItem {
@@ -169,7 +175,12 @@ export function WheelPicker({
   onChangeMonth,
   onChangeDay,
   onChangeYear,
+  minYear,
 }: WheelPickerProps) {
+  const resolvedMinYear =
+    minYear ?? new Date().getFullYear() - DEFAULT_YEAR_RANGE;
+  const years = useMemo(() => buildYears(resolvedMinYear), [resolvedMinYear]);
+
   return (
     <View style={styles.container} accessibilityLabel="Birthday picker">
       <Column
@@ -186,7 +197,7 @@ export function WheelPicker({
       />
       <Column
         label="YEAR"
-        data={YEARS}
+        data={years}
         selectedValue={year}
         onChange={onChangeYear}
       />

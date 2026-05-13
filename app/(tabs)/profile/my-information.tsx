@@ -319,6 +319,7 @@ export default function MyInformationScreen() {
                 onChangeMonth={setPickerMonth}
                 onChangeDay={setPickerDay}
                 onChangeYear={setPickerYear}
+                minYear={1900}
               />
             </View>
           </View>
