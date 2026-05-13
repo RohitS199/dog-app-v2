@@ -20,6 +20,12 @@ export const OB_COLORS = {
   ctaText: '#ffffff',
   selectedBg: '#e3ead9',
   selectedBorder: '#475E3D',
+  // Profile redesign additions (May 2026)
+  peachSoft: '#fbe6cc',
+  red: '#c75f4a',
+  orangeSoft: '#f9a886',
+  petalA: '#e8a6a0',
+  petalB: '#d9a96a',
 } as const;
 
 export const OB_FONTS = {
@@ -33,6 +39,10 @@ export const OB_FONTS = {
   placeholder: 'WorkSans_400Regular',
   handwritten: 'Caveat_400Regular',
   wheelValue: 'Kalam_700Bold',
+  // Profile redesign additions (Nunito — loaded via @expo-google-fonts/nunito)
+  dataLabel: 'Nunito_600SemiBold',
+  dataValue: 'Nunito_500Medium',
+  btnLabel: 'Nunito_700Bold',
 } as const;
 
 export const OB_FONT_SIZES = {
@@ -74,6 +84,8 @@ export const OB_SPACING = {
   paragraphGap: 12,
   frameBorder: 6,
   backChevronOffset: -16,
+  // Profile redesign addition (spec §6.1)
+  gap1: 4,
 } as const;
 
 export const OB_RADII = {
@@ -85,6 +97,10 @@ export const OB_RADII = {
   iconBackground: 10,
   woodFrame: 8,
   progress: 2,
+  // Profile redesign additions
+  rowItem: 18,
+  pillBtn: 22,
+  modal: 18,
 } as const;
 
 export const OB_BORDERS = {

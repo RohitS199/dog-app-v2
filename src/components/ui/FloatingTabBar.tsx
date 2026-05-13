@@ -7,20 +7,21 @@ import { useDogStore } from '../../stores/dogStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useArticleTransitionStore } from '../../stores/articleTransitionStore';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
+import { ProfileTabGlyph } from '../profile/glyphs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 const TAB_ICONS: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
   index: 'home',
   health: 'calendar-heart',
   learn: 'book-open-variant',
-  settings: 'cog-outline',
+  profile: 'account-outline',
 };
 
 const TAB_LABELS: Record<string, string> = {
   index: 'Home',
   health: 'Health',
   learn: 'Learn',
-  settings: 'Settings',
+  profile: 'Profile',
 };
 
 function Tab({
@@ -28,18 +29,16 @@ function Tab({
   isFocused,
   icon,
   label,
-  isSettings,
+  isProfile,
   avatarUrl,
-  userInitial,
   onPress,
 }: {
   route: { key: string };
   isFocused: boolean;
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   label: string;
-  isSettings: boolean;
+  isProfile: boolean;
   avatarUrl: string | undefined;
-  userInitial: string;
   onPress: () => void;
 }) {
   const handlePress = useCallback(() => {
@@ -57,14 +56,14 @@ function Tab({
       accessibilityState={{ selected: isFocused }}
       accessibilityLabel={label}
     >
-      {isSettings ? (
-        <View style={[styles.tabAvatar, isFocused && styles.tabAvatarActive]}>
-          {avatarUrl ? (
+      {isProfile ? (
+        avatarUrl ? (
+          <View style={[styles.tabAvatar, isFocused && styles.tabAvatarActive]}>
             <Image source={{ uri: avatarUrl }} style={styles.tabAvatarImage} />
-          ) : (
-            <Text style={styles.tabAvatarText}>{userInitial}</Text>
-          )}
-        </View>
+          </View>
+        ) : (
+          <ProfileTabGlyph active={isFocused} />
+        )
       ) : (
         <MaterialCommunityIcons name={icon} size={27} color={color} />
       )}
@@ -79,8 +78,10 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const user = useAuthStore((s) => s.user);
   const isArticleExpanded = useArticleTransitionStore((s) => s.isExpanded);
   const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
-  const userInitial = user?.email?.[0]?.toUpperCase() ?? '?';
 
+  // TODO: Remove FAB once Journey redesign delivers an alternative check-in CTA.
+  // Gated on project_journey_redesign.md (TBD). Until then, the FAB stays even
+  // though the May 2026 mockup tab bar does not show it.
   const handleFAB = useCallback(() => {
     if (dogs.length > 0) {
       if (!selectedDogId && dogs[0]) {
@@ -128,9 +129,8 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         isFocused={isFocused}
         icon={icon}
         label={label}
-        isSettings={route.name === 'settings'}
+        isProfile={route.name === 'profile'}
         avatarUrl={avatarUrl}
-        userInitial={userInitial}
         onPress={onPress}
       />
     );
@@ -230,10 +230,5 @@ const styles = StyleSheet.create({
     width: 27,
     height: 27,
     borderRadius: 14,
-  },
-  tabAvatarText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
   },
 });
