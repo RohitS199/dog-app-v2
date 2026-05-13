@@ -1,14 +1,28 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useProfileStore } from '../../../src/stores/profileStore';
+import { useDogStore } from '../../../src/stores/dogStore';
+import { useCheckInStore } from '../../../src/stores/checkInStore';
+import { useHealthStore } from '../../../src/stores/healthStore';
+import { useLearnStore } from '../../../src/stores/learnStore';
+import { useArticleTransitionStore } from '../../../src/stores/articleTransitionStore';
+import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
+import { useOnboardingStore } from '../../../src/stores/onboardingStore';
+import { useNotificationsStore } from '../../../src/stores/notificationsStore';
+import { useUserAchievementsStore } from '../../../src/stores/userAchievementsStore';
+
 import { WoodPortrait } from '../../../src/components/profile/WoodPortrait';
 import { NavButton } from '../../../src/components/profile/NavButton';
 import { PillButton } from '../../../src/components/profile/PillButton';
 import { LogOutModal } from '../../../src/components/profile/LogOutModal';
+import { StickerCollection } from '../../../src/components/profile/stickers/StickerCollection';
+import { StickerDetailSheet } from '../../../src/components/profile/stickers/StickerDetailSheet';
+import { StickerEarnCelebration } from '../../../src/components/profile/stickers/StickerEarnCelebration';
+import { STICKERS, type StickerId } from '../../../src/constants/achievements';
 import {
   PersonIcon,
   CardGlyph,
@@ -16,8 +30,11 @@ import {
 } from '../../../src/components/profile/glyphs';
 import { COPY } from '../../../src/constants/profileCopy';
 import {
+  OB_BORDERS,
   OB_COLORS,
   OB_FONTS,
+  OB_RADII,
+  OB_SHADOWS,
   OB_SPACING,
 } from '../../../src/constants/onboardingTheme';
 
@@ -37,11 +54,18 @@ export function computeDisplayName(
 export default function ProfileScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const signOut = useAuthStore((s) => s.signOut);
   const loaded = useProfileStore((s) => s.loaded);
   const loadProfile = useProfileStore((s) => s.loadFromAuthAndProfile);
-  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const earnedIds = useUserAchievementsStore((s) => s.earnedIds);
+  const earnedRecords = useUserAchievementsStore((s) => s.earnedRecords);
 
-  // Fetch profile (avatar + saved fields) once on mount.
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [stickerSheetOpen, setStickerSheetOpen] = useState(false);
+  const [selectedStickerId, setSelectedStickerId] = useState<StickerId | null>(null);
+
+  // Fetch profile (avatar + saved fields) on mount. Achievement state is
+  // hydrated by the post-auth fetch in app/(tabs)/_layout.tsx.
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
@@ -51,6 +75,54 @@ export default function ProfileScreen() {
   const lastName =
     (user?.user_metadata as { last_name?: string } | undefined)?.last_name ?? null;
   const displayName = computeDisplayName(firstName, lastName);
+
+  // Tap a row sticker → opens the "all 11" sheet. Tap a sticker in that
+  // sheet → opens the StickerDetailSheet on top.
+  function handleRowStickerPress() {
+    setStickerSheetOpen(true);
+  }
+  function handleSheetStickerPress(id: StickerId) {
+    setSelectedStickerId(id);
+  }
+  function handleDetailClose() {
+    setSelectedStickerId(null);
+  }
+  function handleSheetClose() {
+    setStickerSheetOpen(false);
+  }
+
+  const selectedSticker = selectedStickerId ? STICKERS[selectedStickerId] : null;
+  const selectedEarnedRecord =
+    selectedStickerId != null
+      ? earnedRecords.find((r) => r.id === selectedStickerId)
+      : null;
+  const selectedEarnedAt = selectedEarnedRecord?.earned_at ?? null;
+  const selectedEarned = !!selectedEarnedRecord;
+
+  async function handleConfirmLogout() {
+    setLogoutModalOpen(false);
+
+    // Clear all per-user store state before flipping the auth session.
+    // Order doesn't matter — none of these depend on each other.
+    useProfileStore.getState().clearProfile();
+    useNotificationsStore.getState().clearNotifications();
+    useUserAchievementsStore.getState().clearAchievements();
+    useDogStore.getState().clearDogs();
+    useSubscriptionStore.getState().clearSubscription();
+    useCheckInStore.getState().clearAll();
+    useHealthStore.getState().clearHealth();
+    useLearnStore.getState().clearLearn();
+    useOnboardingStore.getState().clearOnboarding();
+    useArticleTransitionStore.getState().reset();
+
+    try {
+      await signOut();
+    } catch {
+      // Even if Supabase sign-out errors, the auth state listener picks up
+      // the cleared session locally and the router guard re-routes to /(auth)/sign-in.
+    }
+    router.replace('/(auth)/sign-in');
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -67,7 +139,14 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
-        {/* PR 5 will render <StickerCollection variant="profile-row" /> here */}
+        {/* Sticker row (top 3 by hero rank) */}
+        <View style={styles.stickerRow}>
+          <StickerCollection
+            variant="profile-row"
+            earnedIds={earnedIds}
+            onPressSticker={handleRowStickerPress}
+          />
+        </View>
 
         {/* Nav row stack */}
         <View style={styles.navStack}>
@@ -111,15 +190,61 @@ export default function ProfileScreen() {
         </Pressable>
       </ScrollView>
 
-      {/* Log Out modal — PR 6 wires confirm to authStore.signOut */}
+      {/* Log Out modal — full sign-out flow (PR 6) */}
       <LogOutModal
         visible={logoutModalOpen}
         onCancel={() => setLogoutModalOpen(false)}
-        onConfirm={() => {
-          // PR 6: replace with authStore.signOut() + store cleanup + router.replace
-          setLogoutModalOpen(false);
-        }}
+        onConfirm={handleConfirmLogout}
       />
+
+      {/* Sticker collection sheet (all 11) — opened by tapping a row sticker */}
+      <Modal
+        visible={stickerSheetOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={handleSheetClose}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={handleSheetClose}
+            accessibilityLabel="Close sticker collection"
+            accessibilityRole="button"
+          />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>My Stickers</Text>
+              <Pressable
+                onPress={handleSheetClose}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                hitSlop={12}
+              >
+                <Text style={styles.modalClose}>{'×'}</Text>
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.stickerGridContent}>
+              <StickerCollection
+                variant="sheet"
+                earnedIds={earnedIds}
+                onPressSticker={handleSheetStickerPress}
+              />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Sticker detail (opened from inside the sheet) */}
+      <StickerDetailSheet
+        visible={selectedSticker != null}
+        sticker={selectedSticker}
+        earned={selectedEarned}
+        earnedAt={selectedEarnedAt}
+        onClose={handleDetailClose}
+      />
+
+      {/* Earn celebration — reads lastEarned from the store internally */}
+      <StickerEarnCelebration />
     </SafeAreaView>
   );
 }
@@ -136,7 +261,7 @@ const styles = StyleSheet.create({
   },
   headerBlock: {
     alignItems: 'center',
-    marginBottom: OB_SPACING.sectionGap,
+    marginBottom: OB_SPACING.mt3,
   },
   displayName: {
     fontFamily: OB_FONTS.dataLabel,
@@ -144,6 +269,10 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: OB_COLORS.ink,
     marginTop: 10,
+  },
+  stickerRow: {
+    alignItems: 'center',
+    marginBottom: OB_SPACING.sectionGap,
   },
   navStack: {
     gap: 6, // Profile root nav-row spacing — handoff one-off, not a scale value
@@ -161,5 +290,46 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: OB_COLORS.muted,
     textDecorationLine: 'underline',
+  },
+  // Sticker collection sheet modal
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(26, 20, 15, 0.45)',
+  },
+  modalSheet: {
+    backgroundColor: OB_COLORS.cream,
+    borderTopLeftRadius: OB_RADII.modal,
+    borderTopRightRadius: OB_RADII.modal,
+    borderTopWidth: OB_BORDERS.standard,
+    borderColor: OB_COLORS.sketch,
+    paddingHorizontal: OB_SPACING.screenPaddingH,
+    paddingTop: OB_SPACING.mt2,
+    paddingBottom: OB_SPACING.screenPaddingBottom + 16,
+    maxHeight: '85%',
+    ...OB_SHADOWS.card,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: OB_SPACING.mt3,
+  },
+  modalTitle: {
+    fontFamily: OB_FONTS.h1,
+    fontSize: 22,
+    color: OB_COLORS.ink,
+  },
+  modalClose: {
+    fontFamily: OB_FONTS.body,
+    fontSize: 24,
+    color: OB_COLORS.muted,
+    paddingHorizontal: 6,
+  },
+  stickerGridContent: {
+    paddingBottom: 16,
   },
 });
