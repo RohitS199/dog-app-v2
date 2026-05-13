@@ -39,9 +39,20 @@ export const COPY = {
   MY_INFO_AVATAR_COMING_SOON_TITLE: 'Coming soon',
   MY_INFO_AVATAR_COMING_SOON_BODY: 'Avatar uploads will arrive in a future update.',
 
-  // My Subscription screen (PR 3 fills in)
+  // My Subscription screen (PR 3)
   MY_SUBSCRIPTION_TITLE: 'My Subscription',
   MY_SUBSCRIPTION_PLACEHOLDER: 'My Subscription',
+  MY_SUBSCRIPTION_PLAN_INCLUDED_LABEL: "what's included",
+  MY_SUBSCRIPTION_MANAGE_BILLING: 'Manage Billing',
+  MY_SUBSCRIPTION_CANCEL: 'Cancel Subscription',
+  MY_SUBSCRIPTION_BADGE_ACTIVE: 'active',
+  MY_SUBSCRIPTION_BADGE_INACTIVE: 'inactive',
+  MY_SUBSCRIPTION_RENEWS_PREFIX: 'Renews ',
+  MY_SUBSCRIPTION_EXPIRED_PREFIX: 'Expired ',
+  MY_SUBSCRIPTION_CANCEL_COMING_SOON_TITLE: 'Coming soon',
+  MY_SUBSCRIPTION_CANCEL_COMING_SOON_BODY: 'Subscription cancellation will arrive in a future update. For now, you can manage your plan in your phone\'s subscription settings.',
+  MY_SUBSCRIPTION_ERROR_TITLE: "Couldn't load subscription",
+  MY_SUBSCRIPTION_ERROR_RETRY: 'Try Again',
 
   // Settings hub (PR 4 fills in)
   SETTINGS_TITLE: 'Settings',
