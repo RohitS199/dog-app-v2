@@ -20,7 +20,7 @@ import { NavButton } from '../../../src/components/profile/NavButton';
 import { PillButton } from '../../../src/components/profile/PillButton';
 import { LogOutModal } from '../../../src/components/profile/LogOutModal';
 import { StickerCollection } from '../../../src/components/profile/stickers/StickerCollection';
-import { StickerDetailSheet } from '../../../src/components/profile/stickers/StickerDetailSheet';
+import { StickerDetailContent } from '../../../src/components/profile/stickers/StickerDetailContent';
 import { StickerEarnCelebration } from '../../../src/components/profile/stickers/StickerEarnCelebration';
 import { STICKERS, type StickerId } from '../../../src/constants/achievements';
 import {
@@ -76,18 +76,26 @@ export default function ProfileScreen() {
     (user?.user_metadata as { last_name?: string } | undefined)?.last_name ?? null;
   const displayName = computeDisplayName(firstName, lastName);
 
-  // Tap a row sticker → opens the "all 11" sheet. Tap a sticker in that
-  // sheet → opens the StickerDetailSheet on top.
+  // Single Modal with content switching:
+  //   - Tap row sticker → opens the Modal showing the grid (all 11)
+  //   - Tap a sticker in the grid → swaps content to the detail card
+  //     (no second Modal — iOS only supports one at a time)
+  //   - Close detail → swaps content back to the grid
+  //   - Close (X button on grid, backdrop tap, hardware back) → closes Modal entirely
   function handleRowStickerPress() {
     setStickerSheetOpen(true);
+    setSelectedStickerId(null);
   }
   function handleSheetStickerPress(id: StickerId) {
     setSelectedStickerId(id);
   }
   function handleDetailClose() {
+    // Return to the grid view; Modal stays open
     setSelectedStickerId(null);
   }
-  function handleSheetClose() {
+  function handleModalClose() {
+    // Tear down both layers
+    setSelectedStickerId(null);
     setStickerSheetOpen(false);
   }
 
@@ -197,51 +205,54 @@ export default function ProfileScreen() {
         onConfirm={handleConfirmLogout}
       />
 
-      {/* Sticker collection sheet (all 11) — opened by tapping a row sticker */}
+      {/* Single Modal — content switches between grid and detail.
+          iOS only supports one Modal at a time, so we use ONE here. */}
       <Modal
         visible={stickerSheetOpen}
         transparent
         animationType="slide"
-        onRequestClose={handleSheetClose}
+        onRequestClose={handleModalClose}
       >
         <View style={styles.modalOverlay}>
           <Pressable
             style={styles.modalBackdrop}
-            onPress={handleSheetClose}
+            onPress={handleModalClose}
             accessibilityLabel="Close sticker collection"
             accessibilityRole="button"
           />
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>My Stickers</Text>
-              <Pressable
-                onPress={handleSheetClose}
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-                hitSlop={12}
-              >
-                <Text style={styles.modalClose}>{'×'}</Text>
-              </Pressable>
-            </View>
-            <ScrollView contentContainerStyle={styles.stickerGridContent}>
-              <StickerCollection
-                variant="sheet"
-                earnedIds={earnedIds}
-                onPressSticker={handleSheetStickerPress}
+          {selectedSticker ? (
+            <View style={styles.detailWrap} pointerEvents="box-none">
+              <StickerDetailContent
+                sticker={selectedSticker}
+                earned={selectedEarned}
+                earnedAt={selectedEarnedAt}
+                onClose={handleDetailClose}
               />
-            </ScrollView>
-          </View>
+            </View>
+          ) : (
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>My Stickers</Text>
+                <Pressable
+                  onPress={handleModalClose}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
+                  hitSlop={12}
+                >
+                  <Text style={styles.modalClose}>{'×'}</Text>
+                </Pressable>
+              </View>
+              <ScrollView contentContainerStyle={styles.stickerGridContent}>
+                <StickerCollection
+                  variant="sheet"
+                  earnedIds={earnedIds}
+                  onPressSticker={handleSheetStickerPress}
+                />
+              </ScrollView>
+            </View>
+          )}
         </View>
       </Modal>
-
-      {/* Sticker detail (opened from inside the sheet) */}
-      <StickerDetailSheet
-        visible={selectedSticker != null}
-        sticker={selectedSticker}
-        earned={selectedEarned}
-        earnedAt={selectedEarnedAt}
-        onClose={handleDetailClose}
-      />
 
       {/* Earn celebration — reads lastEarned from the store internally */}
       <StickerEarnCelebration />
@@ -295,6 +306,11 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
+  },
+  detailWrap: {
+    // Center the detail card in the lower half (matches StickerDetailSheet's
+    // standalone presentation feel — bottom-pinned but slightly inset).
+    paddingHorizontal: 0,
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
