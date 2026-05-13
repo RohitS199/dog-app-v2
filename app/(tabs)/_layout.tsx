@@ -1,8 +1,19 @@
+import { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { FloatingTabBar } from '../../src/components/ui/FloatingTabBar';
 import { ArticleExpandOverlay } from '../../src/components/ui/ArticleExpandOverlay';
+import { useUserAchievementsStore } from '../../src/stores/userAchievementsStore';
 
 export default function TabsLayout() {
+  // Post-auth fetch + cold-launch seasonal check (once per app process).
+  // The store has an internal idempotency guard so re-mounts do not
+  // duplicate the seasonal Edge Function invocation.
+  useEffect(() => {
+    const ach = useUserAchievementsStore.getState();
+    ach.fetch();
+    ach.checkSeasonal();
+  }, []);
+
   return (
     <>
       <Tabs

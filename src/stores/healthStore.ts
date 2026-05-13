@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { useUserAchievementsStore } from './userAchievementsStore';
 import type { DailyCheckIn } from '../types/checkIn';
 import type { PatternAlert, AIHealthInsight } from '../types/health';
 
@@ -15,6 +16,7 @@ interface HealthState {
   fetchMonthData: (dogId: string, year: number, month: number) => Promise<void>;
   fetchActiveAlerts: (dogId: string) => Promise<void>;
   fetchAIInsights: (dogId: string) => Promise<void>;
+  markInsightReviewed: (insightId: string) => Promise<void>;
   dismissAlert: (alertId: string) => Promise<void>;
   setSelectedDate: (date: string | null) => void;
   clearHealth: () => void;
@@ -100,6 +102,21 @@ export const useHealthStore = create<HealthState>((set, get) => ({
     } catch {
       set({ aiInsights: [], isLoadingInsights: false });
     }
+  },
+
+  markInsightReviewed: async (insightId) => {
+    // Update reviewed_at on the AI insight; fire-and-forget the sticker check.
+    // The first insight a user reviews triggers the pattern_spotter sticker.
+    const { error } = await supabase
+      .from('ai_health_insights')
+      .update({ reviewed_at: new Date().toISOString() })
+      .eq('id', insightId)
+      .is('reviewed_at', null);
+    if (error) {
+      set({ error: error.message });
+      return;
+    }
+    useUserAchievementsStore.getState().triggerEventCheck('ai_insight_viewed').catch(() => {});
   },
 
   dismissAlert: async (alertId) => {
