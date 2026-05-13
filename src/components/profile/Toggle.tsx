@@ -12,7 +12,11 @@ const TRACK_W = 36;
 const TRACK_H = 20;
 const THUMB = 14;
 const PAD = 1;
-const ON_X = TRACK_W - THUMB - PAD * 2;
+const BORDER = OB_BORDERS.standard;
+// React Native uses border-box, so TRACK_W INCLUDES the 2px border on each side.
+// Inner area for the thumb = TRACK_W - 2*BORDER - 2*PAD.
+// Max translateX so the thumb sits flush with the right edge of that inner area:
+const ON_X = TRACK_W - THUMB - PAD * 2 - BORDER * 2;
 
 interface ToggleProps {
   value: boolean;
