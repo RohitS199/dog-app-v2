@@ -215,8 +215,13 @@ export default function RootLayout() {
     const inTermsScreen = segments[0] === 'terms';
     const inOnboarding = segments[0] === 'onboarding';
 
-    if (!session && !hasSeenOnboarding && !inOnboarding) {
-      // New user: show onboarding first
+    if (!session && !hasSeenOnboarding && !inOnboarding && !inAuthGroup) {
+      // New user: show onboarding first.
+      // `!inAuthGroup` mirrors the second branch — without it, any navigation
+      // from /onboarding into /(auth)/* (e.g. "I already have an account" on
+      // the Welcome screen, or the Paywall completion route to sign-up) gets
+      // immediately yanked back to /onboarding because this useEffect re-runs
+      // when `segments` change.
       router.replace('/onboarding');
     } else if (!session && hasSeenOnboarding && !inAuthGroup && !inOnboarding) {
       // Returning user without session: sign in
