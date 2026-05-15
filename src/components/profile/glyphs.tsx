@@ -1,4 +1,5 @@
 import React from 'react';
+import { Image } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { OB_COLORS } from '../../constants/onboardingTheme';
 
@@ -8,6 +9,11 @@ type GlyphProps = {
 };
 
 const STROKE = 1.5;
+
+// Watercolor envelope illustration (Figma drop-in). PNG densities at @1x/@2x/@3x.
+// `color` prop is accepted for API compatibility with the SVG glyphs but ignored —
+// the artwork has its own colors baked in.
+const ENVELOPE_SRC = require('../../../assets/icons/envelope.png');
 
 export function HeartGlyph({ size = 22, color = OB_COLORS.sketch }: GlyphProps) {
   return (
@@ -89,12 +95,14 @@ export function PersonIcon({ size = 22, color = OB_COLORS.sketch }: GlyphProps) 
   );
 }
 
-export function EnvelopeIcon({ size = 22, color = OB_COLORS.sketch }: GlyphProps) {
+export function EnvelopeIcon({ size = 22 }: GlyphProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Rect x="3" y="6" width="18" height="13" rx="1.5" fill={OB_COLORS.peach} stroke={color} strokeWidth={STROKE} />
-      <Path d="M3 7l9 6 9-6" fill="none" stroke={color} strokeWidth={STROKE} strokeLinejoin="round" />
-    </Svg>
+    <Image
+      source={ENVELOPE_SRC}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+      accessibilityIgnoresInvertColors
+    />
   );
 }
 
