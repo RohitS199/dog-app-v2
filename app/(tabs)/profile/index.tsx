@@ -129,7 +129,13 @@ export default function ProfileScreen() {
       // Even if Supabase sign-out errors, the auth state listener picks up
       // the cleared session locally and the router guard re-routes to /(auth)/sign-in.
     }
-    router.replace('/(auth)/sign-in');
+    // In __DEV__, the routing guard treats `hasSeenOnboarding` as false (see
+    // app/_layout.tsx) AND no longer auto-redirects from /(auth) back to
+    // /onboarding (that would loop the Welcome/Paywall navigations). So we
+    // navigate to /onboarding explicitly in dev to preserve the "iterate on
+    // onboarding every time you sign out" workflow. Production returning
+    // users still land on sign-in.
+    router.replace(__DEV__ ? '/onboarding' : '/(auth)/sign-in');
   }
 
   return (
