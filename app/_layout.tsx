@@ -176,10 +176,18 @@ export default function RootLayout() {
   useAppState();
 
   useEffect(() => {
-    // Check onboarding completion flag and initialize auth in parallel
-    AsyncStorage.getItem('puplog-onboarding-complete').then((val) => {
-      setHasSeenOnboarding(val === 'true');
-    });
+    // Check onboarding completion flag and initialize auth in parallel.
+    // In __DEV__ we always treat the flag as `false` so we can iterate on the
+    // 19-step onboarding flow without uninstalling the app to wipe AsyncStorage.
+    // Production respects the persisted flag — returning signed-out users land
+    // on sign-in, not back at the marketing intro.
+    if (__DEV__) {
+      setHasSeenOnboarding(false);
+    } else {
+      AsyncStorage.getItem('puplog-onboarding-complete').then((val) => {
+        setHasSeenOnboarding(val === 'true');
+      });
+    }
     initialize();
   }, []);
 
