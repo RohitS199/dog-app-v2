@@ -14,13 +14,13 @@ describe('StickerCollection', () => {
     expect(buttons).toHaveLength(3);
   });
 
-  // 2. sheet renders all 11 stickers
-  it('2. sheet renders all 11 stickers', () => {
+  // 2. sheet renders all 12 stickers
+  it('2. sheet renders all 12 stickers', () => {
     const { getAllByRole } = render(
       <StickerCollection variant="sheet" earnedIds={new Set()} />
     );
     const buttons = getAllByRole('button');
-    expect(buttons).toHaveLength(11);
+    expect(buttons).toHaveLength(12);
   });
 
   // 3. profile-row with no earned: top 3 by sort are lowest heroWeight

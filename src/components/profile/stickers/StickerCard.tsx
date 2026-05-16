@@ -4,6 +4,12 @@ import { StickerDef, StickerCategory } from '../../../constants/achievements';
 import { OB_BORDERS, OB_COLORS, OB_FONTS } from '../../../constants/onboardingTheme';
 import { STICKER_ASSETS } from './assets';
 
+// Watercolor sticker artwork has a die-cut silhouette inside a square PNG
+// frame, so the visible shape is ~75% of the bounding box width. Scaling up
+// makes the visible silhouette match the placeholder-square footprint and
+// also makes the per-sticker rotation read clearly.
+const STICKER_VISUAL_SCALE = 1.3;
+
 export type StickerCardProps = {
   sticker: StickerDef;
   earned: boolean;
@@ -41,7 +47,12 @@ export function StickerCard({ sticker, earned, onPress, size = 56 }: StickerCard
       {asset !== null ? (
         <Image
           source={asset}
-          style={{ width: size, height: size, opacity: earned ? 1 : 0.4 }}
+          style={{
+            width: size,
+            height: size,
+            opacity: earned ? 1 : 0.4,
+            transform: [{ scale: STICKER_VISUAL_SCALE }],
+          }}
           resizeMode="contain"
         />
       ) : earned ? (
