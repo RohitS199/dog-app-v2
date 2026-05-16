@@ -3,7 +3,7 @@ import { Image, StyleSheet, View, ViewStyle } from 'react-native';
 import { OB_COLORS } from '../../constants/onboardingTheme';
 
 interface WoodPortraitProps {
-  size: 68 | 76 | 130;
+  size: 68 | 76 | 96 | 130;
   avatar?: string | null;
   testID?: string;
   style?: ViewStyle;

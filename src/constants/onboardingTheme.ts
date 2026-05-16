@@ -86,6 +86,10 @@ export const OB_SPACING = {
   backChevronOffset: -16,
   // Profile redesign addition (spec §6.1)
   gap1: 4,
+  // Hero-to-list boundary: bigger jump than sectionGap so the eye registers
+  // "header is done, list begins." Used on Profile between sticker row and
+  // the nav stack.
+  heroGap: 48,
 } as const;
 
 export const OB_RADII = {

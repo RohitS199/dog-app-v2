@@ -19,6 +19,7 @@ import { WoodPortrait } from '../../../src/components/profile/WoodPortrait';
 import { NavButton } from '../../../src/components/profile/NavButton';
 import { PillButton } from '../../../src/components/profile/PillButton';
 import { LogOutModal } from '../../../src/components/profile/LogOutModal';
+import { PawPrintMotif } from '../../../src/components/profile/PawPrintMotif';
 import { StickerCollection } from '../../../src/components/profile/stickers/StickerCollection';
 import { StickerDetailContent } from '../../../src/components/profile/stickers/StickerDetailContent';
 import { StickerEarnCelebration } from '../../../src/components/profile/stickers/StickerEarnCelebration';
@@ -144,7 +145,7 @@ export default function ProfileScreen() {
         {/* Avatar + name */}
         <View style={styles.headerBlock}>
           <WoodPortrait
-            size={68}
+            size={96}
             avatar={loaded?.avatar_url ?? null}
             testID="profile-avatar"
           />
@@ -202,6 +203,10 @@ export default function ProfileScreen() {
             {COPY.PROFILE_DELETE_ACCOUNT_LABEL}
           </Text>
         </Pressable>
+
+        {/* Decorative paw print motif — anchors the bottom rest area so the
+            empty space below the destructive zone reads as intentional. */}
+        <PawPrintMotif />
       </ScrollView>
 
       {/* Log Out modal — full sign-out flow (PR 6) */}
@@ -289,10 +294,16 @@ const styles = StyleSheet.create({
   },
   stickerRow: {
     alignItems: 'center',
-    marginBottom: OB_SPACING.sectionGap,
+    // Hero → list boundary: bigger than sectionGap so the eye registers
+    // "header block ends, list begins" instead of reading the screen as one
+    // evenly-spaced run.
+    marginBottom: OB_SPACING.heroGap,
   },
   navStack: {
-    gap: 6, // Profile root nav-row spacing — handoff one-off, not a scale value
+    // Floating rounded-rectangle buttons (not a continuous list with dividers),
+    // so they need a real gap. 14dp aligns with playful-app spacing benchmarks
+    // — see Material 3 list specs and Refactoring UI's spacing scale.
+    gap: 14,
     marginBottom: OB_SPACING.sectionGap,
   },
   logoutBlock: {

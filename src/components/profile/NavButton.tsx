@@ -27,11 +27,11 @@ export function NavButton({ label, icon, onPress }: NavButtonProps) {
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 48,
+    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 14,
     backgroundColor: OB_COLORS.peachSoft,
     borderRadius: 14,
     borderWidth: OB_BORDERS.standard,
