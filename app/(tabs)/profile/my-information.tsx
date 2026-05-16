@@ -204,7 +204,7 @@ export default function MyInformationScreen() {
           <View style={styles.avatarRow}>
             <View accessibilityRole="none">
               <WoodPortrait
-                size={76}
+                size={116}
                 avatar={loaded?.avatar_url ?? null}
                 testID="my-info-avatar"
               />

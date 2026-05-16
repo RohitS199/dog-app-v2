@@ -144,7 +144,7 @@ export default function ProfileScreen() {
         {/* Avatar + name */}
         <View style={styles.headerBlock}>
           <WoodPortrait
-            size={68}
+            size={104}
             avatar={loaded?.avatar_url ?? null}
             testID="profile-avatar"
           />
@@ -216,7 +216,7 @@ export default function ProfileScreen() {
       <Modal
         visible={stickerSheetOpen}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={handleModalClose}
       >
         <View style={styles.modalOverlay}>
