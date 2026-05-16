@@ -5,7 +5,6 @@ import {
   OB_COLORS,
   OB_FONTS,
   OB_RADII,
-  OB_SHADOWS,
 } from '../../constants/onboardingTheme';
 
 type PillVariant = 'logout' | 'primary' | 'ghost';
@@ -59,7 +58,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: OB_BORDERS.standard,
     borderColor: OB_COLORS.sketch,
-    ...OB_SHADOWS.card,
   },
   primary: { backgroundColor: OB_COLORS.cta },
   ghost: {
