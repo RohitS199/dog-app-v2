@@ -29,6 +29,7 @@ export type StickerDef = {
   category: StickerCategory;
   heroWeight: number;        // ranking on Profile root (0-100)
   rotation: number;          // -7..7 deg, deterministic per id
+  ribbonTilt: number;        // -16..-8 or 8..16 deg, hand-placed feel
   enabledWhen?: 'always' | 'flowers_shipped';
 };
 
@@ -43,6 +44,7 @@ export const STICKERS: Record<StickerId, StickerDef> = {
     category: 'milestone',
     heroWeight: 30,
     rotation: -3,
+    ribbonTilt: 12,
     enabledWhen: 'always',
   },
   seasonal_fall: {
@@ -54,6 +56,7 @@ export const STICKERS: Record<StickerId, StickerDef> = {
     category: 'seasonal',
     heroWeight: 50,
     rotation: 5,
+    ribbonTilt: -10,
     enabledWhen: 'always',
   },
   seasonal_winter: {
@@ -65,6 +68,7 @@ export const STICKERS: Record<StickerId, StickerDef> = {
     category: 'seasonal',
     heroWeight: 50,
     rotation: -5,
+    ribbonTilt: 14,
     enabledWhen: 'always',
   },
   seasonal_spring: {
@@ -76,6 +80,7 @@ export const STICKERS: Record<StickerId, StickerDef> = {
     category: 'seasonal',
     heroWeight: 50,
     rotation: 3,
+    ribbonTilt: -8,
     enabledWhen: 'always',
   },
   seasonal_summer: {
@@ -87,6 +92,7 @@ export const STICKERS: Record<StickerId, StickerDef> = {
     category: 'seasonal',
     heroWeight: 50,
     rotation: -7,
+    ribbonTilt: 9,
     enabledWhen: 'always',
   },
   pattern_spotter: {
@@ -97,6 +103,7 @@ export const STICKERS: Record<StickerId, StickerDef> = {
     category: 'engagement',
     heroWeight: 55,
     rotation: 7,
+    ribbonTilt: -13,
     enabledWhen: 'always',
   },
   tender_caretaker: {
@@ -107,6 +114,7 @@ export const STICKERS: Record<StickerId, StickerDef> = {
     category: 'engagement',
     heroWeight: 62,
     rotation: -2,
+    ribbonTilt: 16,
     enabledWhen: 'always',
   },
   first_peony: {
@@ -118,6 +126,7 @@ export const STICKERS: Record<StickerId, StickerDef> = {
     category: 'mastery',
     heroWeight: 60,
     rotation: -3,
+    ribbonTilt: -11,
     enabledWhen: 'flowers_shipped',
   },
   bouquet_of_joy: {
@@ -129,6 +138,7 @@ export const STICKERS: Record<StickerId, StickerDef> = {
     category: 'mastery',
     heroWeight: 65,
     rotation: 5,
+    ribbonTilt: 8,
     enabledWhen: 'flowers_shipped',
   },
   multi_pup_parent: {
@@ -139,6 +149,7 @@ export const STICKERS: Record<StickerId, StickerDef> = {
     category: 'engagement',
     heroWeight: 70,
     rotation: -5,
+    ribbonTilt: -15,
     enabledWhen: 'always',
   },
   full_spectrum: {
@@ -150,6 +161,7 @@ export const STICKERS: Record<StickerId, StickerDef> = {
     category: 'mastery',
     heroWeight: 75,
     rotation: 3,
+    ribbonTilt: 10,
     enabledWhen: 'flowers_shipped',
   },
   bloom_master: {
@@ -161,6 +173,7 @@ export const STICKERS: Record<StickerId, StickerDef> = {
     category: 'mastery',
     heroWeight: 80,
     rotation: 0,
+    ribbonTilt: -14,
     enabledWhen: 'flowers_shipped',
   },
 };
