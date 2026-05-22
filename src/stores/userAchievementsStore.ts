@@ -52,6 +52,21 @@ interface UserAchievementsState {
   clearAchievements: () => void;
 
   /**
+   * Pattern E PR 1: replaces featuredIds with the array loaded from DB
+   * (called by profileStore.loadFromAuthAndProfile after a successful fetch).
+   * Defensive: null or wrong-length input falls back to [null, null, null].
+   */
+  hydrateFeatured: (ids: FeaturedSlots | null) => void;
+
+  /**
+   * Pattern E PR 1: pure function. Returns the new featuredIds after auto-filling
+   * empty slots from the earnedIds list. Only fires when totalEarned <= 3 —
+   * once user has 4+ earns, new earns require manual swap via the picker (PR 2).
+   * Called by PR 2's wired earn flow; included in PR 1 as a tested primitive.
+   */
+  computeAutoFill: (currentFeatured: FeaturedSlots, earnedIds: StickerId[]) => FeaturedSlots;
+
+  /**
    * Pattern E PR 1: fills the specified slot (0|1|2) with stickerId, then
    * persists the new featuredIds array to user_profiles.featured_stickers.
    * Optimistic: updates local state immediately, fire-and-forget DB write.
@@ -277,5 +292,30 @@ export const useUserAchievementsStore = create<UserAchievementsState>((set, get)
     } catch {
       // Silent
     }
+  },
+
+  hydrateFeatured: (ids) => {
+    if (!Array.isArray(ids) || ids.length !== 3) {
+      set({ featuredIds: [null, null, null] });
+      return;
+    }
+    set({ featuredIds: ids as FeaturedSlots });
+  },
+
+  computeAutoFill: (currentFeatured, earnedIds) => {
+    // Only auto-fill while user has 3 or fewer total earns
+    if (earnedIds.length > 3) return currentFeatured;
+
+    const next: FeaturedSlots = [...currentFeatured] as FeaturedSlots;
+    const alreadyFeatured = new Set(next.filter((id): id is StickerId => id !== null));
+
+    for (const earnId of earnedIds) {
+      if (alreadyFeatured.has(earnId)) continue;
+      const emptyIdx = next.indexOf(null);
+      if (emptyIdx === -1) break;
+      next[emptyIdx] = earnId;
+      alreadyFeatured.add(earnId);
+    }
+    return next;
   },
 }));

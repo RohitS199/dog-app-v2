@@ -374,3 +374,62 @@ it('16. swapFeatured removes oldId and inserts newId in its slot', async () => {
     'pattern_spotter',
   ]);
 });
+
+// ─── 17. hydrateFeatured replaces local state without DB write ─────────────────
+
+it('17. hydrateFeatured replaces local state without DB write', () => {
+  useUserAchievementsStore.setState({ featuredIds: [null, null, null] });
+
+  useUserAchievementsStore.getState().hydrateFeatured(['welcome', 'multi_pup_parent', null]);
+
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual([
+    'welcome',
+    'multi_pup_parent',
+    null,
+  ]);
+});
+
+// ─── 18. hydrateFeatured falls back to [null, null, null] when given null ─────
+
+it('18. hydrateFeatured falls back to [null, null, null] when given null', () => {
+  useUserAchievementsStore.getState().hydrateFeatured(null);
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual([null, null, null]);
+});
+
+// ─── 19. computeAutoFill fills empty slots when totalEarned <= 3 ──────────────
+
+it('19. computeAutoFill fills empty slots when totalEarned <= 3', () => {
+  const result = useUserAchievementsStore.getState().computeAutoFill(
+    [null, null, null],
+    ['welcome'],
+  );
+  expect(result).toEqual(['welcome', null, null]);
+});
+
+// ─── 20. computeAutoFill skips already-featured ids ───────────────────────────
+
+it('20. computeAutoFill skips already-featured ids', () => {
+  const result = useUserAchievementsStore.getState().computeAutoFill(
+    ['welcome', null, null],
+    ['welcome', 'multi_pup_parent'],
+  );
+  expect(result).toEqual(['welcome', 'multi_pup_parent', null]);
+});
+
+// ─── 21. computeAutoFill no-ops when totalEarned > 3 (manual swap required) ───
+
+it('21. computeAutoFill no-ops when totalEarned > 3 (manual swap required)', () => {
+  const result = useUserAchievementsStore.getState().computeAutoFill(
+    ['welcome', 'multi_pup_parent', 'pattern_spotter'],
+    ['welcome', 'multi_pup_parent', 'pattern_spotter', 'tender_caretaker'],
+  );
+  expect(result).toEqual(['welcome', 'multi_pup_parent', 'pattern_spotter']);
+});
+
+// ─── 22. clearAchievements resets featuredIds to [null, null, null] ──────────
+
+it('22. clearAchievements resets featuredIds to [null, null, null]', () => {
+  useUserAchievementsStore.setState({ featuredIds: ['welcome', null, null] });
+  useUserAchievementsStore.getState().clearAchievements();
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual([null, null, null]);
+});
