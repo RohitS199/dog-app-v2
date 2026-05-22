@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PupLog — Trophy Flow Pattern C (Hybrid)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Nunito:wght@400;500;600;700;800&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #3E2723;
+    --ink-soft: #6D5D54;
+    --ink-tertiary: #8D7E76;
+    --cream: #FAF6EE;
+    --cream-deep: #F2E9D9;
+    --warm-overlay: rgba(250, 246, 238, 0.97);
+    --accent: #FF6F00;
+    --hybrid-purple: #7A5CA8;
+    --grid-bg: #FAFAFA;
+    --grid-border: #E8E0DC;
+    --tile: #FFFFFF;
+    --wood-light: #C9A063;
+    --wood-dark: #5A4524;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: #E8E0DC;
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    color: var(--ink);
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .phone-frame {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    border-radius: 40px;
+    overflow: hidden;
+    background: var(--cream);
+    box-shadow:
+      0 0 0 2px #1a1a1a,
+      0 20px 60px rgba(0,0,0,0.3),
+      0 0 0 14px #2a2a2a;
+    isolation: isolate;
+  }
+  .status-bar {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    flex-shrink: 0;
+  }
+
+  .scene { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .scene.active { display: flex; }
+
+  /* ──────────── PROFILE ROOT ──────────── */
+  .profile-content {
+    flex: 1;
+    padding: 14px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+  .avatar-frame { position: relative; width: 104px; height: 104px; margin-top: 12px; }
+  .avatar-frame::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 6px solid;
+    border-color: #8b6c3e #6a4a22 #4a311a #7c5a30;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, var(--wood-light), var(--wood-dark));
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15), inset 0 0 6px rgba(0,0,0,0.35);
+  }
+  .avatar-frame .avatar {
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFCC80, #FFB74D);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 38px;
+  }
+  .display-name {
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--ink);
+  }
+
+  .sticker-row {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 0 0;
+    position: relative;
+  }
+  .row-sticker {
+    width: 64px;
+    height: 64px;
+    cursor: pointer;
+    transition: transform 180ms ease;
+    position: relative;
+  }
+  .row-sticker:hover { transform: scale(1.08); }
+  .row-sticker.tappable::after {
+    content: 'tap';
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    color: var(--accent);
+    background: var(--cream);
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1.5px solid var(--accent);
+    text-transform: uppercase;
+    pointer-events: none;
+    opacity: 0;
+    animation: pulse-hint 2200ms ease-in-out infinite;
+  }
+  @keyframes pulse-hint {
+    0%, 100% { opacity: 0; transform: translateX(-50%) translateY(2px); }
+    40%, 80% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .row-sticker img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    transform: scale(1.3);
+  }
+
+  .nav-stack {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .nav-row {
+    background: var(--tile);
+    border: 1.5px solid var(--ink);
+    border-radius: 18px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .nav-row .icon {
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .nav-row .chev {
+    margin-left: auto;
+    color: var(--ink-tertiary);
+    font-size: 14px;
+  }
+  .logout-pill {
+    margin-top: 14px;
+    align-self: center;
+    padding: 10px 28px;
+    background: transparent;
+    border: 2.5px solid var(--ink);
+    color: var(--ink);
+    border-radius: 22px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  /* ──────────── GRID SHEET ──────────── */
+  .grid-scene-wrap {
+    flex: 1;
+    padding: 14px 24px 24px;
+    overflow: auto;
+  }
+  .grid-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .grid-header .title {
+    font-family: 'Caveat', cursive;
+    font-size: 32px;
+    color: var(--ink);
+  }
+  .grid-header .close {
+    width: 32px; height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border-radius: 16px;
+  }
+  .grid-header .close:hover { background: var(--cream-deep); }
+  .sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .grid-cell {
+    aspect-ratio: 1;
+    background: var(--tile);
+    border: 1.5px solid var(--grid-border);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    cursor: pointer;
+    transition: transform 140ms ease, border-color 140ms ease;
+  }
+  .grid-cell:hover { transform: scale(1.03); border-color: var(--accent); }
+  .grid-cell.locked {
+    opacity: 0.35;
+    background: #F4EFEA;
+    cursor: default;
+  }
+  .grid-cell.locked:hover { transform: none; border-color: var(--grid-border); }
+  .grid-cell img { width: 105%; height: 105%; object-fit: contain; }
+  .grid-cell .placeholder {
+    font-family: 'Caveat', cursive;
+    font-size: 38px;
+    color: var(--ink-tertiary);
+  }
+
+  /* ──────────── TROPHY DETAIL ──────────── */
+  .trophy-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--warm-overlay);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 168px;
+    cursor: pointer;
+  }
+  .scene.active .trophy-overlay { animation: fade-in 380ms ease-out both; }
+  @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+  .trophy-art {
+    width: 215px; height: 215px;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 16px rgba(62, 39, 35, 0.18));
+    animation: gentle-float 3000ms ease-in-out infinite;
+  }
+  @keyframes gentle-float {
+    0%, 100% { transform: translateY(-2px) scale(0.99); }
+    50%      { transform: translateY(2px) scale(1.02); }
+  }
+  .trophy-title {
+    margin-top: 56px;
+    font-family: 'Caveat', cursive;
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .trophy-desc {
+    margin-top: 22px;
+    max-width: 280px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    text-align: center;
+    line-height: 1.45;
+    font-weight: 500;
+  }
+  .trophy-earned {
+    position: absolute;
+    bottom: 90px;
+    font-family: 'Patrick Hand', cursive;
+    font-size: 14px;
+    color: var(--ink-tertiary);
+    letter-spacing: 0.4px;
+  }
+  .trophy-hint {
+    position: absolute;
+    bottom: 36px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+    opacity: 0.5;
+  }
+  .origin-badge {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--hybrid-purple);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 12px;
+    opacity: 0;
+    animation: badge-pop 350ms ease-out 200ms forwards;
+  }
+  @keyframes badge-pop {
+    0% { opacity: 0; transform: translate(-50%, -8px) scale(0.9); }
+    100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  }
+
+  /* ──────────── Flow panel ──────────── */
+  .flow-panel {
+    max-width: 420px;
+    background: white;
+    border: 1.5px solid var(--ink);
+    border-radius: 14px;
+    padding: 16px 18px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .flow-panel h3 {
+    font-family: 'Caveat', cursive;
+    font-size: 24px;
+    margin-bottom: 4px;
+  }
+  .flow-panel .tag {
+    display: inline-block;
+    background: var(--hybrid-purple);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .step-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-top: 10px;
+    padding-left: 4px;
+  }
+  .step-num {
+    width: 22px; height: 22px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--cream-deep);
+    border: 1.5px solid var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .step-text { flex: 1; padding-top: 2px; }
+  .step-text strong { color: var(--ink); }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  .controls button {
+    appearance: none;
+    border: 2px solid var(--ink);
+    background: var(--cream);
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 14px;
+    border-radius: 18px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .controls button:hover { background: var(--cream-deep); }
+  .controls button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+</style>
+</head>
+<body>
+
+  <div class="phone-frame">
+    <!-- SCENE 1: PROFILE ROOT -->
+    <div class="scene active" data-scene="profile">
+      <div class="status-bar"><span>9:41</span><span>•••</span></div>
+      <div class="profile-content">
+        <div class="avatar-frame"><div class="avatar">🐶</div></div>
+        <div class="display-name">Rohit S.</div>
+
+        <div class="sticker-row">
+          <div class="row-sticker tappable" data-action="trophy-from-row">
+            <img src="assets/stickers/multi_pup_parent@3x.png" alt="">
+          </div>
+          <div class="row-sticker tappable" data-action="trophy-from-row">
+            <img src="assets/stickers/tender_caretaker@3x.png" alt="">
+          </div>
+          <div class="row-sticker tappable" data-action="trophy-from-row">
+            <img src="assets/stickers/pattern_spotter@3x.png" alt="">
+          </div>
+        </div>
+
+        <div class="nav-stack">
+          <div class="nav-row"><span class="icon">👤</span>My Information<span class="chev">›</span></div>
+          <div class="nav-row"><span class="icon">💳</span>My Subscription<span class="chev">›</span></div>
+          <div class="nav-row"><span class="icon">⚙️</span>Settings<span class="chev">›</span></div>
+        </div>
+
+        <button class="logout-pill">Log Out</button>
+      </div>
+    </div>
+
+    <!-- SCENE 2: GRID SHEET -->
+    <div class="scene" data-scene="grid">
+      <div class="status-bar"><span>9:41</span><span>•••</span></div>
+      <div class="grid-scene-wrap">
+        <div class="grid-header">
+          <div class="title">My Stickers</div>
+          <div class="close" data-action="grid-close">×</div>
+        </div>
+        <div class="sticker-grid">
+          <div class="grid-cell" data-action="trophy-from-grid"><img src="assets/stickers/welcome@3x.png" alt=""></div>
+          <div class="grid-cell" data-action="trophy-from-grid"><img src="assets/stickers/multi_pup_parent@3x.png" alt=""></div>
+          <div class="grid-cell" data-action="trophy-from-grid"><img src="assets/stickers/tender_caretaker@3x.png" alt=""></div>
+          <div class="grid-cell" data-action="trophy-from-grid"><img src="assets/stickers/pattern_spotter@3x.png" alt=""></div>
+          <div class="grid-cell" data-action="trophy-from-grid"><img src="assets/stickers/first_peony@3x.png" alt=""></div>
+          <div class="grid-cell" data-action="trophy-from-grid"><img src="assets/stickers/bouquet_of_joy@3x.png" alt=""></div>
+          <div class="grid-cell" data-action="trophy-from-grid"><img src="assets/stickers/full_spectrum@3x.png" alt=""></div>
+          <div class="grid-cell" data-action="trophy-from-grid"><img src="assets/stickers/bloom_master@3x.png" alt=""></div>
+          <div class="grid-cell" data-action="trophy-from-grid"><img src="assets/stickers/seasonal_spring@3x.png" alt=""></div>
+          <div class="grid-cell locked"><div class="placeholder">?</div></div>
+          <div class="grid-cell locked"><div class="placeholder">?</div></div>
+          <div class="grid-cell locked"><div class="placeholder">?</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCENE 3: TROPHY DETAIL (from row, dismiss → grid) -->
+    <div class="scene" data-scene="trophy-from-row">
+      <div class="trophy-overlay" data-action="trophy-dismiss-to-grid">
+        <div class="origin-badge">From row → returns to grid</div>
+        <img class="trophy-art" src="assets/stickers/multi_pup_parent@3x.png" alt="">
+        <div class="trophy-title">Multi-Pup Parent</div>
+        <div class="trophy-desc">More than one heart on your collar — caring for two dogs takes a special kind of attention.</div>
+        <div class="trophy-earned">Bloomed · May 4, 2026</div>
+        <div class="trophy-hint">Tap anywhere — opens to grid</div>
+      </div>
+    </div>
+
+    <!-- SCENE 4: TROPHY DETAIL (from grid) -->
+    <div class="scene" data-scene="trophy-from-grid">
+      <div class="trophy-overlay" data-action="trophy-dismiss-to-grid">
+        <div class="origin-badge">From grid → returns to grid</div>
+        <img class="trophy-art" src="assets/stickers/welcome@3x.png" alt="">
+        <div class="trophy-title">Welcome</div>
+        <div class="trophy-desc">You opened your journal for the very first time. Every garden starts with a single page.</div>
+        <div class="trophy-earned">Bloomed · May 9, 2026</div>
+        <div class="trophy-hint">Tap anywhere to return to grid</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="reset" class="primary">↺ Reset to profile</button>
+  </div>
+
+  <div class="flow-panel">
+    <span class="tag">Pattern C · Hybrid</span>
+    <h3>Both entry points open the trophy, always land on grid</h3>
+    <p style="margin-top: 6px; color: var(--ink-soft);">Combines A's quick-access with B's canonical grid. Trophy is reachable from both surfaces; dismissing always lands on the grid as a discovery surface.</p>
+
+    <div class="step-row">
+      <div class="step-num">1</div>
+      <div class="step-text"><strong>Profile root.</strong> Tap top-3 sticker → trophy detail opens directly (matched-position from profile row).</div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">2</div>
+      <div class="step-text"><strong>Trophy detail.</strong> Tap to dismiss → opens grid (not the profile root) — grid is the orientation surface.</div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div class="step-text"><strong>Grid view.</strong> Tap any sticker → trophy detail (matched-position from grid cell). Dismiss returns to grid.</div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">4</div>
+      <div class="step-text"><strong>Close grid (X).</strong> Returns to profile.</div>
+    </div>
+
+    <p style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--grid-border); color: var(--ink-soft); font-size: 12px;">
+      <strong>Tradeoffs:</strong> Quick path from top-3 (one tap to trophy), but the grid becomes the always-on dismiss target. May surprise users who expected "back to profile" after dismiss from a row-launched trophy. Two origin sources to wire (row + grid). Always-to-grid dismiss makes the grid feel like a discovery hub.
+    </p>
+  </div>
+
+<script>
+  const scenes = document.querySelectorAll('.scene');
+  const state = { current: 'profile' };
+
+  function show(name) {
+    scenes.forEach(s => s.classList.toggle('active', s.dataset.scene === name));
+    state.current = name;
+  }
+
+  function navigate(action) {
+    if (action === 'trophy-from-row') {
+      show('trophy-from-row');
+    } else if (action === 'trophy-from-grid') {
+      show('trophy-from-grid');
+    } else if (action === 'trophy-dismiss-to-grid') {
+      show('grid');
+    } else if (action === 'grid-close') {
+      show('profile');
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    e.stopPropagation();
+    navigate(el.dataset.action);
+  });
+
+  document.getElementById('reset').addEventListener('click', () => {
+    show('profile');
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PupLog — Trophy Flow Pattern D (Customizable Featured)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Nunito:wght@400;500;600;700;800&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #3E2723;
+    --ink-soft: #6D5D54;
+    --ink-tertiary: #8D7E76;
+    --cream: #FAF6EE;
+    --cream-deep: #F2E9D9;
+    --warm-overlay: rgba(250, 246, 238, 0.97);
+    --accent: #FF6F00;
+    --accent-soft: rgba(255, 111, 0, 0.14);
+    --grid-bg: #FAFAFA;
+    --grid-border: #E8E0DC;
+    --tile: #FFFFFF;
+    --wood-light: #C9A063;
+    --wood-dark: #5A4524;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: #E8E0DC;
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    color: var(--ink);
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .phone-frame {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    border-radius: 40px;
+    overflow: hidden;
+    background: var(--cream);
+    box-shadow:
+      0 0 0 2px #1a1a1a,
+      0 20px 60px rgba(0,0,0,0.3),
+      0 0 0 14px #2a2a2a;
+    isolation: isolate;
+  }
+  .status-bar {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    flex-shrink: 0;
+  }
+
+  .scene { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .scene.active { display: flex; }
+
+  /* ──────────── PROFILE ROOT ──────────── */
+  .profile-content {
+    flex: 1;
+    padding: 14px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .avatar-frame { position: relative; width: 104px; height: 104px; margin-top: 12px; }
+  .avatar-frame::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 6px solid;
+    border-color: #8b6c3e #6a4a22 #4a311a #7c5a30;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, var(--wood-light), var(--wood-dark));
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15), inset 0 0 6px rgba(0,0,0,0.35);
+  }
+  .avatar-frame .avatar {
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFCC80, #FFB74D);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 38px;
+  }
+  .display-name {
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--ink);
+  }
+
+  /* Featured row */
+  .featured-row-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+  .featured-row {
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .row-sticker {
+    width: 64px;
+    height: 64px;
+    cursor: pointer;
+    transition: transform 180ms ease;
+    position: relative;
+  }
+  .row-sticker:hover { transform: scale(1.08); }
+  .row-sticker img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    transform: scale(1.3);
+  }
+  .row-actions {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    font-size: 12px;
+    color: var(--ink-tertiary);
+    font-weight: 600;
+  }
+  .row-actions .sep {
+    width: 1px;
+    height: 12px;
+    background: var(--ink-tertiary);
+    opacity: 0.3;
+  }
+  .row-actions a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: background 120ms ease;
+  }
+  .row-actions a:hover { background: var(--cream-deep); }
+  .row-actions a.customize {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .row-actions a.customize::before {
+    content: '★ ';
+  }
+
+  .nav-stack {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .nav-row {
+    background: var(--tile);
+    border: 1.5px solid var(--ink);
+    border-radius: 18px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .nav-row .icon {
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .nav-row .chev {
+    margin-left: auto;
+    color: var(--ink-tertiary);
+    font-size: 14px;
+  }
+  .logout-pill {
+    margin-top: 10px;
+    align-self: center;
+    padding: 10px 28px;
+    background: transparent;
+    border: 2.5px solid var(--ink);
+    color: var(--ink);
+    border-radius: 22px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  /* ──────────── GRID SHEET (browse) ──────────── */
+  .grid-scene-wrap {
+    flex: 1;
+    padding: 14px 24px 24px;
+    overflow: auto;
+  }
+  .grid-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .grid-header .title {
+    font-family: 'Caveat', cursive;
+    font-size: 32px;
+    color: var(--ink);
+  }
+  .grid-header .close {
+    width: 32px; height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border-radius: 16px;
+  }
+  .grid-header .close:hover { background: var(--cream-deep); }
+  .grid-subtitle {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 16px;
+  }
+  .sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .grid-cell {
+    aspect-ratio: 1;
+    background: var(--tile);
+    border: 1.5px solid var(--grid-border);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    cursor: pointer;
+    transition: transform 140ms ease, border-color 140ms ease;
+    position: relative;
+  }
+  .grid-cell:hover { transform: scale(1.03); border-color: var(--accent); }
+  .grid-cell.featured {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .grid-cell.featured::after {
+    content: '★';
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .grid-cell.locked {
+    opacity: 0.35;
+    background: #F4EFEA;
+    cursor: default;
+  }
+  .grid-cell.locked:hover { transform: none; border-color: var(--grid-border); }
+  .grid-cell img { width: 105%; height: 105%; object-fit: contain; }
+  .grid-cell .placeholder {
+    font-family: 'Caveat', cursive;
+    font-size: 38px;
+    color: var(--ink-tertiary);
+  }
+
+  /* ──────────── PICKER (Customize) ──────────── */
+  .picker-header {
+    padding: 14px 24px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .picker-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .picker-topbar .cancel {
+    font-size: 14px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-weight: 600;
+  }
+  .picker-topbar .done {
+    font-size: 14px;
+    color: var(--accent);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-weight: 800;
+  }
+  .picker-topbar .done.disabled {
+    color: var(--ink-tertiary);
+    pointer-events: none;
+    opacity: 0.5;
+  }
+  .picker-title {
+    font-family: 'Caveat', cursive;
+    font-size: 30px;
+    color: var(--ink);
+    line-height: 1.05;
+  }
+  .picker-subtitle {
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .picker-counter {
+    display: inline-block;
+    margin-top: 4px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 800;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    letter-spacing: 0.4px;
+  }
+
+  .picker-grid-wrap {
+    flex: 1;
+    padding: 18px 24px 24px;
+    overflow: auto;
+  }
+  .picker-cell {
+    aspect-ratio: 1;
+    background: var(--tile);
+    border: 2px solid var(--grid-border);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    cursor: pointer;
+    transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    position: relative;
+  }
+  .picker-cell:hover { transform: scale(1.03); }
+  .picker-cell.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .picker-cell.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    width: 18px;
+    height: 18px;
+    background: var(--accent);
+    color: white;
+    font-size: 12px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  .picker-cell.locked {
+    opacity: 0.35;
+    background: #F4EFEA;
+    cursor: default;
+  }
+  .picker-cell.locked:hover { transform: none; }
+  .picker-cell img { width: 105%; height: 105%; object-fit: contain; }
+  .picker-cell .placeholder {
+    font-family: 'Caveat', cursive;
+    font-size: 38px;
+    color: var(--ink-tertiary);
+  }
+
+  /* Inline toast for "max 3 selected" feedback */
+  .picker-toast {
+    position: absolute;
+    bottom: 30px;
+    left: 24px; right: 24px;
+    background: var(--ink);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+    transition: opacity 200ms ease, transform 200ms ease;
+  }
+  .picker-toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ──────────── TROPHY DETAIL (pure — no buttons) ──────────── */
+  .trophy-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--warm-overlay);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 168px;
+    cursor: pointer;
+  }
+  .scene.active .trophy-overlay { animation: fade-in 380ms ease-out both; }
+  @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+  .trophy-art {
+    width: 215px; height: 215px;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 16px rgba(62, 39, 35, 0.18));
+    animation: gentle-float 3000ms ease-in-out infinite;
+  }
+  @keyframes gentle-float {
+    0%, 100% { transform: translateY(-2px) scale(0.99); }
+    50%      { transform: translateY(2px) scale(1.02); }
+  }
+  .trophy-title {
+    margin-top: 56px;
+    font-family: 'Caveat', cursive;
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .trophy-desc {
+    margin-top: 22px;
+    max-width: 280px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    text-align: center;
+    line-height: 1.45;
+    font-weight: 500;
+  }
+  .trophy-earned {
+    position: absolute;
+    bottom: 90px;
+    font-family: 'Patrick Hand', cursive;
+    font-size: 14px;
+    color: var(--ink-tertiary);
+    letter-spacing: 0.4px;
+  }
+  .trophy-hint {
+    position: absolute;
+    bottom: 36px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+    opacity: 0.5;
+  }
+  /* Featured indicator (subtle, top-right of artwork) */
+  .featured-badge {
+    position: absolute;
+    top: 100px;
+    right: 60px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.18);
+  }
+
+  /* ──────────── Flow panel ──────────── */
+  .flow-panel {
+    max-width: 420px;
+    background: white;
+    border: 1.5px solid var(--ink);
+    border-radius: 14px;
+    padding: 16px 18px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .flow-panel h3 {
+    font-family: 'Caveat', cursive;
+    font-size: 24px;
+    margin-bottom: 4px;
+  }
+  .flow-panel .tag {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .step-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-top: 10px;
+    padding-left: 4px;
+  }
+  .step-num {
+    width: 22px; height: 22px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--cream-deep);
+    border: 1.5px solid var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .step-text { flex: 1; padding-top: 2px; }
+  .step-text strong { color: var(--ink); }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  .controls button {
+    appearance: none;
+    border: 2px solid var(--ink);
+    background: var(--cream);
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 14px;
+    border-radius: 18px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .controls button:hover { background: var(--cream-deep); }
+  .controls button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+</style>
+</head>
+<body>
+
+  <div class="phone-frame">
+    <!-- SCENE 1: PROFILE ROOT (with Customize action) -->
+    <div class="scene active" data-scene="profile">
+      <div class="status-bar"><span>9:41</span><span>•••</span></div>
+      <div class="profile-content">
+        <div class="avatar-frame"><div class="avatar">🐶</div></div>
+        <div class="display-name">Rohit S.</div>
+
+        <div class="featured-row-wrap">
+          <div class="featured-row" id="featured-row">
+            <!-- Filled by JS from state.featured -->
+          </div>
+          <div class="row-actions">
+            <a data-action="view-all">View all 12 →</a>
+            <span class="sep"></span>
+            <a class="customize" data-action="open-picker">Customize</a>
+          </div>
+        </div>
+
+        <div class="nav-stack">
+          <div class="nav-row"><span class="icon">👤</span>My Information<span class="chev">›</span></div>
+          <div class="nav-row"><span class="icon">💳</span>My Subscription<span class="chev">›</span></div>
+          <div class="nav-row"><span class="icon">⚙️</span>Settings<span class="chev">›</span></div>
+        </div>
+
+        <button class="logout-pill">Log Out</button>
+      </div>
+    </div>
+
+    <!-- SCENE 2: PICKER (Customize) -->
+    <div class="scene" data-scene="picker">
+      <div class="status-bar"><span>9:41</span><span>•••</span></div>
+      <div class="picker-header">
+        <div class="picker-topbar">
+          <span class="cancel" data-action="picker-cancel">Cancel</span>
+          <span class="done" id="picker-done" data-action="picker-done">Done</span>
+        </div>
+        <div class="picker-title">Pick your favorites</div>
+        <div class="picker-subtitle">Choose up to 3 stickers to feature on your profile.</div>
+        <div><span class="picker-counter" id="picker-counter">0 of 3 selected</span></div>
+      </div>
+      <div class="picker-grid-wrap">
+        <div class="sticker-grid" id="picker-grid">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+      <div class="picker-toast" id="picker-toast">You've already picked 3. Tap a selected sticker to swap.</div>
+    </div>
+
+    <!-- SCENE 3: GRID SHEET (browse, with featured highlighted) -->
+    <div class="scene" data-scene="grid">
+      <div class="status-bar"><span>9:41</span><span>•••</span></div>
+      <div class="grid-scene-wrap">
+        <div class="grid-header">
+          <div class="title">My Stickers</div>
+          <div class="close" data-action="grid-close">×</div>
+        </div>
+        <div class="grid-subtitle">9 of 12 bloomed. ★ Featured on your profile.</div>
+        <div class="sticker-grid" id="browse-grid">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- SCENE 4: TROPHY DETAIL -->
+    <div class="scene" data-scene="trophy">
+      <div class="trophy-overlay" data-action="trophy-dismiss">
+        <img class="trophy-art" id="trophy-art" src="assets/stickers/welcome@3x.png" alt="">
+        <div class="featured-badge" id="featured-badge" style="display:none">★</div>
+        <div class="trophy-title" id="trophy-title">Welcome</div>
+        <div class="trophy-desc" id="trophy-desc">You opened your journal for the very first time. Every garden starts with a single page.</div>
+        <div class="trophy-earned" id="trophy-earned">Bloomed · May 9, 2026</div>
+        <div class="trophy-hint">Tap anywhere to close</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="reset" class="primary">↺ Reset to profile</button>
+  </div>
+
+  <div class="flow-panel">
+    <span class="tag">Pattern D · A + Customizable</span>
+    <h3>Direct-to-trophy, with an explicit Customize picker</h3>
+    <p style="margin-top: 6px; color: var(--ink-soft);">Pattern A's nav (row → trophy, "View all" → grid) plus a dedicated picker screen for choosing the featured 3. No hidden gestures, trophy view stays pure.</p>
+
+    <div class="step-row">
+      <div class="step-num">1</div>
+      <div class="step-text"><strong>Profile root.</strong> Featured row + two actions: "View all 12 →" (opens grid) and "★ Customize" (opens picker).</div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">2</div>
+      <div class="step-text"><strong>Tap a featured sticker.</strong> Trophy detail opens directly (matched-position translate from row position).</div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div class="step-text"><strong>Tap "★ Customize".</strong> Opens a dedicated picker screen. Tap-toggle pattern, max 3 selected. Counter shows progress. "Done" saves; "Cancel" reverts.</div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">4</div>
+      <div class="step-text"><strong>Tap "View all 12".</strong> Browse mode. Featured stickers show a ★ corner badge and tinted background. Tap any earned sticker → trophy detail.</div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">5</div>
+      <div class="step-text"><strong>Trophy detail (pure).</strong> Zero buttons. Tap anywhere to dismiss. If sticker is currently featured, a small ★ badge appears in the upper-right of the artwork.</div>
+    </div>
+
+    <p style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--grid-border); color: var(--ink-soft); font-size: 12px;">
+      <strong>Why this works:</strong> Customization is its own action, discoverable from the very surface where the featured stickers live. Trophy stays pure (matches Option 1's "zero buttons" spec). No long-press required. Picker is a familiar tap-toggle pattern any iOS user knows from Photos / Home Screen reorder.
+    </p>
+  </div>
+
+<script>
+  // ── State ──
+  const ALL_STICKERS = [
+    { id: 'welcome',          title: 'Welcome',          desc: 'You opened your journal for the very first time. Every garden starts with a single page.', date: 'May 9, 2026', earned: true },
+    { id: 'multi_pup_parent', title: 'Multi-Pup Parent', desc: 'More than one heart on your collar — caring for two dogs takes a special kind of attention.', date: 'May 4, 2026', earned: true },
+    { id: 'tender_caretaker', title: 'Tender Caretaker', desc: 'Present when it mattered most. You logged through the harder days.', date: 'May 2, 2026', earned: true },
+    { id: 'pattern_spotter',  title: 'Pattern Spotter',  desc: 'You noticed the trend before anyone else. Sharp eyes.', date: 'Apr 28, 2026', earned: true },
+    { id: 'first_peony',      title: 'First Peony',      desc: 'Your first bloom. The garden begins here.', date: 'Apr 25, 2026', earned: true },
+    { id: 'bouquet_of_joy',   title: 'Bouquet of Joy',   desc: 'A whole arrangement of good days, gathered carefully.', date: 'Apr 22, 2026', earned: true },
+    { id: 'full_spectrum',    title: 'Full Spectrum',    desc: 'Every color in the garden. The full story, told.', date: 'Apr 18, 2026', earned: true },
+    { id: 'bloom_master',     title: 'Bloom Master',     desc: 'The whole garden listens to you. A true gardener.', date: 'Apr 14, 2026', earned: true },
+    { id: 'seasonal_spring',  title: 'Spring Bloom',     desc: 'The first warm season of your journey.', date: 'Apr 1, 2026', earned: true },
+    { id: 'seasonal_fall',    title: 'Fall Harvest',     desc: 'Pressed when you log through three autumn days.', date: null, earned: false },
+    { id: 'seasonal_winter',  title: 'Winter Resilience',desc: 'Pressed when you log through three winter days.', date: null, earned: false },
+    { id: 'seasonal_summer',  title: 'Summer Sunlight',  desc: 'Pressed when you log through three summer days.', date: null, earned: false },
+  ];
+
+  const state = {
+    featured: ['multi_pup_parent', 'tender_caretaker', 'pattern_spotter'], // initial 3
+    pickerDraft: [],
+    currentTrophy: null,
+  };
+
+  // ── Renderers ──
+  function renderFeaturedRow() {
+    const row = document.getElementById('featured-row');
+    row.innerHTML = '';
+    state.featured.forEach((id) => {
+      const s = ALL_STICKERS.find(x => x.id === id);
+      const el = document.createElement('div');
+      el.className = 'row-sticker';
+      el.dataset.action = 'open-trophy';
+      el.dataset.sticker = id;
+      el.innerHTML = `<img src="assets/stickers/${id}@3x.png" alt="${s.title}">`;
+      row.appendChild(el);
+    });
+  }
+
+  function renderBrowseGrid() {
+    const grid = document.getElementById('browse-grid');
+    grid.innerHTML = '';
+    ALL_STICKERS.forEach((s) => {
+      const el = document.createElement('div');
+      const featured = state.featured.includes(s.id);
+      el.className = 'grid-cell' + (s.earned ? '' : ' locked') + (featured ? ' featured' : '');
+      if (s.earned) {
+        el.dataset.action = 'open-trophy';
+        el.dataset.sticker = s.id;
+        el.innerHTML = `<img src="assets/stickers/${s.id}@3x.png" alt="${s.title}">`;
+      } else {
+        el.innerHTML = `<div class="placeholder">?</div>`;
+      }
+      grid.appendChild(el);
+    });
+  }
+
+  function renderPickerGrid() {
+    const grid = document.getElementById('picker-grid');
+    grid.innerHTML = '';
+    ALL_STICKERS.forEach((s) => {
+      const el = document.createElement('div');
+      const selected = state.pickerDraft.includes(s.id);
+      el.className = 'picker-cell' + (s.earned ? '' : ' locked') + (selected ? ' selected' : '');
+      if (s.earned) {
+        el.dataset.action = 'picker-toggle';
+        el.dataset.sticker = s.id;
+        el.innerHTML = `<img src="assets/stickers/${s.id}@3x.png" alt="${s.title}">`;
+      } else {
+        el.innerHTML = `<div class="placeholder">?</div>`;
+      }
+      grid.appendChild(el);
+    });
+    updatePickerCounter();
+  }
+
+  function updatePickerCounter() {
+    const counter = document.getElementById('picker-counter');
+    const done = document.getElementById('picker-done');
+    counter.textContent = `${state.pickerDraft.length} of 3 selected`;
+    if (state.pickerDraft.length === 3) {
+      done.classList.remove('disabled');
+    } else {
+      done.classList.add('disabled');
+    }
+  }
+
+  function showPickerToast(msg) {
+    const t = document.getElementById('picker-toast');
+    t.textContent = msg;
+    t.classList.add('visible');
+    setTimeout(() => t.classList.remove('visible'), 1800);
+  }
+
+  function renderTrophy(stickerId) {
+    const s = ALL_STICKERS.find(x => x.id === stickerId);
+    document.getElementById('trophy-art').src = `assets/stickers/${s.id}@3x.png`;
+    document.getElementById('trophy-title').textContent = s.title;
+    document.getElementById('trophy-desc').textContent = s.desc;
+    document.getElementById('trophy-earned').textContent = s.date ? `Bloomed · ${s.date}` : "Not yet bloomed";
+    const badge = document.getElementById('featured-badge');
+    badge.style.display = state.featured.includes(stickerId) ? 'flex' : 'none';
+    state.currentTrophy = stickerId;
+  }
+
+  // ── Navigation ──
+  function show(name) {
+    document.querySelectorAll('.scene').forEach(s => {
+      s.classList.toggle('active', s.dataset.scene === name);
+    });
+  }
+
+  function navigate(action, el) {
+    switch (action) {
+      case 'view-all':
+        renderBrowseGrid();
+        show('grid');
+        break;
+      case 'open-picker':
+        state.pickerDraft = [...state.featured];
+        renderPickerGrid();
+        show('picker');
+        break;
+      case 'picker-cancel':
+        show('profile');
+        break;
+      case 'picker-done':
+        if (state.pickerDraft.length !== 3) return;
+        state.featured = [...state.pickerDraft];
+        renderFeaturedRow();
+        show('profile');
+        break;
+      case 'picker-toggle': {
+        const id = el.dataset.sticker;
+        if (state.pickerDraft.includes(id)) {
+          state.pickerDraft = state.pickerDraft.filter(x => x !== id);
+        } else {
+          if (state.pickerDraft.length >= 3) {
+            showPickerToast("You've already picked 3. Tap a selected sticker to swap.");
+            return;
+          }
+          state.pickerDraft = [...state.pickerDraft, id];
+        }
+        renderPickerGrid();
+        break;
+      }
+      case 'open-trophy':
+        renderTrophy(el.dataset.sticker);
+        show('trophy');
+        break;
+      case 'trophy-dismiss':
+        // Return to whichever was previous — for simplicity, go back to profile or grid
+        // (We could track history; for the mockup, we'll send to profile.)
+        show('profile');
+        break;
+      case 'grid-close':
+        show('profile');
+        break;
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    e.stopPropagation();
+    navigate(el.dataset.action, el);
+  });
+
+  document.getElementById('reset').addEventListener('click', () => {
+    state.featured = ['multi_pup_parent', 'tender_caretaker', 'pattern_spotter'];
+    renderFeaturedRow();
+    show('profile');
+  });
+
+  // ── Boot ──
+  renderFeaturedRow();
+</script>
+
+</body>
+</html>
