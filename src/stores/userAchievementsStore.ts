@@ -65,6 +65,14 @@ interface UserAchievementsState {
    * immediately, fire-and-forget DB write.
    */
   unsetFeatured: (stickerId: StickerId) => Promise<void>;
+
+  /**
+   * Pattern E PR 1: finds the slot containing oldStickerId, replaces it with
+   * newStickerId, and persists the updated featuredIds array to
+   * user_profiles.featured_stickers. No-op if oldStickerId is not in any slot.
+   * Optimistic: updates local state immediately, fire-and-forget DB write.
+   */
+  swapFeatured: (oldStickerId: StickerId, newStickerId: StickerId) => Promise<void>;
 }
 
 // ─── Initial state helper ─────────────────────────────────────────────────────
@@ -236,6 +244,27 @@ export const useUserAchievementsStore = create<UserAchievementsState>((set, get)
 
     const next: FeaturedSlots = [...featuredIds] as FeaturedSlots;
     next[slotIdx] = null;
+    set({ featuredIds: next });
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase
+        .from('user_profiles')
+        .update({ featured_stickers: next })
+        .eq('user_id', user.id);
+    } catch {
+      // Silent
+    }
+  },
+
+  swapFeatured: async (oldId, newId) => {
+    const { featuredIds } = get();
+    const slotIdx = featuredIds.indexOf(oldId);
+    if (slotIdx === -1) return;  // no-op if old not present
+
+    const next: FeaturedSlots = [...featuredIds] as FeaturedSlots;
+    next[slotIdx] = newId;
     set({ featuredIds: next });
 
     try {

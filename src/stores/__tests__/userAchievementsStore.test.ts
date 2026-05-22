@@ -353,3 +353,24 @@ it('15. unsetFeatured for id not in any slot is a no-op', async () => {
 
   expect(useUserAchievementsStore.getState().featuredIds).toEqual(['welcome', null, null]);
 });
+
+// ─── 16. swapFeatured removes oldId and inserts newId in its slot ──────────────
+
+it('16. swapFeatured removes oldId and inserts newId in its slot', async () => {
+  mockAuthUser();
+  mockSupabase.from = jest.fn(() => ({
+    update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+  }));
+
+  useUserAchievementsStore.setState({
+    featuredIds: ['welcome', 'multi_pup_parent', 'pattern_spotter'],
+  });
+
+  await useUserAchievementsStore.getState().swapFeatured('multi_pup_parent', 'tender_caretaker');
+
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual([
+    'welcome',
+    'tender_caretaker',
+    'pattern_spotter',
+  ]);
+});
