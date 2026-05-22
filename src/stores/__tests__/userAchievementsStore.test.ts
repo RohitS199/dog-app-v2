@@ -292,3 +292,34 @@ it('20. initial featuredIds is [null, null, null]', () => {
   const state = useUserAchievementsStore.getState();
   expect(state.featuredIds).toEqual([null, null, null]);
 });
+
+// ─── 21. setFeatured fills slot and persists ──────────────────────────────────
+
+it('12. setFeatured fills the specified slot and persists to Supabase', async () => {
+  mockAuthUser();
+
+  const updateMock = jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) }));
+  mockSupabase.from = jest.fn(() => ({ update: updateMock }));
+
+  await useUserAchievementsStore.getState().setFeatured(0, 'welcome');
+
+  const state = useUserAchievementsStore.getState();
+  expect(state.featuredIds).toEqual(['welcome', null, null]);
+  expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles');
+  expect(updateMock).toHaveBeenCalledWith({ featured_stickers: ['welcome', null, null] });
+});
+
+// ─── 22. setFeatured replaces existing value ──────────────────────────────────
+
+it('13. setFeatured replaces existing value in the slot', async () => {
+  mockAuthUser();
+  mockSupabase.from = jest.fn(() => ({
+    update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+  }));
+
+  useUserAchievementsStore.setState({ featuredIds: ['welcome', null, null] });
+
+  await useUserAchievementsStore.getState().setFeatured(0, 'multi_pup_parent');
+
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual(['multi_pup_parent', null, null]);
+});

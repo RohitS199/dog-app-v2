@@ -50,6 +50,13 @@ interface UserAchievementsState {
    * Resets to initial state (call on sign-out, mirrors clearProfile pattern).
    */
   clearAchievements: () => void;
+
+  /**
+   * Pattern E PR 1: fills the specified slot (0|1|2) with stickerId, then
+   * persists the new featuredIds array to user_profiles.featured_stickers.
+   * Optimistic: updates local state immediately, fire-and-forget DB write.
+   */
+  setFeatured: (slotIndex: 0 | 1 | 2, stickerId: StickerId) => Promise<void>;
 }
 
 // ─── Initial state helper ─────────────────────────────────────────────────────
@@ -193,5 +200,24 @@ export const useUserAchievementsStore = create<UserAchievementsState>((set, get)
       seasonalCheckedThisSession: false,
       featuredIds: [null, null, null],
     });
+  },
+
+  setFeatured: async (slotIndex, stickerId) => {
+    const { featuredIds } = get();
+    const next: FeaturedSlots = [...featuredIds] as FeaturedSlots;
+    next[slotIndex] = stickerId;
+    set({ featuredIds: next });
+
+    // Persist to DB (optimistic — DB error doesn't roll back local state)
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase
+        .from('user_profiles')
+        .update({ featured_stickers: next })
+        .eq('user_id', user.id);
+    } catch {
+      // Silent — local state is source of truth in PR 1; PR 3 adds reconciliation
+    }
   },
 }));
