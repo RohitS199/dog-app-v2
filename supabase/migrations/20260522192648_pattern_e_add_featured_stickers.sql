@@ -4,9 +4,10 @@
 -- Length must be 3. Each element is a sticker_id string or null.
 
 ALTER TABLE public.user_profiles
-  ADD COLUMN IF NOT EXISTS featured_stickers JSONB DEFAULT '[null, null, null]'::jsonb;
+  ADD COLUMN IF NOT EXISTS featured_stickers JSONB NOT NULL DEFAULT '[null, null, null]'::jsonb;
 
--- Length sanity (advisory — JSONB lets you violate this, so client enforces too).
+-- Length sanity: TS tuple type FeaturedSlots enforces 3 slots on the client;
+-- this CHECK enforces it on the server.
 ALTER TABLE public.user_profiles
   DROP CONSTRAINT IF EXISTS user_profiles_featured_stickers_length_check;
 ALTER TABLE public.user_profiles
