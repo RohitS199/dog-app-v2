@@ -57,6 +57,14 @@ interface UserAchievementsState {
    * Optimistic: updates local state immediately, fire-and-forget DB write.
    */
   setFeatured: (slotIndex: 0 | 1 | 2, stickerId: StickerId) => Promise<void>;
+
+  /**
+   * Pattern E PR 1: finds the slot containing stickerId, nulls it out, and
+   * persists the updated featuredIds array to user_profiles.featured_stickers.
+   * No-op if stickerId is not in any slot. Optimistic: updates local state
+   * immediately, fire-and-forget DB write.
+   */
+  unsetFeatured: (stickerId: StickerId) => Promise<void>;
 }
 
 // ─── Initial state helper ─────────────────────────────────────────────────────
@@ -218,6 +226,27 @@ export const useUserAchievementsStore = create<UserAchievementsState>((set, get)
         .eq('user_id', user.id);
     } catch {
       // Silent — local state is source of truth in PR 1; PR 3 adds reconciliation
+    }
+  },
+
+  unsetFeatured: async (stickerId) => {
+    const { featuredIds } = get();
+    const slotIdx = featuredIds.indexOf(stickerId);
+    if (slotIdx === -1) return;  // no-op
+
+    const next: FeaturedSlots = [...featuredIds] as FeaturedSlots;
+    next[slotIdx] = null;
+    set({ featuredIds: next });
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase
+        .from('user_profiles')
+        .update({ featured_stickers: next })
+        .eq('user_id', user.id);
+    } catch {
+      // Silent
     }
   },
 }));

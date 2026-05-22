@@ -323,3 +323,33 @@ it('13. setFeatured replaces existing value in the slot', async () => {
 
   expect(useUserAchievementsStore.getState().featuredIds).toEqual(['multi_pup_parent', null, null]);
 });
+
+// ─── 14. unsetFeatured nulls out the slot containing the given id ─────────────
+
+it('14. unsetFeatured nulls out the slot containing the given id and persists', async () => {
+  mockAuthUser();
+  mockSupabase.from = jest.fn(() => ({
+    update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+  }));
+
+  useUserAchievementsStore.setState({ featuredIds: ['welcome', 'multi_pup_parent', null] });
+
+  await useUserAchievementsStore.getState().unsetFeatured('welcome');
+
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual([null, 'multi_pup_parent', null]);
+});
+
+// ─── 15. unsetFeatured for id not in any slot is a no-op ────────────────────
+
+it('15. unsetFeatured for id not in any slot is a no-op', async () => {
+  mockAuthUser();
+  mockSupabase.from = jest.fn(() => ({
+    update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+  }));
+
+  useUserAchievementsStore.setState({ featuredIds: ['welcome', null, null] });
+
+  await useUserAchievementsStore.getState().unsetFeatured('multi_pup_parent');
+
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual(['welcome', null, null]);
+});
