@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { useUserAchievementsStore, FeaturedSlots } from './userAchievementsStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -130,6 +131,11 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         isLoading: false,
         error: null,
       });
+
+      // Pattern E PR 1: hydrate featured slots into achievements store
+      useUserAchievementsStore.getState().hydrateFeatured(
+        (profileRow?.featured_stickers as FeaturedSlots | null) ?? null,
+      );
     } catch (err) {
       set({
         isLoading: false,
@@ -243,6 +249,7 @@ interface UserProfileRow {
   birthday: string | null;
   location: string | null;
   avatar_url: string | null;
+  featured_stickers: FeaturedSlots | null;
   created_at?: string;
   updated_at?: string;
 }
