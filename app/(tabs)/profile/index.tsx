@@ -20,7 +20,7 @@ import { NavButton } from '../../../src/components/profile/NavButton';
 import { PillButton } from '../../../src/components/profile/PillButton';
 import { LogOutModal } from '../../../src/components/profile/LogOutModal';
 import { StickerCollection } from '../../../src/components/profile/stickers/StickerCollection';
-import { StickerDetailContent } from '../../../src/components/profile/stickers/StickerDetailContent';
+import { TrophyDetailView } from '../../../src/components/profile/stickers/TrophyDetailView';
 import { StickerEarnCelebration } from '../../../src/components/profile/stickers/StickerEarnCelebration';
 import { STICKERS, type StickerId } from '../../../src/constants/achievements';
 import {
@@ -59,6 +59,7 @@ export default function ProfileScreen() {
   const loadProfile = useProfileStore((s) => s.loadFromAuthAndProfile);
   const earnedIds = useUserAchievementsStore((s) => s.earnedIds);
   const earnedRecords = useUserAchievementsStore((s) => s.earnedRecords);
+  const featuredIds = useUserAchievementsStore((s) => s.featuredIds);
 
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [stickerSheetOpen, setStickerSheetOpen] = useState(false);
@@ -106,6 +107,8 @@ export default function ProfileScreen() {
       : null;
   const selectedEarnedAt = selectedEarnedRecord?.earned_at ?? null;
   const selectedEarned = !!selectedEarnedRecord;
+  const selectedFeatured =
+    selectedStickerId != null && featuredIds.includes(selectedStickerId);
 
   async function handleConfirmLogout() {
     setLogoutModalOpen(false);
@@ -227,14 +230,13 @@ export default function ProfileScreen() {
             accessibilityRole="button"
           />
           {selectedSticker ? (
-            <View style={styles.detailWrap} pointerEvents="box-none">
-              <StickerDetailContent
-                sticker={selectedSticker}
-                earned={selectedEarned}
-                earnedAt={selectedEarnedAt}
-                onClose={handleDetailClose}
-              />
-            </View>
+            <TrophyDetailView
+              sticker={selectedSticker}
+              earned={selectedEarned}
+              featured={selectedFeatured}
+              earnedAt={selectedEarnedAt}
+              onDismiss={handleDetailClose}
+            />
           ) : (
             <View style={styles.modalSheet}>
               <View style={styles.modalHeader}>
@@ -312,11 +314,6 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-  },
-  detailWrap: {
-    // Center the detail card in the lower half (matches StickerDetailSheet's
-    // standalone presentation feel — bottom-pinned but slightly inset).
-    paddingHorizontal: 0,
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
