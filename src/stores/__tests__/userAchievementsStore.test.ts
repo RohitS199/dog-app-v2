@@ -1,4 +1,4 @@
-import { useUserAchievementsStore } from '../userAchievementsStore';
+import { useUserAchievementsStore, FeaturedSlots } from '../userAchievementsStore';
 import { supabase } from '../../lib/supabase';
 
 // Cast supabase to any for mock access
@@ -11,6 +11,7 @@ const initialState = {
   error: null,
   lastEarned: null,
   seasonalCheckedThisSession: false,
+  featuredIds: [null, null, null] as FeaturedSlots,
 };
 
 beforeEach(() => {
@@ -147,6 +148,7 @@ it('6. checkSeasonal does not invoke edge function when seasonal sticker already
     error: null,
     lastEarned: null,
     seasonalCheckedThisSession: false,
+    featuredIds: [null, null, null],
   });
 
   const invokeMock = jest.fn();
@@ -245,6 +247,7 @@ it('9. clearLastEarned sets lastEarned to null without touching other state', ()
     error: null,
     lastEarned: 'welcome',
     seasonalCheckedThisSession: true,
+    featuredIds: [null, null, null],
   });
 
   useUserAchievementsStore.getState().clearLastEarned();
@@ -269,6 +272,7 @@ it('10. clearAchievements resets all state to initial values', () => {
     error: 'some error',
     lastEarned: 'welcome',
     seasonalCheckedThisSession: true,
+    featuredIds: [null, null, null],
   });
 
   useUserAchievementsStore.getState().clearAchievements();
@@ -280,4 +284,11 @@ it('10. clearAchievements resets all state to initial values', () => {
   expect(state.error).toBeNull();
   expect(state.lastEarned).toBeNull();
   expect(state.seasonalCheckedThisSession).toBe(false);
+});
+
+// ─── Featured slots (Pattern E PR 1) ───────────────────────────────────────
+
+it('20. initial featuredIds is [null, null, null]', () => {
+  const state = useUserAchievementsStore.getState();
+  expect(state.featuredIds).toEqual([null, null, null]);
 });

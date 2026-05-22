@@ -10,6 +10,8 @@ type EarnedRecord = {
   metadata: unknown | null;
 };
 
+export type FeaturedSlots = [StickerId | null, StickerId | null, StickerId | null];
+
 interface UserAchievementsState {
   earnedIds: Set<StickerId>;
   earnedRecords: EarnedRecord[];
@@ -17,6 +19,7 @@ interface UserAchievementsState {
   error: string | null;
   lastEarned: StickerId | null;   // celebration trigger; cleared by clearLastEarned
   seasonalCheckedThisSession: boolean;
+  featuredIds: FeaturedSlots;
 
   /**
    * Reads the user_achievements table for the current auth user.
@@ -58,6 +61,7 @@ const INITIAL_STATE = {
   error: null,
   lastEarned: null,
   seasonalCheckedThisSession: false,
+  featuredIds: [null, null, null] as FeaturedSlots,
 };
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -187,6 +191,7 @@ export const useUserAchievementsStore = create<UserAchievementsState>((set, get)
       error: null,
       lastEarned: null,
       seasonalCheckedThisSession: false,
+      featuredIds: [null, null, null],
     });
   },
 }));
