@@ -96,8 +96,11 @@ export function StickerCollection(props: StickerCollectionProps) {
       {allStickers.map((sticker) => {
         const isFeatured = featuredSet.has(sticker.id);
         const isEarned = earnedIds.has(sticker.id);
-        // In picker mode, locked stickers are NOT pickable (visual-only).
-        const isPickable = variant === 'picker' ? isEarned : true;
+        // In picker mode, only earned + NOT-already-featured stickers are
+        // pickable. Featured ones still show with their orange star badge so
+        // the user can see why they can't be picked again. Locked are also
+        // non-pickable since they aren't earned yet.
+        const isPickable = variant === 'picker' ? (isEarned && !isFeatured) : true;
         return (
           <View key={sticker.id} style={styles.gridCell}>
             <Pressable

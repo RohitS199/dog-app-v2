@@ -324,6 +324,43 @@ it('13. setFeatured replaces existing value in the slot', async () => {
   expect(useUserAchievementsStore.getState().featuredIds).toEqual(['multi_pup_parent', null, null]);
 });
 
+// ─── 13b. setFeatured atomic move when target sticker already in another slot ─
+
+it('13b. setFeatured moves the sticker if it is already in another slot (no duplicates)', async () => {
+  mockAuthUser();
+  mockSupabase.from = jest.fn(() => ({
+    update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+  }));
+
+  // welcome is in slot 0; user picks welcome again for slot 2 (e.g. via picker
+  // without slot-context). Expected: slot 0 clears, slot 2 holds welcome.
+  useUserAchievementsStore.setState({
+    featuredIds: ['welcome', 'pattern_spotter', null],
+  });
+
+  await useUserAchievementsStore.getState().setFeatured(2, 'welcome');
+
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual([
+    null,
+    'pattern_spotter',
+    'welcome',
+  ]);
+});
+
+it('13c. setFeatured is a no-op when stickerId is already in the target slot', async () => {
+  mockAuthUser();
+  mockSupabase.from = jest.fn(() => ({
+    update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+  }));
+
+  useUserAchievementsStore.setState({ featuredIds: ['welcome', null, null] });
+
+  await useUserAchievementsStore.getState().setFeatured(0, 'welcome');
+
+  // No null gap should appear in slot 0 - the value stays in place
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual(['welcome', null, null]);
+});
+
 // ─── 14. unsetFeatured nulls out the slot containing the given id ─────────────
 
 it('14. unsetFeatured nulls out the slot containing the given id and persists', async () => {
@@ -394,6 +431,29 @@ it('17. hydrateFeatured replaces local state without DB write', () => {
 it('18. hydrateFeatured falls back to [null, null, null] when given null', () => {
   useUserAchievementsStore.getState().hydrateFeatured(null);
   expect(useUserAchievementsStore.getState().featuredIds).toEqual([null, null, null]);
+});
+
+// ─── 18b. hydrateFeatured dedupes - duplicate sticker ids in input become null ─
+
+it('18b. hydrateFeatured dedupes duplicate sticker ids (first occurrence kept)', () => {
+  mockAuthUser();
+  mockSupabase.from = jest.fn(() => ({
+    update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+  }));
+
+  // Simulates the pre-fix bug state: same sticker id in slots 1 and 2
+  useUserAchievementsStore.getState().hydrateFeatured([
+    'welcome',
+    'seasonal_spring',
+    'seasonal_spring',
+  ]);
+
+  // First occurrence kept (slot 1), later duplicate (slot 2) becomes null
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual([
+    'welcome',
+    'seasonal_spring',
+    null,
+  ]);
 });
 
 // ─── 19. computeAutoFill fills empty slots when totalEarned <= 3 ──────────────

@@ -198,6 +198,29 @@ describe('StickerCollection — grid variants (sheet/picker/browse)', () => {
     expect(earnedTile.props.accessibilityState).toEqual({ disabled: false });
   });
 
+  it('picker variant: ALREADY-FEATURED tiles are not pickable (prevents dupes)', () => {
+    const onPress = jest.fn();
+    // welcome is both earned AND already in featuredIds
+    const featured: FeaturedSlots = ['welcome', null, null];
+    const { getByTestId } = render(
+      <StickerCollection
+        variant="picker"
+        featuredIds={featured}
+        earnedIds={new Set<StickerId>(['welcome', 'pattern_spotter'])}
+        onPressSticker={onPress}
+      />,
+    );
+
+    // welcome is already featured -> NOT pickable (would create a duplicate)
+    const featuredTile = getByTestId('sticker-tile-welcome');
+    expect(featuredTile.props.accessibilityState).toEqual({ disabled: true });
+    expect(getByTestId('featured-badge-welcome')).toBeTruthy();
+
+    // pattern_spotter is earned and NOT featured -> pickable
+    const pickableTile = getByTestId('sticker-tile-pattern_spotter');
+    expect(pickableTile.props.accessibilityState).toEqual({ disabled: false });
+  });
+
   it('browse variant: all tiles are tappable regardless of earned state', () => {
     const onPress = jest.fn();
     const { getByTestId } = render(
