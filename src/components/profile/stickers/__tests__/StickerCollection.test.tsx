@@ -1,106 +1,216 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
+
+// Local reanimated mock - EmptySlotMount (rendered by profile-row) uses
+// withRepeat/withSequence which the global mock in jest.setup.js lacks.
+jest.mock('react-native-reanimated', () => {
+  const ReactInner = require('react');
+  const { View } = require('react-native');
+
+  const AnimatedView = ReactInner.forwardRef((props: unknown, ref: unknown) =>
+    ReactInner.createElement(View, { ...(props as object), ref })
+  );
+
+  const noopEasing = (v: number) => v;
+  const noopEasingFn = () => noopEasing;
+
+  return {
+    __esModule: true,
+    default: {
+      View: AnimatedView,
+      createAnimatedComponent: (component: unknown) => component,
+    },
+    useSharedValue: (init: unknown) => ({ value: init }),
+    useAnimatedStyle: (fn: () => object) => fn(),
+    useReducedMotion: () => false,
+    withTiming: (toValue: unknown) => toValue,
+    withSpring: (toValue: unknown) => toValue,
+    withSequence: (...values: unknown[]) => values[values.length - 1],
+    withRepeat: (value: unknown) => value,
+    withDelay: (_delay: unknown, value: unknown) => value,
+    runOnJS: (fn: (...args: unknown[]) => unknown) => fn,
+    Easing: {
+      linear: noopEasing,
+      ease: noopEasing,
+      bezier: noopEasingFn,
+      inOut: noopEasingFn,
+      in: noopEasingFn,
+      out: noopEasingFn,
+      cubic: noopEasing,
+    },
+    Extrapolation: { CLAMP: 'clamp' },
+  };
+});
+
 import { StickerCollection } from '../StickerCollection';
-import { STICKER_IDS, StickerId, topThreeForRow, STICKERS } from '../../../../constants/achievements';
+import { StickerId, STICKERS } from '../../../../constants/achievements';
+import type { FeaturedSlots } from '../../../../stores/userAchievementsStore';
 
-describe('StickerCollection', () => {
-  // 1. profile-row renders exactly 3 stickers
-  it('1. profile-row renders exactly 3 stickers', () => {
-    const { getAllByRole } = render(
-      <StickerCollection variant="profile-row" earnedIds={new Set()} />
+const EMPTY_SLOTS: FeaturedSlots = [null, null, null];
+
+describe('StickerCollection — profile-row variant', () => {
+  it('renders 3 empty mounts when featuredIds is all nulls', () => {
+    const { getAllByLabelText } = render(
+      <StickerCollection
+        variant="profile-row"
+        featuredIds={EMPTY_SLOTS}
+        earnedIds={new Set()}
+        onPressFilledSlot={jest.fn()}
+        onPressEmptySlot={jest.fn()}
+        onPressViewAll={jest.fn()}
+      />,
     );
-    // Each StickerCard is a Pressable with role=button
-    const buttons = getAllByRole('button');
-    expect(buttons).toHaveLength(3);
+    const mounts = getAllByLabelText('Empty featured sticker slot. Tap to feature a sticker.');
+    expect(mounts).toHaveLength(3);
   });
 
-  // 2. sheet renders all 12 stickers
-  it('2. sheet renders all 12 stickers', () => {
-    const { getAllByRole } = render(
-      <StickerCollection variant="sheet" earnedIds={new Set()} />
+  it('renders 2 filled stickers + 1 empty mount when featuredIds has one null', () => {
+    const featured: FeaturedSlots = ['welcome', 'pattern_spotter', null];
+    const { getAllByLabelText, getByLabelText } = render(
+      <StickerCollection
+        variant="profile-row"
+        featuredIds={featured}
+        earnedIds={new Set<StickerId>(['welcome', 'pattern_spotter'])}
+        onPressFilledSlot={jest.fn()}
+        onPressEmptySlot={jest.fn()}
+        onPressViewAll={jest.fn()}
+      />,
     );
-    const buttons = getAllByRole('button');
-    expect(buttons).toHaveLength(12);
+    expect(getByLabelText('Welcome to PupLog sticker, earned')).toBeTruthy();
+    expect(getByLabelText('Pattern Spotter sticker, earned')).toBeTruthy();
+    expect(getAllByLabelText('Empty featured sticker slot. Tap to feature a sticker.')).toHaveLength(1);
   });
 
-  // 3. profile-row with no earned: top 3 by sort are lowest heroWeight
-  it('3. profile-row with no earned: top 3 ids match topThreeForRow(emptySet, false)', () => {
-    const { getAllByRole } = render(
-      <StickerCollection variant="profile-row" earnedIds={new Set()} />
-    );
-    const buttons = getAllByRole('button');
-    const renderedLabels = buttons.map((b) => b.props.accessibilityLabel as string);
-
-    // Use the actual helper (FLOWERS_ENABLED=false) to compute expected top 3
-    const expected = topThreeForRow(new Set(), false).map(
-      (s) => `${s.title} sticker, locked`
-    );
-    // Render order should match sort order
-    expect(renderedLabels).toEqual(expected);
-  });
-
-  // 4. profile-row with welcome earned: welcome sticker is in the top 3
-  it('4. profile-row with welcome earned: welcome appears in top 3', () => {
-    const earnedIds = new Set<StickerId>(['welcome']);
-    const { getAllByRole } = render(
-      <StickerCollection variant="profile-row" earnedIds={earnedIds} />
-    );
-    const buttons = getAllByRole('button');
-    const labels = buttons.map((b) => b.props.accessibilityLabel as string);
-    const hasWelcome = labels.some((l) => l.includes('Welcome to PupLog'));
-    expect(hasWelcome).toBe(true);
-  });
-
-  // 5. profile-row with FLOWERS_ENABLED=false filters out flower-gated stickers
-  it('5. profile-row with no earned does not render flower-gated sticker titles', () => {
-    const { queryByLabelText } = render(
-      <StickerCollection variant="profile-row" earnedIds={new Set()} />
-    );
-    // flower-gated stickers should not appear in profile-row when flowers disabled
-    const flowerGated = Object.values(STICKERS).filter(
-      (s) => s.enabledWhen === 'flowers_shipped'
-    );
-    flowerGated.forEach((s) => {
-      expect(queryByLabelText(`${s.title} sticker, locked`)).toBeNull();
-      expect(queryByLabelText(`${s.title} sticker, earned`)).toBeNull();
-    });
-  });
-
-  // 6. sheet includes flower-gated stickers (renders all 11 regardless)
-  it('6. sheet renders flower-gated stickers too', () => {
-    const { getAllByRole } = render(
-      <StickerCollection variant="sheet" earnedIds={new Set()} />
-    );
-    const buttons = getAllByRole('button');
-    const labels = buttons.map((b) => b.props.accessibilityLabel as string);
-    // first_peony is flower-gated — must appear in sheet
-    const hasPeony = labels.some((l) => l.includes('First Peony'));
-    expect(hasPeony).toBe(true);
-  });
-
-  // 7. onPressSticker fires with the correct id on tap
-  it('7. onPressSticker fires with correct sticker id', () => {
-    const onPress = jest.fn();
-    const earnedIds = new Set<StickerId>(['welcome']);
-    // Use sheet so we can reliably find a specific sticker
+  it('onPressFilledSlot fires with the sticker id when a filled slot is tapped', () => {
+    const onPressFilled = jest.fn();
+    const featured: FeaturedSlots = ['welcome', null, null];
     const { getByLabelText } = render(
-      <StickerCollection variant="sheet" earnedIds={earnedIds} onPressSticker={onPress} />
+      <StickerCollection
+        variant="profile-row"
+        featuredIds={featured}
+        earnedIds={new Set<StickerId>(['welcome'])}
+        onPressFilledSlot={onPressFilled}
+        onPressEmptySlot={jest.fn()}
+        onPressViewAll={jest.fn()}
+      />,
     );
     fireEvent.press(getByLabelText('Welcome to PupLog sticker, earned'));
+    expect(onPressFilled).toHaveBeenCalledWith('welcome');
+  });
+
+  it('onPressEmptySlot fires with the correct slot index', () => {
+    const onPressEmpty = jest.fn();
+    const { getAllByTestId } = render(
+      <StickerCollection
+        variant="profile-row"
+        featuredIds={EMPTY_SLOTS}
+        earnedIds={new Set()}
+        onPressFilledSlot={jest.fn()}
+        onPressEmptySlot={onPressEmpty}
+        onPressViewAll={jest.fn()}
+      />,
+    );
+    const mounts = getAllByTestId('empty-slot-mount');
+    fireEvent.press(mounts[1]);
+    expect(onPressEmpty).toHaveBeenCalledWith(1);
+  });
+
+  it('renders "View all 12 stickers" link and fires onPressViewAll when tapped', () => {
+    const onPressViewAll = jest.fn();
+    const { getByTestId } = render(
+      <StickerCollection
+        variant="profile-row"
+        featuredIds={EMPTY_SLOTS}
+        earnedIds={new Set()}
+        onPressFilledSlot={jest.fn()}
+        onPressEmptySlot={jest.fn()}
+        onPressViewAll={onPressViewAll}
+      />,
+    );
+    const link = getByTestId('view-all-stickers');
+    expect(link.props.accessibilityLabel).toBe('View all 12 stickers');
+    fireEvent.press(link);
+    expect(onPressViewAll).toHaveBeenCalled();
+  });
+});
+
+describe('StickerCollection — grid variants (sheet/picker/browse)', () => {
+  it('sheet renders all 12 sticker tiles', () => {
+    const { getAllByTestId } = render(
+      <StickerCollection
+        variant="sheet"
+        featuredIds={EMPTY_SLOTS}
+        earnedIds={new Set()}
+        onPressSticker={jest.fn()}
+      />,
+    );
+    // testID prefix "sticker-tile-" on each tile
+    const tiles = Object.values(STICKERS).map((s) =>
+      getAllByTestId(`sticker-tile-${s.id}`),
+    );
+    expect(tiles.flat()).toHaveLength(12);
+  });
+
+  it('featured tile has the orange star badge', () => {
+    const featured: FeaturedSlots = ['welcome', null, null];
+    const { getByTestId, queryByTestId } = render(
+      <StickerCollection
+        variant="sheet"
+        featuredIds={featured}
+        earnedIds={new Set<StickerId>(['welcome'])}
+        onPressSticker={jest.fn()}
+      />,
+    );
+    expect(getByTestId('featured-badge-welcome')).toBeTruthy();
+    expect(queryByTestId('featured-badge-pattern_spotter')).toBeNull();
+  });
+
+  it('onPressSticker fires with the sticker id when a tile is tapped (sheet)', () => {
+    const onPress = jest.fn();
+    const { getByTestId } = render(
+      <StickerCollection
+        variant="sheet"
+        featuredIds={EMPTY_SLOTS}
+        earnedIds={new Set<StickerId>(['welcome'])}
+        onPressSticker={onPress}
+      />,
+    );
+    fireEvent.press(getByTestId('sticker-tile-welcome'));
     expect(onPress).toHaveBeenCalledWith('welcome');
   });
 
-  // 8. Rotation is deterministic — same sticker always has the same rotation
-  it('8. rotation is deterministic across renders (same sticker.id = same rotation)', () => {
-    const { getAllByRole: getFirst } = render(
-      <StickerCollection variant="sheet" earnedIds={new Set()} />
+  it('picker variant: locked sticker tiles are not pickable (accessibilityState.disabled = true)', () => {
+    const onPress = jest.fn();
+    const { getByTestId } = render(
+      <StickerCollection
+        variant="picker"
+        featuredIds={EMPTY_SLOTS}
+        earnedIds={new Set<StickerId>(['welcome'])}
+        onPressSticker={onPress}
+      />,
     );
-    const { getAllByRole: getSecond } = render(
-      <StickerCollection variant="sheet" earnedIds={new Set()} />
+    // seasonal_fall is locked
+    const lockedTile = getByTestId('sticker-tile-seasonal_fall');
+    expect(lockedTile.props.accessibilityState).toEqual({ disabled: true });
+
+    // welcome is earned, should be pickable
+    const earnedTile = getByTestId('sticker-tile-welcome');
+    expect(earnedTile.props.accessibilityState).toEqual({ disabled: false });
+  });
+
+  it('browse variant: all tiles are tappable regardless of earned state', () => {
+    const onPress = jest.fn();
+    const { getByTestId } = render(
+      <StickerCollection
+        variant="browse"
+        featuredIds={EMPTY_SLOTS}
+        earnedIds={new Set<StickerId>(['welcome'])}
+        onPressSticker={onPress}
+      />,
     );
-    const labelsFirst = getFirst('button').map((b) => b.props.accessibilityLabel);
-    const labelsSecond = getSecond('button').map((b) => b.props.accessibilityLabel);
-    // Same labels in same order — rotation is from sticker.rotation constant
-    expect(labelsFirst).toEqual(labelsSecond);
+    const lockedTile = getByTestId('sticker-tile-seasonal_fall');
+    expect(lockedTile.props.accessibilityState).toEqual({ disabled: false });
+    fireEvent.press(lockedTile);
+    expect(onPress).toHaveBeenCalledWith('seasonal_fall');
   });
 });
