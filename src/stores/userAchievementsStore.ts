@@ -145,7 +145,40 @@ export const useUserAchievementsStore = create<UserAchievementsState>((set, get)
         metadata: r.metadata,
       }));
 
-      set({ earnedIds, earnedRecords, isLoading: false, error: null });
+      // Pattern E auto-fill (PR 2): while totalEarned <= 3, fill any empty
+      // featured slot with the earned stickers. Skips when user has > 3
+      // earns - at that point the user is in manual control.
+      const { featuredIds: currentFeatured, computeAutoFill } = get();
+      const earnedIdsArray = rows
+        .map((r) => r.sticker_id as StickerId)
+        // Process in earned_at ascending so the OLDEST earns get slot priority,
+        // matching the user's mental model of "first earned, first featured".
+        .reverse();
+      const nextFeatured = computeAutoFill(currentFeatured, earnedIdsArray);
+      const featuredChanged =
+        nextFeatured[0] !== currentFeatured[0] ||
+        nextFeatured[1] !== currentFeatured[1] ||
+        nextFeatured[2] !== currentFeatured[2];
+
+      set({
+        earnedIds,
+        earnedRecords,
+        isLoading: false,
+        error: null,
+        ...(featuredChanged ? { featuredIds: nextFeatured } : {}),
+      });
+
+      // Persist auto-filled slots to user_profiles (fire-and-forget).
+      if (featuredChanged) {
+        try {
+          await supabase
+            .from('user_profiles')
+            .update({ featured_stickers: nextFeatured })
+            .eq('user_id', user.id);
+        } catch {
+          // Silent - local state already updated optimistically
+        }
+      }
     } catch (err) {
       set({
         isLoading: false,
