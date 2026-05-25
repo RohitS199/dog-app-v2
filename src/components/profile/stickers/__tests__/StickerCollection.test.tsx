@@ -151,7 +151,7 @@ describe('StickerCollection — grid variants (sheet/picker/browse)', () => {
     expect(tiles.flat()).toHaveLength(12);
   });
 
-  it('featured tile has the orange star badge', () => {
+  it('featured tile has the star badge', () => {
     const featured: FeaturedSlots = ['welcome', null, null];
     const { getByTestId, queryByTestId } = render(
       <StickerCollection

@@ -122,7 +122,7 @@ export function StickerCollection(props: StickerCollectionProps) {
               <StickerCard sticker={sticker} earned={isEarned} size={72} />
               {isFeatured && (
                 <View style={styles.featuredBadge} testID={`featured-badge-${sticker.id}`}>
-                  <Star size={14} color="#FFFFFF" />
+                  <Star size={14} color={OB_COLORS.cream} />
                 </View>
               )}
             </Pressable>
@@ -182,9 +182,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   tileFeatured: {
-    backgroundColor: 'rgba(255, 111, 0, 0.10)',
+    // OB_COLORS.featuredBlue (#3F6E8F) at 10% / 45% — matches the Featured
+    // ribbon stamp palette landed in ba0c091.
+    backgroundColor: 'rgba(63, 110, 143, 0.10)',
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 111, 0, 0.45)',
+    borderColor: 'rgba(63, 110, 143, 0.45)',
   },
   featuredBadge: {
     position: 'absolute',
@@ -193,7 +195,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#FF6F00',
+    backgroundColor: OB_COLORS.featuredBlue,
     alignItems: 'center',
     justifyContent: 'center',
   },
