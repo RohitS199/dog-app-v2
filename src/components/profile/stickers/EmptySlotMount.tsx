@@ -18,6 +18,11 @@ export type EmptySlotMountProps = {
 
 const CONTAINER = 74;
 const RING = 64;
+// Match StickerCard's STICKER_VISUAL_SCALE so the empty mount reads as
+// the same visible footprint as a filled sticker (filled stickers scale
+// their artwork 1.3x via transform — without this, the empty slot looks
+// ~25% smaller than its neighbors in the row).
+const RING_SCALE = 1.3;
 const SLOT_OUTLINE = '#9F8E7A';
 const INNER_OUTLINE = 'rgba(159, 142, 122, 0.35)';
 
@@ -46,8 +51,8 @@ export function EmptySlotMount({ onPress }: EmptySlotMountProps) {
   }, [reducedMotion, breathe]);
 
   const breatheStyle = useAnimatedStyle(() => {
-    // gentle 1.0 -> 1.03 scale
-    const scale = 1 + breathe.value * 0.03;
+    // gentle breathe centered on RING_SCALE (1.3 -> 1.339 -> 1.3)
+    const scale = RING_SCALE * (1 + breathe.value * 0.03);
     return { transform: [{ scale }] };
   });
 
