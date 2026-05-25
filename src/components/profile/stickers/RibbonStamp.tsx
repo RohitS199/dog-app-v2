@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { OB_COLORS, OB_FONTS } from '../../../constants/onboardingTheme';
 import { COPY } from '../../../constants/profileCopy';
+import { Star } from './Star';
 
 export type RibbonState = 'featured' | 'unfeatured' | 'locked';
 export type RibbonSize = 'large' | 'small';
@@ -42,7 +43,7 @@ export function RibbonStamp({ state, tilt, size = 'large', onPress }: RibbonStam
           width: dim,
           height: dim,
           borderRadius: dim / 2,
-          backgroundColor: isFeatured ? OB_COLORS.peach : OB_COLORS.cream,
+          backgroundColor: isFeatured ? OB_COLORS.featuredBlue : OB_COLORS.cream,
           borderWidth: isFeatured ? 0 : 2,
           borderStyle: isFeatured ? 'solid' : 'dashed',
           borderColor: OB_COLORS.sketch,
@@ -51,18 +52,12 @@ export function RibbonStamp({ state, tilt, size = 'large', onPress }: RibbonStam
       ]}
     >
       <View style={styles.inner}>
-        <Text
-          style={[
-            styles.star,
-            {
-              fontSize: STAR_SIZES[size],
-              color: isFeatured ? OB_COLORS.cream : OB_COLORS.sketch,
-              opacity: isFeatured ? 1 : 0.6,
-            },
-          ]}
-        >
-          *
-        </Text>
+        <View style={{ opacity: isFeatured ? 1 : 0.6 }}>
+          <Star
+            size={STAR_SIZES[size]}
+            color={isFeatured ? OB_COLORS.cream : OB_COLORS.sketch}
+          />
+        </View>
         {LABEL_SIZES[size] > 0 ? (
           <Text
             style={[
@@ -90,10 +85,6 @@ const styles = StyleSheet.create({
   inner: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  star: {
-    fontFamily: OB_FONTS.h1,
-    fontWeight: '700',
   },
   label: {
     fontFamily: OB_FONTS.body,

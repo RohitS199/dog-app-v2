@@ -5,6 +5,7 @@ import { OB_COLORS, OB_FONTS } from '../../../constants/onboardingTheme';
 import { COPY } from '../../../constants/profileCopy';
 import type { FeaturedSlots } from '../../../stores/userAchievementsStore';
 import { EmptySlotMount } from './EmptySlotMount';
+import { Star } from './Star';
 import { StickerCard } from './StickerCard';
 
 // Vertical stagger per slot for scrapbook feel (HANDOFF section 4.2)
@@ -121,7 +122,7 @@ export function StickerCollection(props: StickerCollectionProps) {
               <StickerCard sticker={sticker} earned={isEarned} size={72} />
               {isFeatured && (
                 <View style={styles.featuredBadge} testID={`featured-badge-${sticker.id}`}>
-                  <Text style={styles.featuredBadgeStar}>{'*'}</Text>
+                  <Star size={14} color="#FFFFFF" />
                 </View>
               )}
             </Pressable>
@@ -195,11 +196,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF6F00',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  featuredBadgeStar: {
-    fontFamily: OB_FONTS.h1,
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '700',
   },
 });
