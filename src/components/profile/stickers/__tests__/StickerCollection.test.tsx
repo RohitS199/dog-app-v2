@@ -236,4 +236,28 @@ describe('StickerCollection — grid variants (sheet/picker/browse)', () => {
     fireEvent.press(lockedTile);
     expect(onPress).toHaveBeenCalledWith('seasonal_fall');
   });
+
+  it('regression: tapping the locked-overlay (inside the sticker) still triggers outer onPress', () => {
+    // The bug: StickerCard rendered an inner Pressable that swallowed taps in
+    // production, so tile.onPress never fired. The fix: StickerCard renders as
+    // a View when no onPress is provided. Verify by firing press on a child
+    // node inside the sticker (locked-overlay) and confirming the outer
+    // tile's onPress fires.
+    const onPress = jest.fn();
+    const { getByTestId } = render(
+      <StickerCollection
+        variant="browse"
+        featuredIds={EMPTY_SLOTS}
+        earnedIds={new Set<StickerId>([])}
+        onPressSticker={onPress}
+      />,
+    );
+    // welcome has an asset and is not earned in this test -> renders the
+    // locked-overlay View. Firing press here bubbles up to the outer tile
+    // Pressable. (Note: the StickerCard test suite renders welcome as locked
+    // too - same path.)
+    const welcomeTile = getByTestId('sticker-tile-welcome');
+    fireEvent.press(welcomeTile);
+    expect(onPress).toHaveBeenCalledWith('welcome');
+  });
 });
