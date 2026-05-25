@@ -113,4 +113,18 @@ describe('TrophyDetailView', () => {
     fireEvent.press(getByTestId('trophy-backdrop'));
     expect(baseProps.onDismiss).toHaveBeenCalled();
   });
+
+  it('shows "Coming soon" stamp for locked sticker with no artwork yet', () => {
+    const { getByText, queryByText } = render(
+      <TrophyDetailView
+        {...baseProps}
+        sticker={STICKERS.seasonal_fall}
+        earned={false}
+        featured={false}
+        earnedAt={null}
+      />,
+    );
+    expect(getByText(COPY.STICKER_COMING_SOON)).toBeTruthy();
+    expect(queryByText(COPY.STICKER_NOT_YET_BLOOMED)).toBeNull();
+  });
 });

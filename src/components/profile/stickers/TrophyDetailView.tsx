@@ -102,7 +102,9 @@ export function TrophyDetailView({
 
   const stampText = earned && earnedAt
     ? COPY.STICKER_EARNED_BLOOM_PREFIX + formatBloomedDate(earnedAt)
-    : COPY.STICKER_NOT_YET_BLOOMED;
+    : asset === null
+      ? COPY.STICKER_COMING_SOON
+      : COPY.STICKER_NOT_YET_BLOOMED;
 
   return (
     <Animated.View style={[styles.root, backdropStyle]}>
