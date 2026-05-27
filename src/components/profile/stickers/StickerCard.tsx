@@ -34,11 +34,33 @@ export function StickerCard({ sticker, earned, onPress, size = 56 }: StickerCard
   const asset = STICKER_ASSETS[sticker.id];
   const radius = Math.round(size * 0.2);
 
+  // When used standalone (onPress provided), render as a Pressable so it's
+  // tappable. When used inside another tappable wrapper (no onPress) - e.g.
+  // grid tiles in StickerCollection, swap panel tiles - render as a plain
+  // View so the wrapper's Pressable can capture the tap. Nested Pressables
+  // would let the inner one swallow taps that the outer needed.
+  const isInteractive = onPress !== undefined;
+  const Container = isInteractive ? Pressable : View;
+  const a11yLabel = `${sticker.title} sticker, ${earned ? 'earned' : 'locked'}`;
+  // Keep the a11y label in both modes so screen readers always describe the
+  // sticker. The button role is reserved for the interactive (Pressable)
+  // variant so non-interactive renders don't promise something they can't
+  // deliver. The grid tile wrapper appends ", featured on your profile" via
+  // its own accessibilityLabel - duplication is acceptable since RN's screen
+  // reader uses the closest accessible ancestor by default.
+  const containerProps = isInteractive
+    ? {
+        onPress,
+        accessibilityRole: 'button' as const,
+        accessibilityLabel: a11yLabel,
+      }
+    : {
+        accessibilityLabel: a11yLabel,
+      };
+
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${sticker.title} sticker, ${earned ? 'earned' : 'locked'}`}
+    <Container
+      {...containerProps}
       style={[
         styles.outer,
         { width: size, height: size, transform: [{ rotate: `${sticker.rotation}deg` }] },
@@ -106,7 +128,7 @@ export function StickerCard({ sticker, earned, onPress, size = 56 }: StickerCard
           </Text>
         </View>
       )}
-    </Pressable>
+    </Container>
   );
 }
 

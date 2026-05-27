@@ -21,8 +21,9 @@ import { PillButton } from '../../../src/components/profile/PillButton';
 import { LogOutModal } from '../../../src/components/profile/LogOutModal';
 import { StickerCollection } from '../../../src/components/profile/stickers/StickerCollection';
 import { TrophyDetailView } from '../../../src/components/profile/stickers/TrophyDetailView';
+import { SwapPanel } from '../../../src/components/profile/stickers/SwapPanel';
 import { StickerEarnCelebration } from '../../../src/components/profile/stickers/StickerEarnCelebration';
-import { STICKERS, type StickerId } from '../../../src/constants/achievements';
+import { STICKER_IDS, STICKERS, type StickerId } from '../../../src/constants/achievements';
 import {
   PersonIcon,
   CardGlyph,
@@ -51,6 +52,20 @@ export function computeDisplayName(
   return `${first} ${last[0]}.`;
 }
 
+// Pattern E modal state machine. Discriminated union — see HANDOFF section 4.1
+// for the navigation flow rules. picker(slot) and browse share the grid sheet
+// chrome; trophy is the full-screen Pressed Flower Specimen overlay; swap is
+// the slide-up panel that appears over the trophy when slots are full.
+type TrophySource = 'row' | 'browse' | 'picker';
+type ModalMode =
+  | { kind: 'closed' }
+  | { kind: 'browse' }
+  | { kind: 'picker'; slotIndex: 0 | 1 | 2 }
+  | { kind: 'trophy'; stickerId: StickerId; source: TrophySource }
+  | { kind: 'swap'; stickerId: StickerId; source: TrophySource };
+
+const TOAST_DURATION_MS = 1500;
+
 export default function ProfileScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
@@ -60,10 +75,26 @@ export default function ProfileScreen() {
   const earnedIds = useUserAchievementsStore((s) => s.earnedIds);
   const earnedRecords = useUserAchievementsStore((s) => s.earnedRecords);
   const featuredIds = useUserAchievementsStore((s) => s.featuredIds);
+  const setFeatured = useUserAchievementsStore((s) => s.setFeatured);
+  const unsetFeatured = useUserAchievementsStore((s) => s.unsetFeatured);
+  const swapFeatured = useUserAchievementsStore((s) => s.swapFeatured);
 
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
-  const [stickerSheetOpen, setStickerSheetOpen] = useState(false);
-  const [selectedStickerId, setSelectedStickerId] = useState<StickerId | null>(null);
+  const [modalMode, setModalMode] = useState<ModalMode>({ kind: 'closed' });
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Auto-clear toast after TOAST_DURATION_MS
+  useEffect(() => {
+    if (!toastMessage) return;
+    const id = setTimeout(() => setToastMessage(null), TOAST_DURATION_MS);
+    return () => clearTimeout(id);
+  }, [toastMessage]);
+
+  function showToast(message: string) {
+    // Reset by clearing first, then setting, so back-to-back toasts re-trigger the timer
+    setToastMessage(null);
+    setTimeout(() => setToastMessage(message), 16);
+  }
 
   // Fetch profile (avatar + saved fields) on mount. Achievement state is
   // hydrated by the post-auth fetch in app/(tabs)/_layout.tsx.
@@ -77,38 +108,96 @@ export default function ProfileScreen() {
     (user?.user_metadata as { last_name?: string } | undefined)?.last_name ?? null;
   const displayName = computeDisplayName(firstName, lastName);
 
-  // Single Modal with content switching:
-  //   - Tap row sticker → opens the Modal showing the grid (all 11)
-  //   - Tap a sticker in the grid → swaps content to the detail card
-  //     (no second Modal — iOS only supports one at a time)
-  //   - Close detail → swaps content back to the grid
-  //   - Close (X button on grid, backdrop tap, hardware back) → closes Modal entirely
-  function handleRowStickerPress() {
-    setStickerSheetOpen(true);
-    setSelectedStickerId(null);
-  }
-  function handleSheetStickerPress(id: StickerId) {
-    setSelectedStickerId(id);
-  }
-  function handleDetailClose() {
-    // Return to the grid view; Modal stays open
-    setSelectedStickerId(null);
-  }
-  function handleModalClose() {
-    // Tear down both layers
-    setSelectedStickerId(null);
-    setStickerSheetOpen(false);
+  // ---- modal handlers ----
+
+  function handleRowFilledPress(id: StickerId) {
+    setModalMode({ kind: 'trophy', stickerId: id, source: 'row' });
   }
 
-  const selectedSticker = selectedStickerId ? STICKERS[selectedStickerId] : null;
-  const selectedEarnedRecord =
-    selectedStickerId != null
-      ? earnedRecords.find((r) => r.id === selectedStickerId)
-      : null;
-  const selectedEarnedAt = selectedEarnedRecord?.earned_at ?? null;
-  const selectedEarned = !!selectedEarnedRecord;
-  const selectedFeatured =
-    selectedStickerId != null && featuredIds.includes(selectedStickerId);
+  function handleRowEmptyPress(slotIndex: 0 | 1 | 2) {
+    setModalMode({ kind: 'picker', slotIndex });
+  }
+
+  function handleViewAllPress() {
+    setModalMode({ kind: 'browse' });
+  }
+
+  function handleBrowseStickerPress(id: StickerId) {
+    setModalMode({ kind: 'trophy', stickerId: id, source: 'browse' });
+  }
+
+  async function handlePickerStickerPress(id: StickerId) {
+    if (modalMode.kind !== 'picker') return;
+    // Optimistic: setFeatured handles local + remote
+    await setFeatured(modalMode.slotIndex, id);
+    setModalMode({ kind: 'closed' });
+  }
+
+  function handleTrophyDismiss() {
+    if (modalMode.kind !== 'trophy') return;
+    switch (modalMode.source) {
+      case 'browse':
+        setModalMode({ kind: 'browse' });
+        break;
+      case 'picker':
+        // Returning to picker — preserve the slot index by deriving from featuredIds nulls
+        // (since picker source doesn't carry the original slotIndex through trophy)
+        const firstEmpty = featuredIds.findIndex((x) => x === null);
+        if (firstEmpty === -1) {
+          setModalMode({ kind: 'closed' });
+        } else {
+          setModalMode({ kind: 'picker', slotIndex: firstEmpty as 0 | 1 | 2 });
+        }
+        break;
+      case 'row':
+      default:
+        setModalMode({ kind: 'closed' });
+        break;
+    }
+  }
+
+  function handleModalClose() {
+    setModalMode({ kind: 'closed' });
+  }
+
+  async function handleRibbonPress() {
+    if (modalMode.kind !== 'trophy') return;
+    const { stickerId, source } = modalMode;
+    const isFeatured = featuredIds.includes(stickerId);
+
+    if (isFeatured) {
+      await unsetFeatured(stickerId);
+      setModalMode({ kind: 'closed' });
+      showToast(COPY.STICKER_TOAST_UNPINNED);
+      return;
+    }
+
+    // Unfeatured + earned (locked stickers don't render the ribbon at all)
+    const emptyIdx = featuredIds.findIndex((x) => x === null);
+    if (emptyIdx !== -1) {
+      await setFeatured(emptyIdx as 0 | 1 | 2, stickerId);
+      setModalMode({ kind: 'closed' });
+      showToast(COPY.STICKER_TOAST_FEATURED);
+      return;
+    }
+
+    // All 3 slots full - open swap panel
+    setModalMode({ kind: 'swap', stickerId, source });
+  }
+
+  async function handleSwapPick(oldStickerId: StickerId) {
+    if (modalMode.kind !== 'swap') return;
+    const newStickerId = modalMode.stickerId;
+    await swapFeatured(oldStickerId, newStickerId);
+    setModalMode({ kind: 'closed' });
+    showToast(COPY.STICKER_TOAST_SWAPPED);
+  }
+
+  function handleSwapCancel() {
+    if (modalMode.kind !== 'swap') return;
+    // Return to the underlying trophy view
+    setModalMode({ kind: 'trophy', stickerId: modalMode.stickerId, source: modalMode.source });
+  }
 
   async function handleConfirmLogout() {
     setLogoutModalOpen(false);
@@ -132,13 +221,49 @@ export default function ProfileScreen() {
       // Even if Supabase sign-out errors, the auth state listener picks up
       // the cleared session locally and the router guard re-routes to /(auth)/sign-in.
     }
-    // In __DEV__, the routing guard treats `hasSeenOnboarding` as false (see
-    // app/_layout.tsx) AND no longer auto-redirects from /(auth) back to
-    // /onboarding (that would loop the Welcome/Paywall navigations). So we
-    // navigate to /onboarding explicitly in dev to preserve the "iterate on
-    // onboarding every time you sign out" workflow. Production returning
-    // users still land on sign-in.
     router.replace(__DEV__ ? '/onboarding' : '/(auth)/sign-in');
+  }
+
+  // ---- derived state ----
+
+  // Derive the "displayed" sticker — trophy uses its stickerId; swap also
+  // overlays the underlying trophy so we still need its data.
+  const displayedTrophyStickerId =
+    modalMode.kind === 'trophy' || modalMode.kind === 'swap' ? modalMode.stickerId : null;
+  const trophySticker = displayedTrophyStickerId ? STICKERS[displayedTrophyStickerId] : null;
+  const trophyEarnedRecord =
+    displayedTrophyStickerId != null
+      ? earnedRecords.find((r) => r.id === displayedTrophyStickerId)
+      : null;
+  const trophyEarnedAt = trophyEarnedRecord?.earned_at ?? null;
+  const trophyEarned = !!trophyEarnedRecord;
+  const trophyFeatured =
+    displayedTrophyStickerId != null && featuredIds.includes(displayedTrophyStickerId);
+
+  const totalStickers = STICKER_IDS.length;
+  const earnedCount = earnedIds.size;
+  const modalSubtitleText = COPY.STICKER_MY_STICKERS_SUBTITLE_TEMPLATE(earnedCount, totalStickers);
+
+  const sheetGridVariant: 'browse' | 'picker' = modalMode.kind === 'picker' ? 'picker' : 'browse';
+  const sheetVisible = modalMode.kind === 'browse' || modalMode.kind === 'picker';
+  // Trophy stays mounted under the swap panel for visual continuity
+  const trophyVisible = modalMode.kind === 'trophy' || modalMode.kind === 'swap';
+  const swapVisible = modalMode.kind === 'swap';
+  const modalVisible = modalMode.kind !== 'closed';
+
+  // Adaptive picker copy
+  let pickerHeader: string = COPY.STICKER_MY_STICKERS_TITLE;
+  if (modalMode.kind === 'picker') {
+    const earnedNotFeatured = Array.from(earnedIds).filter(
+      (id) => !featuredIds.includes(id),
+    );
+    if (earnedNotFeatured.length === 0 && earnedIds.size === 0) {
+      pickerHeader = COPY.STICKER_PICKER_HEADER_EMPTY;
+    } else if (earnedNotFeatured.length === 0) {
+      pickerHeader = COPY.STICKER_PICKER_HEADER_FULL;
+    } else {
+      pickerHeader = COPY.STICKER_PICKER_HEADER_DEFAULT;
+    }
   }
 
   return (
@@ -156,12 +281,15 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
-        {/* Sticker row (top 3 by hero rank) */}
+        {/* Pattern E sticker row — 3 fixed slots, empty mounts, View all link */}
         <View style={styles.stickerRow}>
           <StickerCollection
             variant="profile-row"
+            featuredIds={featuredIds}
             earnedIds={earnedIds}
-            onPressSticker={handleRowStickerPress}
+            onPressFilledSlot={handleRowFilledPress}
+            onPressEmptySlot={handleRowEmptyPress}
+            onPressViewAll={handleViewAllPress}
           />
         </View>
 
@@ -207,17 +335,17 @@ export default function ProfileScreen() {
         </Pressable>
       </ScrollView>
 
-      {/* Log Out modal — full sign-out flow (PR 6) */}
+      {/* Log Out modal */}
       <LogOutModal
         visible={logoutModalOpen}
         onCancel={() => setLogoutModalOpen(false)}
         onConfirm={handleConfirmLogout}
       />
 
-      {/* Single Modal — content switches between grid and detail.
-          iOS only supports one Modal at a time, so we use ONE here. */}
+      {/* Single Modal — content switches between browse/picker/trophy.
+          iOS only supports one Modal at a time. */}
       <Modal
-        visible={stickerSheetOpen}
+        visible={modalVisible}
         transparent
         animationType="fade"
         onRequestClose={handleModalClose}
@@ -229,18 +357,35 @@ export default function ProfileScreen() {
             accessibilityLabel="Close sticker collection"
             accessibilityRole="button"
           />
-          {selectedSticker ? (
-            <TrophyDetailView
-              sticker={selectedSticker}
-              earned={selectedEarned}
-              featured={selectedFeatured}
-              earnedAt={selectedEarnedAt}
-              onDismiss={handleDetailClose}
-            />
-          ) : (
+          {trophyVisible && trophySticker ? (
+            <>
+              <TrophyDetailView
+                sticker={trophySticker}
+                earned={trophyEarned}
+                featured={trophyFeatured}
+                earnedAt={trophyEarnedAt}
+                onDismiss={handleTrophyDismiss}
+                onRibbonPress={handleRibbonPress}
+              />
+              {swapVisible && trophySticker ? (
+                <SwapPanel
+                  newStickerId={trophySticker.id}
+                  featuredIds={featuredIds}
+                  earnedIds={earnedIds}
+                  onPick={handleSwapPick}
+                  onCancel={handleSwapCancel}
+                />
+              ) : null}
+            </>
+          ) : sheetVisible ? (
             <View style={styles.modalSheet}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>My Stickers</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalTitle}>
+                    {modalMode.kind === 'picker' ? pickerHeader : COPY.STICKER_MY_STICKERS_TITLE}
+                  </Text>
+                  <Text style={styles.modalSubtitle}>{modalSubtitleText}</Text>
+                </View>
                 <Pressable
                   onPress={handleModalClose}
                   accessibilityRole="button"
@@ -252,18 +397,35 @@ export default function ProfileScreen() {
               </View>
               <ScrollView contentContainerStyle={styles.stickerGridContent}>
                 <StickerCollection
-                  variant="sheet"
+                  variant={sheetGridVariant}
+                  featuredIds={featuredIds}
                   earnedIds={earnedIds}
-                  onPressSticker={handleSheetStickerPress}
+                  onPressSticker={
+                    modalMode.kind === 'picker' ? handlePickerStickerPress : handleBrowseStickerPress
+                  }
                 />
               </ScrollView>
             </View>
-          )}
+          ) : null}
         </View>
       </Modal>
 
-      {/* Earn celebration — reads lastEarned from the store internally */}
+      {/* Earn celebration */}
       <StickerEarnCelebration />
+
+      {/* Pattern E toast (featured/unpinned/swapped) */}
+      {toastMessage ? (
+        <View
+          accessibilityRole="alert"
+          pointerEvents="none"
+          style={styles.toastWrap}
+          testID="sticker-toast"
+        >
+          <View style={styles.toastPill}>
+            <Text style={styles.toastText}>{toastMessage}</Text>
+          </View>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -294,7 +456,7 @@ const styles = StyleSheet.create({
     marginBottom: OB_SPACING.sectionGap,
   },
   navStack: {
-    gap: 6, // Profile root nav-row spacing — handoff one-off, not a scale value
+    gap: 6,
     marginBottom: OB_SPACING.sectionGap,
   },
   logoutBlock: {
@@ -310,7 +472,6 @@ const styles = StyleSheet.create({
     color: OB_COLORS.muted,
     textDecorationLine: 'underline',
   },
-  // Sticker collection sheet modal
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -333,14 +494,20 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: OB_SPACING.mt3,
   },
   modalTitle: {
     fontFamily: OB_FONTS.h1,
-    fontSize: 22,
+    fontSize: 30,
     color: OB_COLORS.ink,
+  },
+  modalSubtitle: {
+    fontFamily: OB_FONTS.body,
+    fontSize: 13,
+    color: OB_COLORS.muted,
+    marginTop: 2,
   },
   modalClose: {
     fontFamily: OB_FONTS.body,
@@ -350,5 +517,26 @@ const styles = StyleSheet.create({
   },
   stickerGridContent: {
     paddingBottom: 16,
+  },
+  toastWrap: {
+    position: 'absolute',
+    bottom: 120,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  toastPill: {
+    backgroundColor: OB_COLORS.sketch,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    ...OB_SHADOWS.card,
+  },
+  toastText: {
+    fontFamily: OB_FONTS.body,
+    fontSize: 14,
+    color: OB_COLORS.cream,
+    fontWeight: '600',
   },
 });

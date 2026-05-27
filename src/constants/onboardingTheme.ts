@@ -26,6 +26,9 @@ export const OB_COLORS = {
   orangeSoft: '#f9a886',
   petalA: '#e8a6a0',
   petalB: '#d9a96a',
+  // Pattern E — Featured-state palette (May 2026). Dusty dog-park dusk blue.
+  // Paired with `cream` foreground = 4.92:1 contrast (WCAG AA pass for 9pt label).
+  featuredBlue: '#3F6E8F',
 } as const;
 
 export const OB_FONTS = {

@@ -145,7 +145,40 @@ export const useUserAchievementsStore = create<UserAchievementsState>((set, get)
         metadata: r.metadata,
       }));
 
-      set({ earnedIds, earnedRecords, isLoading: false, error: null });
+      // Pattern E auto-fill (PR 2): while totalEarned <= 3, fill any empty
+      // featured slot with the earned stickers. Skips when user has > 3
+      // earns - at that point the user is in manual control.
+      const { featuredIds: currentFeatured, computeAutoFill } = get();
+      const earnedIdsArray = rows
+        .map((r) => r.sticker_id as StickerId)
+        // Process in earned_at ascending so the OLDEST earns get slot priority,
+        // matching the user's mental model of "first earned, first featured".
+        .reverse();
+      const nextFeatured = computeAutoFill(currentFeatured, earnedIdsArray);
+      const featuredChanged =
+        nextFeatured[0] !== currentFeatured[0] ||
+        nextFeatured[1] !== currentFeatured[1] ||
+        nextFeatured[2] !== currentFeatured[2];
+
+      set({
+        earnedIds,
+        earnedRecords,
+        isLoading: false,
+        error: null,
+        ...(featuredChanged ? { featuredIds: nextFeatured } : {}),
+      });
+
+      // Persist auto-filled slots to user_profiles (fire-and-forget).
+      if (featuredChanged) {
+        try {
+          await supabase
+            .from('user_profiles')
+            .update({ featured_stickers: nextFeatured })
+            .eq('user_id', user.id);
+        } catch {
+          // Silent - local state already updated optimistically
+        }
+      }
     } catch (err) {
       set({
         isLoading: false,
@@ -236,6 +269,15 @@ export const useUserAchievementsStore = create<UserAchievementsState>((set, get)
   setFeatured: async (slotIndex, stickerId) => {
     const { featuredIds } = get();
     const next: FeaturedSlots = [...featuredIds] as FeaturedSlots;
+
+    // Dedup: if stickerId is already in another slot, clear it there first.
+    // Treats the action as "move to this slot" rather than "duplicate", which
+    // prevents the same sticker appearing in two slots simultaneously.
+    const existingIdx = next.indexOf(stickerId);
+    if (existingIdx !== -1 && existingIdx !== slotIndex) {
+      next[existingIdx] = null;
+    }
+
     next[slotIndex] = stickerId;
     set({ featuredIds: next });
 
@@ -299,7 +341,41 @@ export const useUserAchievementsStore = create<UserAchievementsState>((set, get)
       set({ featuredIds: [null, null, null] });
       return;
     }
-    set({ featuredIds: ids as FeaturedSlots });
+    // Dedup defense: if the persisted value has the same sticker in multiple
+    // slots (pre-2026-05-25 bug fix), keep the FIRST occurrence and null the
+    // later ones. Then persist the cleaned version back so the DB heals too.
+    const seen = new Set<StickerId>();
+    const cleaned: FeaturedSlots = [null, null, null];
+    let needsHeal = false;
+    for (let i = 0; i < 3; i++) {
+      const id = ids[i];
+      if (id === null) continue;
+      const sid = id as StickerId;
+      if (seen.has(sid)) {
+        needsHeal = true;
+        // leave cleaned[i] as null
+        continue;
+      }
+      seen.add(sid);
+      cleaned[i] = sid;
+    }
+    set({ featuredIds: cleaned });
+
+    if (needsHeal) {
+      // Fire-and-forget persist of the cleaned value
+      (async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+          await supabase
+            .from('user_profiles')
+            .update({ featured_stickers: cleaned })
+            .eq('user_id', user.id);
+        } catch {
+          // Silent
+        }
+      })();
+    }
   },
 
   computeAutoFill: (currentFeatured, earnedIds) => {

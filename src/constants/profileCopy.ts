@@ -153,4 +153,24 @@ export const COPY = {
   STICKER_NOT_YET_BLOOMED: 'Not yet bloomed',
   STICKER_RIBBON_FEATURED: 'Featured',
   STICKER_RIBBON_TAP_TO_FEATURE: 'Tap to feat',
+
+  // Pattern E PR 2 — empty slots + picker + swap panel + toasts
+  STICKER_EMPTY_SLOT_CAPTION: 'tap to feature',
+  STICKER_VIEW_ALL_LINK: 'View all 12 stickers',
+  STICKER_MY_STICKERS_TITLE: 'My Stickers',
+  STICKER_MY_STICKERS_SUBTITLE_TEMPLATE: (earnedCount: number, totalCount: number) =>
+    `${earnedCount} of ${totalCount} bloomed. ★ on your profile.`,
+  STICKER_COMING_SOON: 'Coming soon',
+  STICKER_SWAP_TITLE: 'Swap with which sticker?',
+  STICKER_SWAP_SUBTITLE_PREFIX: "You'll feature ",
+  STICKER_SWAP_HINT: 'Tap a sticker below to swap it out',
+  STICKER_TOAST_FEATURED: 'Featured ★',
+  STICKER_TOAST_UNPINNED: 'Unpinned',
+  STICKER_TOAST_SWAPPED: 'Swapped',
+  STICKER_PICKER_HEADER_DEFAULT: 'Pick a sticker to feature',
+  STICKER_PICKER_SUBTITLE_DEFAULT: 'Tap one of your earned stickers',
+  STICKER_PICKER_HEADER_EMPTY: 'Nothing to pick yet',
+  STICKER_PICKER_SUBTITLE_EMPTY: 'Earn stickers by logging check-ins',
+  STICKER_PICKER_HEADER_FULL: 'All earned stickers featured',
+  STICKER_PICKER_SUBTITLE_FULL: 'Tap the ribbon on a featured sticker to unpin',
 } as const;
