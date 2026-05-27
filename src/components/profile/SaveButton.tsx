@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect } from 'react';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -17,6 +17,8 @@ const AnimatedView = Animated.View;
 
 const SLAB_COLOR = '#c75f3d';
 const RADIUS = 14;
+const DISABLED_OPACITY = 0.5;
+const DISABLED_FADE_MS = 180;
 
 interface SaveButtonProps {
   label: string;
@@ -26,7 +28,17 @@ interface SaveButtonProps {
 
 export function SaveButton({ label, onPress, disabled }: SaveButtonProps) {
   const translateY = useSharedValue(0);
+  const opacity = useSharedValue(disabled ? DISABLED_OPACITY : 1);
   const reducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    const target = disabled ? DISABLED_OPACITY : 1;
+    if (reducedMotion) {
+      opacity.value = target;
+    } else {
+      opacity.value = withTiming(target, { duration: DISABLED_FADE_MS });
+    }
+  }, [disabled, reducedMotion, opacity]);
 
   const handlePressIn = useCallback(() => {
     if (reducedMotion || disabled) return;
@@ -40,6 +52,11 @@ export function SaveButton({ label, onPress, disabled }: SaveButtonProps) {
 
   const faceStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
+    opacity: opacity.value,
+  }));
+
+  const slabStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
   }));
 
   return (
@@ -53,9 +70,9 @@ export function SaveButton({ label, onPress, disabled }: SaveButtonProps) {
       accessibilityState={{ disabled: !!disabled }}
       style={styles.outer}
     >
-      <View style={[styles.slab, disabled && styles.disabledSlab]} />
-      <AnimatedView style={[styles.face, disabled && styles.disabledFace, faceStyle]}>
-        <Text style={[styles.label, disabled && styles.disabledLabel]}>{label}</Text>
+      <AnimatedView style={[styles.slab, slabStyle]} />
+      <AnimatedView style={[styles.face, faceStyle]}>
+        <Text style={styles.label}>{label}</Text>
       </AnimatedView>
     </Pressable>
   );
@@ -97,7 +114,4 @@ const styles = StyleSheet.create({
     color: OB_COLORS.ctaText,
     letterSpacing: 0.3,
   },
-  disabledSlab: { opacity: 0.5 },
-  disabledFace: { opacity: 0.5 },
-  disabledLabel: {},
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { OB_BORDERS, OB_COLORS, OB_FONTS, OB_SHADOWS } from '../../constants/onboardingTheme';
+import { OB_BORDERS, OB_COLORS, OB_FONTS } from '../../constants/onboardingTheme';
 
 interface NavButtonProps {
   label: string;
@@ -36,7 +36,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: OB_BORDERS.standard,
     borderColor: OB_COLORS.sketch,
-    ...OB_SHADOWS.card,
   },
   pressed: { opacity: 0.85 },
   iconWrap: {

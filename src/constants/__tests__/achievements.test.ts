@@ -9,8 +9,8 @@ import {
 
 // ─── 1. STICKER_IDS length ────────────────────────────────────────────────────
 
-it('1. STICKER_IDS has exactly 11 entries', () => {
-  expect(STICKER_IDS).toHaveLength(11);
+it('1. STICKER_IDS has exactly 12 entries', () => {
+  expect(STICKER_IDS).toHaveLength(12);
 });
 
 // ─── 2. Every id in STICKER_IDS appears as a key in STICKERS ─────────────────

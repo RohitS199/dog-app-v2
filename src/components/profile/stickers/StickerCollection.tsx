@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 32,
   },
   grid: {
     flexDirection: 'row',

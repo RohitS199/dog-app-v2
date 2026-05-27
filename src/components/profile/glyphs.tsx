@@ -10,10 +10,13 @@ type GlyphProps = {
 
 const STROKE = 1.5;
 
-// Watercolor envelope illustration (Figma drop-in). PNG densities at @1x/@2x/@3x.
+// Watercolor illustrations (Figma drop-ins). PNG densities at @1x/@2x/@3x.
 // `color` prop is accepted for API compatibility with the SVG glyphs but ignored —
 // the artwork has its own colors baked in.
 const ENVELOPE_SRC = require('../../../assets/icons/envelope.png');
+const BIRTHDAY_SRC = require('../../../assets/icons/birthday.png');
+const LOCATION_SRC = require('../../../assets/icons/location.png');
+const PHONE_SRC = require('../../../assets/icons/phone.png');
 
 export function HeartGlyph({ size = 22, color = OB_COLORS.sketch }: GlyphProps) {
   return (
@@ -106,37 +109,36 @@ export function EnvelopeIcon({ size = 22 }: GlyphProps) {
   );
 }
 
-export function PhoneIcon({ size = 22, color = OB_COLORS.sketch }: GlyphProps) {
+export function PhoneIcon({ size = 22 }: GlyphProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Rect x="7" y="3" width="10" height="18" rx="2" fill={OB_COLORS.blush} stroke={color} strokeWidth={STROKE} />
-      <Circle cx="12" cy="18" r="0.7" fill={color} />
-    </Svg>
+    <Image
+      source={PHONE_SRC}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+      accessibilityIgnoresInvertColors
+    />
   );
 }
 
-export function CupcakeIcon({ size = 22, color = OB_COLORS.sketch }: GlyphProps) {
+export function CupcakeIcon({ size = 22 }: GlyphProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path d="M5 13l1 8h12l1-8z" fill={OB_COLORS.peach} stroke={color} strokeWidth={STROKE} strokeLinejoin="round" />
-      <Path d="M7 13c0-2.5 2.5-4 5-4s5 1.5 5 4" fill={OB_COLORS.petalA} stroke={color} strokeWidth={STROKE} />
-      <Circle cx="12" cy="6" r="1" fill={color} />
-    </Svg>
+    <Image
+      source={BIRTHDAY_SRC}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+      accessibilityIgnoresInvertColors
+    />
   );
 }
 
-export function PinIcon({ size = 22, color = OB_COLORS.sketch }: GlyphProps) {
+export function PinIcon({ size = 22 }: GlyphProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path
-        d="M12 21s-6-7-6-12a6 6 0 1 1 12 0c0 5-6 12-6 12z"
-        fill={OB_COLORS.petalB}
-        stroke={color}
-        strokeWidth={STROKE}
-        strokeLinejoin="round"
-      />
-      <Circle cx="12" cy="9" r="2" fill={OB_COLORS.cream} stroke={color} strokeWidth={STROKE} />
-    </Svg>
+    <Image
+      source={LOCATION_SRC}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+      accessibilityIgnoresInvertColors
+    />
   );
 }
 

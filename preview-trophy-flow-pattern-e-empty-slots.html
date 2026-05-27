@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PupLog — Trophy Flow Pattern E v2 (Scrapbook)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Nunito:wght@400;500;600;700;800&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #3E2723;
+    --ink-soft: #6D5D54;
+    --ink-tertiary: #8D7E76;
+    --cream: #FAF6EE;
+    --cream-deep: #F2E9D9;
+    --warm-overlay: rgba(250, 246, 238, 0.97);
+    --accent: #FF6F00;
+    --accent-soft: rgba(255, 111, 0, 0.16);
+    --accent-deep: #C75500;
+    --grid-bg: #FAFAFA;
+    --grid-border: #E8E0DC;
+    --tile: #FFFFFF;
+    --wood-light: #C9A063;
+    --wood-dark: #5A4524;
+    --slot-outline: #9F8E7A;
+    --tape: rgba(255, 230, 170, 0.78);
+    --tape-edge: rgba(180, 140, 70, 0.35);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: #E8E0DC;
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    color: var(--ink);
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
+  /* ── Subtle paper grain (SVG noise) — shared overlay ── */
+  .paper-grain {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.15  0 0 0 0 0.08  0 0 0 0.045 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity: 0.6;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .phone-frame {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    border-radius: 40px;
+    overflow: hidden;
+    background: var(--cream);
+    box-shadow:
+      0 0 0 2px #1a1a1a,
+      0 20px 60px rgba(0,0,0,0.3),
+      0 0 0 14px #2a2a2a;
+    isolation: isolate;
+  }
+  .status-bar {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  .scene { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .scene.active { display: flex; }
+
+  /* ──────────── PROFILE ROOT ──────────── */
+  .profile-content {
+    flex: 1;
+    padding: 14px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    position: relative;
+    z-index: 1;
+  }
+  .avatar-frame { position: relative; width: 104px; height: 104px; margin-top: 12px; }
+  .avatar-frame::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 6px solid;
+    border-color: #8b6c3e #6a4a22 #4a311a #7c5a30;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, var(--wood-light), var(--wood-dark));
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15), inset 0 0 6px rgba(0,0,0,0.35);
+    transform: rotate(-2deg);
+  }
+  .avatar-frame .avatar {
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFCC80, #FFB74D);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 38px;
+  }
+  .display-name {
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--ink);
+  }
+
+  /* ── Featured row — scrapbook label + 3 slots ── */
+  .featured-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+  }
+  .featured-label {
+    font-family: 'Caveat', cursive;
+    font-size: 18px;
+    color: var(--ink-soft);
+    transform: rotate(-1.2deg);
+    margin-bottom: 2px;
+    letter-spacing: 0.3px;
+  }
+  .featured-label::before { content: '★ '; color: var(--accent); }
+
+  .featured-row {
+    display: flex;
+    gap: 22px;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 6px;
+  }
+  .slot {
+    width: 74px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    position: relative;
+  }
+  /* Subtle vertical stagger per slot — hand-placed feel */
+  .slot:nth-child(1) { transform: translateY(-3px); }
+  .slot:nth-child(2) { transform: translateY(2px); }
+  .slot:nth-child(3) { transform: translateY(-1px); }
+
+  .slot .sticker-area {
+    width: 74px;
+    height: 74px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .slot:hover .sticker-area {
+    transform: scale(1.06);
+  }
+  .slot .filled-img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    transform: scale(1.3) rotate(var(--tilt, 0deg));
+    filter: drop-shadow(0 4px 6px rgba(62, 39, 35, 0.14));
+  }
+
+  /* ── Empty slot — hand-drawn dashed mount ── */
+  .slot .empty-mount {
+    width: 64px; height: 64px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: empty-breathe 3000ms ease-in-out infinite;
+  }
+  @keyframes empty-breathe {
+    0%, 100% { transform: scale(0.97) rotate(-2deg); opacity: 0.85; }
+    50%      { transform: scale(1.03) rotate(2deg); opacity: 1; }
+  }
+  /* SVG-style irregular dashed border */
+  .slot .empty-mount::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px dashed var(--slot-outline);
+    transform: rotate(-3deg);
+  }
+  .slot .empty-mount::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    border: 1.5px dashed rgba(159, 142, 122, 0.35);
+    transform: rotate(7deg);
+  }
+  .slot .empty-mount .plus {
+    font-family: 'Caveat', cursive;
+    font-size: 42px;
+    font-weight: 500;
+    color: var(--slot-outline);
+    line-height: 1;
+    transform: translateY(-2px);
+  }
+  .slot .empty-label {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 12px;
+    color: var(--ink-tertiary);
+    letter-spacing: 0.3px;
+    text-align: center;
+    margin-top: 4px;
+    transform: rotate(-1.5deg);
+  }
+
+  /* Ribbon stamp on filled slots */
+  .slot .ribbon {
+    position: absolute;
+    top: -4px;
+    right: -2px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 13px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(var(--ribbon-tilt, 12deg));
+    box-shadow:
+      0 2px 4px rgba(0,0,0,0.18),
+      inset 0 -2px 3px rgba(0,0,0,0.18),
+      inset 0 1px 2px rgba(255,255,255,0.35);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .row-caption {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 13.5px;
+    color: var(--ink-tertiary);
+    margin-top: 4px;
+    cursor: pointer;
+    transition: color 120ms ease;
+    transform: rotate(-0.8deg);
+  }
+  .row-caption:hover { color: var(--ink-soft); }
+  .row-caption::after {
+    content: ' ⤳';
+    color: var(--ink-tertiary);
+    font-size: 14px;
+    margin-left: 2px;
+  }
+
+  .nav-stack {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .nav-row {
+    background: var(--tile);
+    border: 1.5px solid var(--ink);
+    border-radius: 18px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .nav-row .icon {
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .nav-row .chev {
+    margin-left: auto;
+    color: var(--ink-tertiary);
+    font-size: 14px;
+  }
+  .logout-pill {
+    margin-top: 6px;
+    align-self: center;
+    padding: 10px 28px;
+    background: transparent;
+    border: 2.5px solid var(--ink);
+    color: var(--ink);
+    border-radius: 22px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  /* ──────────── GRID SHEET ──────────── */
+  .grid-scene-wrap {
+    flex: 1;
+    padding: 14px 24px 24px;
+    overflow: auto;
+    position: relative;
+    z-index: 1;
+  }
+  .grid-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .grid-header .title {
+    font-family: 'Caveat', cursive;
+    font-size: 34px;
+    color: var(--ink);
+    line-height: 1;
+    transform: rotate(-1deg);
+    transform-origin: left center;
+  }
+  .grid-header .close {
+    width: 32px; height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border-radius: 16px;
+  }
+  .grid-header .close:hover { background: var(--cream-deep); }
+  .grid-subtitle {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin: 4px 0 18px;
+    transform: rotate(-0.6deg);
+  }
+  /* Picker-specific styling */
+  .scene[data-scene="picker"] .grid-header .title { color: var(--accent-deep); }
+
+  .sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .grid-cell {
+    aspect-ratio: 1;
+    background: var(--tile);
+    border: 1.5px solid var(--grid-border);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    cursor: pointer;
+    transition: transform 140ms ease, border-color 140ms ease;
+    position: relative;
+  }
+  /* Subtle per-cell rotation for hand-placed feel */
+  .grid-cell:nth-child(3n+1) { transform: rotate(-0.8deg); }
+  .grid-cell:nth-child(3n+2) { transform: rotate(0.6deg); }
+  .grid-cell:nth-child(3n+3) { transform: rotate(-0.3deg); }
+  .grid-cell:hover { transform: scale(1.04) rotate(0deg); border-color: var(--accent); }
+
+  .grid-cell.featured {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .grid-cell.featured::after {
+    content: '★';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 13px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(var(--ribbon-tilt, 12deg));
+    box-shadow:
+      0 2px 4px rgba(0,0,0,0.18),
+      inset 0 -2px 3px rgba(0,0,0,0.18),
+      inset 0 1px 2px rgba(255,255,255,0.35);
+    z-index: 2;
+  }
+  .grid-cell.locked {
+    background: #F6F0E6;
+  }
+  /* Desaturated artwork for locked stickers — sepia/cream wash matching the watercolor brand */
+  .grid-cell.locked img {
+    opacity: 0.5;
+    filter: sepia(0.35) saturate(0.4) contrast(0.95);
+  }
+  .grid-cell img {
+    width: 105%; height: 105%;
+    object-fit: contain;
+    transform: rotate(var(--tilt, 0deg));
+  }
+  /* Legacy placeholder style — kept for safety, no longer used in JS */
+  .grid-cell .placeholder {
+    font-family: 'Caveat', cursive;
+    font-size: 38px;
+    color: var(--ink-tertiary);
+    transform: rotate(-3deg);
+  }
+
+  /* Washi-tape accent on ONE cell (visual variety, not chrome) */
+  .grid-cell.washi::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 14px;
+    width: 44px;
+    height: 14px;
+    background: var(--tape);
+    border-left: 1px dashed var(--tape-edge);
+    border-right: 1px dashed var(--tape-edge);
+    transform: rotate(-12deg);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  /* Picker hover affordance */
+  .scene[data-scene="picker"] .grid-cell:not(.locked):not(.featured)::before {
+    content: '+';
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(255, 111, 0, 0.22);
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 140ms ease;
+    transform: rotate(10deg);
+  }
+  .scene[data-scene="picker"] .grid-cell:not(.locked):not(.featured):hover::before {
+    opacity: 1;
+  }
+
+  /* ──────────── TROPHY DETAIL ──────────── */
+  .trophy-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--warm-overlay);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 140px;
+    cursor: pointer;
+  }
+  .scene.active .trophy-overlay { animation: fade-in 380ms ease-out both; }
+  @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+  /* Trophy-specific paper grain (slightly darker) */
+  .trophy-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.12  0 0 0 0 0.08  0 0 0 0 0.05  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity: 0.55;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+
+  .trophy-art-wrap {
+    position: relative;
+    width: 215px;
+    height: 215px;
+    animation: gentle-float 3200ms ease-in-out infinite;
+  }
+  @keyframes gentle-float {
+    0%, 100% { transform: translateY(-2px) scale(0.99) rotate(-1deg); }
+    50%      { transform: translateY(2px) scale(1.02) rotate(1.5deg); }
+  }
+  .trophy-art {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 16px rgba(62, 39, 35, 0.18));
+    transform: rotate(var(--tilt, 0deg));
+  }
+  /* Locked sticker in trophy view — desaturated sepia wash; criteria becomes the hero */
+  .trophy-art.locked {
+    opacity: 0.55;
+    filter:
+      drop-shadow(0 6px 12px rgba(62, 39, 35, 0.12))
+      sepia(0.3) saturate(0.45) contrast(0.95);
+  }
+
+  /* Watercolor ribbon stamp — the entire customize affordance */
+  .trophy-ribbon {
+    position: absolute;
+    top: 4px;
+    right: -10px;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(var(--ribbon-tilt, 12deg));
+    box-shadow:
+      0 4px 10px rgba(0,0,0,0.18),
+      inset 0 -3px 5px rgba(0,0,0,0.18),
+      inset 0 2px 3px rgba(255,255,255,0.35);
+    cursor: pointer;
+    transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 4;
+  }
+  .trophy-ribbon:hover { transform: rotate(var(--ribbon-tilt, 12deg)) scale(1.08); }
+  .trophy-ribbon:active { transform: rotate(var(--ribbon-tilt, 12deg)) scale(0.96); }
+  .trophy-ribbon .star {
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 800;
+  }
+  .trophy-ribbon .label {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 9px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin-top: 2px;
+    font-weight: 700;
+  }
+  .trophy-ribbon.unfeatured {
+    background: rgba(255,250,240,0.85);
+    color: var(--ink-tertiary);
+    border: 2px dashed var(--slot-outline);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  }
+  .trophy-ribbon.unfeatured .star { color: var(--slot-outline); }
+  .trophy-ribbon.unfeatured .label { color: var(--ink-tertiary); }
+  .trophy-ribbon.locked { display: none; }
+  .trophy-ribbon { animation: ribbon-arrive 480ms cubic-bezier(0.16, 1, 0.3, 1) 400ms both; }
+  @keyframes ribbon-arrive {
+    0%   { opacity: 0; transform: rotate(var(--ribbon-tilt, 12deg)) scale(0.7); }
+    60%  { transform: rotate(var(--ribbon-tilt, 12deg)) scale(1.12); }
+    100% { opacity: 1; transform: rotate(var(--ribbon-tilt, 12deg)) scale(1); }
+  }
+
+  /* Small washi tape holding the sticker onto the "page" */
+  .trophy-tape {
+    position: absolute;
+    width: 50px;
+    height: 14px;
+    background: var(--tape);
+    border-left: 1px dashed var(--tape-edge);
+    border-right: 1px dashed var(--tape-edge);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    z-index: 1;
+  }
+  .trophy-tape.tl {
+    top: -2px;
+    left: -8px;
+    transform: rotate(-22deg);
+  }
+
+  .trophy-title {
+    margin-top: 48px;
+    font-family: 'Caveat', cursive;
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--ink);
+    transform: rotate(-1deg);
+  }
+  .trophy-desc {
+    margin-top: 18px;
+    max-width: 280px;
+    font-size: 15px;
+    color: var(--ink);
+    text-align: center;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+  .trophy-flavor {
+    margin-top: 8px;
+    max-width: 260px;
+    font-family: 'Caveat', cursive;
+    font-size: 18px;
+    color: var(--ink-soft);
+    text-align: center;
+    line-height: 1.15;
+    transform: rotate(-0.8deg);
+    opacity: 0.85;
+  }
+  .trophy-flavor::before { content: '\201C'; }
+  .trophy-flavor::after  { content: '\201D'; }
+  .trophy-earned {
+    position: absolute;
+    bottom: 88px;
+    font-family: 'Patrick Hand', cursive;
+    font-size: 14px;
+    color: var(--ink-tertiary);
+    letter-spacing: 0.4px;
+    border: 1.5px dashed var(--ink-tertiary);
+    padding: 3px 10px;
+    border-radius: 4px;
+    transform: rotate(2deg);
+  }
+  .trophy-hint {
+    position: absolute;
+    bottom: 36px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+    opacity: 0.5;
+  }
+
+  /* ──────────── Swap panel ──────────── */
+  .swap-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(40, 28, 20, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 280ms ease;
+    z-index: 20;
+  }
+  .swap-scrim.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .swap-panel {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: -420px;
+    background: var(--cream);
+    border-top: 2.5px dashed var(--slot-outline);
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
+    padding: 22px 24px 28px;
+    box-shadow: 0 -12px 30px rgba(0,0,0,0.22);
+    transition: bottom 360ms cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 30;
+  }
+  .swap-panel.visible {
+    bottom: 0;
+  }
+  /* Faint paper grain on the swap panel for cohesion */
+  .swap-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.15  0 0 0 0 0.08  0 0 0 0.045 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity: 0.5;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+  }
+  .swap-cancel {
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 30px; height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border-radius: 15px;
+    z-index: 2;
+  }
+  .swap-cancel:hover { background: var(--cream-deep); }
+  .swap-title {
+    font-family: 'Caveat', cursive;
+    font-size: 28px;
+    color: var(--ink);
+    transform: rotate(-1deg);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .swap-subtitle {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 14px;
+    color: var(--ink-soft);
+    transform: rotate(-0.4deg);
+    margin-bottom: 18px;
+  }
+  .swap-subtitle .incoming {
+    color: var(--accent-deep);
+    font-weight: 700;
+  }
+  .swap-thumb-row {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 4px 0 6px;
+    position: relative;
+    z-index: 1;
+  }
+  .swap-thumb {
+    width: 84px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* Subtle vertical stagger for hand-placed feel */
+  .swap-thumb:nth-child(1) { transform: translateY(-2px); }
+  .swap-thumb:nth-child(2) { transform: translateY(3px); }
+  .swap-thumb:nth-child(3) { transform: translateY(-1px); }
+  .swap-thumb:hover { transform: translateY(0) scale(1.06); }
+  .swap-thumb .thumb-area {
+    width: 84px;
+    height: 84px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1.5px dashed transparent;
+    transition: border-color 140ms ease, background 140ms ease;
+  }
+  .swap-thumb:hover .thumb-area {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .swap-thumb img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    transform: scale(1.3) rotate(var(--tilt, 0deg));
+  }
+  .swap-thumb .ribbon {
+    position: absolute;
+    top: -2px; right: -2px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 12px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(var(--ribbon-tilt, 12deg));
+    box-shadow:
+      0 2px 4px rgba(0,0,0,0.18),
+      inset 0 -2px 3px rgba(0,0,0,0.18),
+      inset 0 1px 2px rgba(255,255,255,0.35);
+  }
+  .swap-thumb .thumb-name {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    text-align: center;
+    line-height: 1.2;
+    transform: rotate(-1deg);
+    max-width: 84px;
+  }
+  .swap-action-hint {
+    margin-top: 14px;
+    text-align: center;
+    font-family: 'Patrick Hand', cursive;
+    font-size: 12px;
+    color: var(--ink-tertiary);
+    letter-spacing: 0.5px;
+  }
+
+  /* ──────────── Toast ──────────── */
+  .toast {
+    position: absolute;
+    bottom: 36px;
+    left: 24px; right: 24px;
+    background: var(--ink);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px) rotate(-0.6deg);
+    transition: opacity 200ms ease, transform 200ms ease;
+    z-index: 100;
+  }
+  .toast.visible {
+    opacity: 1;
+    transform: translateY(0) rotate(-0.6deg);
+  }
+
+  /* ──────────── Flow panel (outside the phone) ──────────── */
+  .flow-panel {
+    max-width: 460px;
+    background: white;
+    border: 1.5px solid var(--ink);
+    border-radius: 14px;
+    padding: 16px 18px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .flow-panel h3 {
+    font-family: 'Caveat', cursive;
+    font-size: 26px;
+    margin-bottom: 4px;
+  }
+  .flow-panel .tag {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    transform: rotate(-1deg);
+  }
+  .demo-list {
+    margin-top: 10px;
+    padding-left: 4px;
+    list-style: none;
+  }
+  .demo-list li {
+    padding: 8px 0;
+    border-top: 1px dashed var(--grid-border);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .demo-list li:first-child { border-top: none; }
+  .demo-num {
+    width: 22px; height: 22px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--cream-deep);
+    border: 1.5px solid var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--ink);
+  }
+  .demo-text { flex: 1; }
+  .demo-text strong { color: var(--ink); }
+  .demo-text em {
+    color: var(--accent-deep);
+    font-style: normal;
+    font-weight: 700;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .controls button {
+    appearance: none;
+    border: 2px solid var(--ink);
+    background: var(--cream);
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 14px;
+    border-radius: 18px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .controls button:hover { background: var(--cream-deep); }
+  .controls button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+</style>
+</head>
+<body>
+
+  <div class="phone-frame">
+
+    <!-- SCENE 1: PROFILE ROOT -->
+    <div class="scene active" data-scene="profile">
+      <div class="paper-grain"></div>
+      <div class="status-bar"><span>9:41</span><span>•••</span></div>
+      <div class="profile-content">
+        <div class="avatar-frame"><div class="avatar">🐶</div></div>
+        <div class="display-name">Rohit S.</div>
+
+        <div class="featured-wrap">
+          <div class="featured-row" id="featured-row">
+            <!-- Slots rendered by JS -->
+          </div>
+        </div>
+
+        <div class="row-caption" data-action="view-all">View all 12 stickers</div>
+
+        <div class="nav-stack">
+          <div class="nav-row"><span class="icon">👤</span>My Information<span class="chev">›</span></div>
+          <div class="nav-row"><span class="icon">💳</span>My Subscription<span class="chev">›</span></div>
+          <div class="nav-row"><span class="icon">⚙️</span>Settings<span class="chev">›</span></div>
+        </div>
+
+        <button class="logout-pill">Log Out</button>
+      </div>
+    </div>
+
+    <!-- SCENE 2: PICKER -->
+    <div class="scene" data-scene="picker">
+      <div class="paper-grain"></div>
+      <div class="status-bar"><span>9:41</span><span>•••</span></div>
+      <div class="grid-scene-wrap">
+        <div class="grid-header">
+          <div>
+            <div class="title">Pick a sticker</div>
+            <div class="grid-subtitle" id="picker-subtitle">Tap any earned sticker to feature it.</div>
+          </div>
+          <div class="close" data-action="picker-cancel">×</div>
+        </div>
+        <div class="sticker-grid" id="picker-grid">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- SCENE 3: GRID (browse mode) -->
+    <div class="scene" data-scene="grid">
+      <div class="paper-grain"></div>
+      <div class="status-bar"><span>9:41</span><span>•••</span></div>
+      <div class="grid-scene-wrap">
+        <div class="grid-header">
+          <div>
+            <div class="title">My Stickers</div>
+            <div class="grid-subtitle">9 of 12 bloomed. ★ on your profile.</div>
+          </div>
+          <div class="close" data-action="grid-close">×</div>
+        </div>
+        <div class="sticker-grid" id="browse-grid">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- SCENE 4: TROPHY DETAIL -->
+    <div class="scene" data-scene="trophy">
+      <div class="trophy-overlay" data-action="trophy-backdrop">
+        <div class="trophy-art-wrap">
+          <div class="trophy-tape tl"></div>
+          <img class="trophy-art" id="trophy-art" src="assets/stickers/welcome@3x.png" alt="">
+          <div class="trophy-ribbon" id="trophy-ribbon" data-action="trophy-ribbon">
+            <div class="star">★</div>
+            <div class="label" id="ribbon-label">Featured</div>
+          </div>
+        </div>
+        <div class="trophy-title" id="trophy-title">Welcome to PupLog</div>
+        <div class="trophy-desc" id="trophy-desc">Awarded the moment you create your PupLog account.</div>
+        <div class="trophy-flavor" id="trophy-flavor">You're here. Your dog is lucky.</div>
+        <div class="trophy-earned" id="trophy-earned">Bloomed · May 9, 2026</div>
+        <div class="trophy-hint">Tap anywhere to close</div>
+      </div>
+
+      <!-- Swap panel — appears when user tries to feature a 4th sticker -->
+      <div class="swap-scrim" id="swap-scrim" data-action="swap-cancel"></div>
+      <div class="swap-panel" id="swap-panel">
+        <div class="swap-cancel" data-action="swap-cancel">×</div>
+        <div class="swap-title">Your row is full!</div>
+        <div class="swap-subtitle">Tap one to swap out for <span class="incoming" id="swap-incoming">…</span></div>
+        <div class="swap-thumb-row" id="swap-thumb-row"></div>
+        <div class="swap-action-hint">tap any sticker above</div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+  </div>
+
+  <div class="controls">
+    <button id="reset" class="primary">↺ Reset to start</button>
+    <button id="empty-all">Clear all featured</button>
+    <button id="fill-all">Pre-fill 3 featured</button>
+    <button id="brand-new">Brand-new user (0 earned)</button>
+    <button id="just-one">Only 1 earned</button>
+  </div>
+
+  <div class="flow-panel">
+    <span class="tag">Pattern E · v2 (scrapbook)</span>
+    <h3>The act of tapping IS the customization</h3>
+    <p style="margin-top: 6px; color: var(--ink-soft);">Watercolor + memory-book treatment. Stickers tilt at their natural angles, empty slots feel pencil-sketched, paper-grain warms the cream, one washi-tape accent on a grid cell. The mechanic is unchanged from v1 — just dressed in PupLog's scrapbook voice.</p>
+
+    <ol class="demo-list">
+      <li><div class="demo-num">1</div><div class="demo-text"><strong>Tap an empty slot</strong> (the 3rd slot starts empty). Pencil-sketched dashed circle, faint "+" in handwritten ink. Picker grid opens — <em>"Pick a sticker"</em> in accent color. Tap any earned sticker → fills the slot.</div></li>
+      <li><div class="demo-num">2</div><div class="demo-text"><strong>Tap a filled sticker on profile.</strong> Trophy detail opens. Tiny washi-tape piece holds the sticker onto the "page", date stamped in a hand-drawn dashed box. Watercolor ★ ribbon stamps the upper-right corner, reads <em>Featured</em>. Tap the ribbon → unpins.</div></li>
+      <li><div class="demo-num">3</div><div class="demo-text"><strong>Tap "View all 12 stickers".</strong> Browse mode. Each cell sits at a slightly different angle (hand-placed feel). Featured stickers wear the ★ stamp. One cell has a washi-tape accent — purely aesthetic, not functional.</div></li>
+      <li><div class="demo-num">4</div><div class="demo-text"><strong>Open trophy of an unfeatured sticker.</strong> Ribbon is in its dashed-outline "tap to feat" state — same affordance, at rest. Tap it → fills first empty slot. <em>If all 3 are already full</em>, a swap panel slides up showing the 3 currently featured — tap which one to swap out.</div></li>
+      <li><div class="demo-num">5</div><div class="demo-text"><strong>Demo buttons</strong> seed states: "Clear all" → 3 empty mounts; "Pre-fill 3" → all slots full (then trigger the swap panel); "Brand-new user (0 earned)" → 3 empty mounts + the picker shows all 12 locked with motivational copy; "Only 1 earned" → 1 sticker auto-featured + 2 empty mounts. <em>Tap any locked sticker in the picker</em> to view its unlock criteria.</div></li>
+    </ol>
+
+    <p style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--grid-border); color: var(--ink-soft); font-size: 12px;">
+      <strong>Scrapbook tells:</strong> sticker rotations vary per sticker (their <code>rotation</code> property from <code>achievements.ts</code>); slot mount has irregular dashed rings; grid cells tilt subtly (~±0.6°); paper grain layer; one washi-tape accent; trophy washi-tape + dashed date stamp + tilted Caveat title. Restrained — angles are subtle, not chaotic.
+    </p>
+  </div>
+
+<script>
+  // ── Stickers + their natural rotations + REAL copy from src/constants/achievements.ts ──
+  // `desc` = unlockCriteria (concrete: "what you did / need to do")
+  // `flavor` = description (poetic flavor line, shown smaller in handwritten font)
+  const ALL_STICKERS = [
+    { id: 'welcome',          title: 'Welcome to PupLog',  desc: 'Awarded the moment you create your PupLog account.',                                          flavor: "You're here. Your dog is lucky.",       date: 'May 9, 2026',  earned: true,  tilt:  3, ribbonTilt: 14 },
+    { id: 'multi_pup_parent', title: 'Multi-Pup Parent',   desc: 'Add a second dog to your PupLog account.',                                                    flavor: 'Two pups, one heart.',                  date: 'May 4, 2026',  earned: true,  tilt: -4, ribbonTilt: 10 },
+    { id: 'tender_caretaker', title: 'Tender Caretaker',   desc: "Log check-ins on 3 days when your dog isn't feeling well.",                                   flavor: 'Present when it mattered most.',        date: 'May 2, 2026',  earned: true,  tilt:  2, ribbonTilt: 16 },
+    { id: 'pattern_spotter',  title: 'Pattern Spotter',    desc: 'Review your first AI health insight.',                                                        flavor: 'You spotted what we spotted.',          date: 'Apr 28, 2026', earned: true,  tilt: -3, ribbonTilt:  8 },
+    { id: 'first_peony',      title: 'First Peony',        desc: "Earn your first flower in your dog's garden.",                                                flavor: 'Your first bloom in the garden.',       date: 'Apr 25, 2026', earned: true,  tilt:  4, ribbonTilt: 12 },
+    { id: 'bouquet_of_joy',   title: 'Bouquet of Joy',     desc: "Collect 5 flowers in your dog's garden.",                                                     flavor: 'A bouquet of healthy days.',            date: 'Apr 22, 2026', earned: true,  tilt: -2, ribbonTilt: 14 },
+    { id: 'full_spectrum',    title: 'Full Spectrum',      desc: 'Earn at least one flower of each color in the garden.',                                       flavor: 'Every mood, every petal.',              date: 'Apr 18, 2026', earned: true,  tilt:  3, ribbonTilt:  9 },
+    { id: 'bloom_master',     title: 'Bloom Master',       desc: "Earn all 24 flowers in a single dog's garden.",                                               flavor: 'The full garden is yours.',             date: 'Apr 14, 2026', earned: true,  tilt: -3, ribbonTilt: 11 },
+    { id: 'seasonal_spring',  title: 'Spring Collection',  desc: "Log your dog's health any day during March, April, or May.",                                  flavor: 'Buds, breezes, and bright check-ins.',  date: 'Apr 1, 2026',  earned: true,  tilt:  5, ribbonTilt: 15 },
+    { id: 'seasonal_fall',    title: 'Fall Collection',    desc: "Log your dog's health any day during September, October, or November.",                       flavor: 'A crisp first log of the season.',      date: null,            earned: false, tilt: -4, ribbonTilt:  0 },
+    { id: 'seasonal_winter',  title: 'Winter Collection',  desc: "Log your dog's health any day during December, January, or February.",                        flavor: 'Cozy logs, warm hearts.',               date: null,            earned: false, tilt:  2, ribbonTilt:  0 },
+    { id: 'seasonal_summer',  title: 'Summer Collection',  desc: "Log your dog's health any day during June, July, or August.",                                 flavor: 'Long days, healthy stays.',             date: null,            earned: false, tilt: -1, ribbonTilt:  0 },
+  ];
+
+  const initialFeatured = ['multi_pup_parent', 'tender_caretaker', null];
+  // Snapshot original earned states so demo "Reset" can restore them
+  const ORIGINAL_EARNED = ALL_STICKERS.reduce((acc, s) => { acc[s.id] = s.earned; return acc; }, {});
+  const state = {
+    featured: [...initialFeatured],
+    currentTrophy: null,
+    trophySource: 'profile',
+    pickerTargetSlot: null,
+    toastTimer: null,
+  };
+
+  function setAllEarned(earned) {
+    ALL_STICKERS.forEach(s => { s.earned = earned; });
+  }
+  function restoreOriginalEarned() {
+    ALL_STICKERS.forEach(s => { s.earned = ORIGINAL_EARNED[s.id]; });
+  }
+  function setEarnedSubset(ids) {
+    ALL_STICKERS.forEach(s => { s.earned = ids.includes(s.id); });
+  }
+
+  function findSticker(id) { return ALL_STICKERS.find(x => x.id === id); }
+
+  // ── Rendering ──
+  function renderFeaturedRow() {
+    const row = document.getElementById('featured-row');
+    row.innerHTML = '';
+    state.featured.forEach((id, idx) => {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      if (id) {
+        const s = findSticker(id);
+        slot.dataset.action = 'open-trophy-from-profile';
+        slot.dataset.sticker = id;
+        slot.style.setProperty('--tilt', `${s.tilt}deg`);
+        slot.innerHTML = `
+          <div class="sticker-area">
+            <img class="filled-img" src="assets/stickers/${id}@3x.png" alt="">
+          </div>
+        `;
+      } else {
+        slot.dataset.action = 'open-picker';
+        slot.dataset.slot = String(idx);
+        slot.innerHTML = `
+          <div class="sticker-area">
+            <div class="empty-mount"><span class="plus">+</span></div>
+          </div>
+          <div class="empty-label">tap to feature</div>
+        `;
+      }
+      row.appendChild(slot);
+    });
+  }
+
+  function renderBrowseGrid() {
+    const grid = document.getElementById('browse-grid');
+    grid.innerHTML = '';
+    ALL_STICKERS.forEach((s, idx) => {
+      const el = document.createElement('div');
+      const featured = state.featured.includes(s.id);
+      const cls = ['grid-cell'];
+      if (!s.earned) cls.push('locked');
+      if (featured) cls.push('featured');
+      // Place one washi accent on the 6th cell (visual variety)
+      if (idx === 5) cls.push('washi');
+      el.className = cls.join(' ');
+      el.style.setProperty('--tilt', `${s.tilt}deg`);
+      el.style.setProperty('--ribbon-tilt', `${s.ribbonTilt}deg`);
+      if (s.earned) {
+        el.dataset.action = 'open-trophy-from-grid';
+        el.dataset.sticker = s.id;
+        el.innerHTML = `<img src="assets/stickers/${s.id}@3x.png" alt="">`;
+      } else {
+        // Locked — show desaturated artwork instead of "?" so users can aspire toward specific stickers
+        el.dataset.action = 'open-trophy-from-grid';
+        el.dataset.sticker = s.id;
+        el.innerHTML = `<img src="assets/stickers/${s.id}@3x.png" alt="">`;
+      }
+      grid.appendChild(el);
+    });
+  }
+
+  function renderPickerGrid() {
+    const grid = document.getElementById('picker-grid');
+    grid.innerHTML = '';
+    ALL_STICKERS.forEach((s, idx) => {
+      const el = document.createElement('div');
+      const featured = state.featured.includes(s.id);
+      const cls = ['grid-cell'];
+      if (!s.earned) cls.push('locked');
+      if (featured) cls.push('featured');
+      el.className = cls.join(' ');
+      el.style.setProperty('--tilt', `${s.tilt}deg`);
+      el.style.setProperty('--ribbon-tilt', `${s.ribbonTilt}deg`);
+      if (s.earned && !featured) {
+        // Tap to fill the targeted slot (primary picker action)
+        el.dataset.action = 'picker-pick';
+        el.dataset.sticker = s.id;
+        el.innerHTML = `<img src="assets/stickers/${s.id}@3x.png" alt="">`;
+      } else if (s.earned && featured) {
+        // Already featured — tap opens the trophy detail (informational)
+        el.dataset.action = 'open-trophy-from-picker';
+        el.dataset.sticker = s.id;
+        el.innerHTML = `<img src="assets/stickers/${s.id}@3x.png" alt="">`;
+      } else {
+        // Locked — show desaturated artwork; tap opens trophy view with unlock criteria
+        el.dataset.action = 'open-trophy-from-picker';
+        el.dataset.sticker = s.id;
+        el.innerHTML = `<img src="assets/stickers/${s.id}@3x.png" alt="">`;
+      }
+      grid.appendChild(el);
+    });
+
+    // Adapt the picker header based on what's actually pickable
+    const earnedCount = ALL_STICKERS.filter(s => s.earned).length;
+    const pickableCount = ALL_STICKERS.filter(s => s.earned && !state.featured.includes(s.id)).length;
+    const titleEl = document.querySelector('.scene[data-scene="picker"] .grid-header .title');
+    const subEl = document.getElementById('picker-subtitle');
+    if (earnedCount === 0) {
+      titleEl.textContent = 'Your collection';
+      subEl.textContent = "You haven't earned any stickers yet. Tap any one below to see how to earn it.";
+    } else if (pickableCount === 0) {
+      titleEl.textContent = 'Your collection so far';
+      subEl.textContent = 'Everything earned is already featured. Tap a locked sticker to see how to earn it.';
+    } else {
+      titleEl.textContent = 'Pick a sticker';
+      subEl.textContent = 'Tap any earned sticker to feature it.';
+    }
+  }
+
+  function renderTrophy(stickerId) {
+    const s = findSticker(stickerId);
+    const art = document.getElementById('trophy-art');
+    art.src = `assets/stickers/${s.id}@3x.png`;
+    art.style.setProperty('--tilt', `${s.tilt}deg`);
+    // Locked stickers show in desaturated sepia wash (matches Apple Fitness / Duolingo pattern)
+    art.classList.toggle('locked', !s.earned);
+    document.getElementById('trophy-title').textContent = s.title;
+    document.getElementById('trophy-desc').textContent = s.desc;
+    document.getElementById('trophy-flavor').textContent = s.flavor;
+    document.getElementById('trophy-earned').textContent = s.date ? `Bloomed · ${s.date}` : "Not yet bloomed";
+
+    const ribbon = document.getElementById('trophy-ribbon');
+    const label = document.getElementById('ribbon-label');
+    const isFeatured = state.featured.includes(stickerId);
+    ribbon.style.setProperty('--ribbon-tilt', `${s.ribbonTilt}deg`);
+    // Restart arrive animation
+    ribbon.style.animation = 'none';
+    ribbon.offsetHeight;
+    ribbon.style.animation = '';
+    // Reset classes
+    ribbon.classList.remove('unfeatured', 'locked');
+    if (!s.earned) {
+      // Locked sticker — hide ribbon entirely. Criteria becomes the hero.
+      ribbon.classList.add('locked');
+    } else if (isFeatured) {
+      label.textContent = 'Featured';
+    } else {
+      ribbon.classList.add('unfeatured');
+      label.textContent = 'Tap to feat';
+    }
+    state.currentTrophy = stickerId;
+  }
+
+  function showToast(text) {
+    const t = document.getElementById('toast');
+    clearTimeout(state.toastTimer);
+    t.textContent = text;
+    t.classList.add('visible');
+    state.toastTimer = setTimeout(() => t.classList.remove('visible'), 2600);
+  }
+
+  // ── Swap panel (when user tries to feature a 4th sticker with all 3 slots full) ──
+  function renderSwapPanel(incomingId) {
+    const incoming = findSticker(incomingId);
+    document.getElementById('swap-incoming').textContent = incoming.title;
+    const row = document.getElementById('swap-thumb-row');
+    row.innerHTML = '';
+    state.featured.forEach((id) => {
+      if (!id) return;
+      const s = findSticker(id);
+      const thumb = document.createElement('div');
+      thumb.className = 'swap-thumb';
+      thumb.dataset.action = 'swap-pick';
+      thumb.dataset.swap = id;
+      thumb.style.setProperty('--tilt', `${s.tilt}deg`);
+      thumb.style.setProperty('--ribbon-tilt', `${s.ribbonTilt}deg`);
+      thumb.innerHTML = `
+        <div class="thumb-area">
+          <img src="assets/stickers/${id}@3x.png" alt="">
+          <div class="ribbon">★</div>
+        </div>
+        <div class="thumb-name">${s.title}</div>
+      `;
+      row.appendChild(thumb);
+    });
+  }
+
+  function showSwapPanel() {
+    document.getElementById('swap-scrim').classList.add('visible');
+    document.getElementById('swap-panel').classList.add('visible');
+  }
+  function hideSwapPanel() {
+    document.getElementById('swap-scrim').classList.remove('visible');
+    document.getElementById('swap-panel').classList.remove('visible');
+  }
+
+  function show(name) {
+    document.querySelectorAll('.scene').forEach(s => {
+      s.classList.toggle('active', s.dataset.scene === name);
+    });
+  }
+
+  function navigate(action, el) {
+    switch (action) {
+      case 'open-trophy-from-profile':
+        state.trophySource = 'profile';
+        renderTrophy(el.dataset.sticker);
+        show('trophy');
+        break;
+      case 'open-picker':
+        state.pickerTargetSlot = parseInt(el.dataset.slot, 10);
+        renderPickerGrid();
+        document.getElementById('picker-subtitle').textContent =
+          `Tap any earned sticker to feature it.`;
+        show('picker');
+        break;
+      case 'view-all':
+        renderBrowseGrid();
+        show('grid');
+        break;
+
+      case 'picker-cancel':
+        state.pickerTargetSlot = null;
+        show('profile');
+        break;
+      case 'picker-pick': {
+        const id = el.dataset.sticker;
+        if (state.featured.includes(id)) return;
+        state.featured[state.pickerTargetSlot] = id;
+        state.pickerTargetSlot = null;
+        renderFeaturedRow();
+        show('profile');
+        const sticker = findSticker(id);
+        showToast(`Featured ★ — ${sticker.title}`);
+        break;
+      }
+
+      case 'open-trophy-from-grid':
+        state.trophySource = 'grid';
+        renderTrophy(el.dataset.sticker);
+        show('trophy');
+        break;
+      case 'open-trophy-from-picker':
+        state.trophySource = 'picker';
+        renderTrophy(el.dataset.sticker);
+        show('trophy');
+        break;
+      case 'grid-close':
+        show('profile');
+        break;
+
+      case 'trophy-ribbon': {
+        const id = state.currentTrophy;
+        const sticker = findSticker(id);
+        const idx = state.featured.indexOf(id);
+        if (idx >= 0) {
+          // Currently featured — unpin
+          state.featured[idx] = null;
+          renderFeaturedRow();
+          renderTrophy(id);
+          showToast(`Unpinned ${sticker.title}`);
+        } else {
+          const emptyIdx = state.featured.indexOf(null);
+          if (emptyIdx >= 0) {
+            // At least one empty slot — fill it
+            state.featured[emptyIdx] = id;
+            renderFeaturedRow();
+            renderTrophy(id);
+            showToast(`Featured ★ — ${sticker.title}`);
+          } else {
+            // All 3 slots full — show swap panel for the user to pick which one to swap out
+            renderSwapPanel(id);
+            showSwapPanel();
+            return;
+          }
+        }
+        renderBrowseGrid();
+        break;
+      }
+      case 'swap-cancel':
+        hideSwapPanel();
+        break;
+      case 'swap-pick': {
+        const oldId = el.dataset.swap;
+        const newId = state.currentTrophy;
+        const oldSticker = findSticker(oldId);
+        const newSticker = findSticker(newId);
+        const slotIdx = state.featured.indexOf(oldId);
+        if (slotIdx < 0) { hideSwapPanel(); return; }
+        state.featured[slotIdx] = newId;
+        renderFeaturedRow();
+        renderTrophy(newId);
+        renderBrowseGrid();
+        hideSwapPanel();
+        showToast(`★ ${newSticker.title} swapped in. ${oldSticker.title} returned to your collection.`);
+        break;
+      }
+      case 'trophy-backdrop':
+        // If the swap panel is open, don't fall through to dismiss
+        if (document.getElementById('swap-panel').classList.contains('visible')) return;
+        if (state.trophySource === 'grid') show('grid');
+        else if (state.trophySource === 'picker') show('picker');
+        else show('profile');
+        break;
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    e.stopPropagation();
+    navigate(el.dataset.action, el);
+  });
+
+  document.getElementById('reset').addEventListener('click', () => {
+    restoreOriginalEarned();
+    state.featured = [...initialFeatured];
+    state.currentTrophy = null;
+    state.pickerTargetSlot = null;
+    renderFeaturedRow();
+    show('profile');
+  });
+  document.getElementById('empty-all').addEventListener('click', () => {
+    restoreOriginalEarned();
+    state.featured = [null, null, null];
+    renderFeaturedRow();
+    show('profile');
+  });
+  document.getElementById('fill-all').addEventListener('click', () => {
+    restoreOriginalEarned();
+    state.featured = ['multi_pup_parent', 'tender_caretaker', 'pattern_spotter'];
+    renderFeaturedRow();
+    show('profile');
+  });
+  document.getElementById('brand-new').addEventListener('click', () => {
+    setAllEarned(false);
+    state.featured = [null, null, null];
+    renderFeaturedRow();
+    show('profile');
+  });
+  document.getElementById('just-one').addEventListener('click', () => {
+    // Welcome is the only earned sticker, auto-featured in slot 0
+    setEarnedSubset(['welcome']);
+    state.featured = ['welcome', null, null];
+    renderFeaturedRow();
+    show('profile');
+  });
+
+  renderFeaturedRow();
+</script>
+
+</body>
+</html>

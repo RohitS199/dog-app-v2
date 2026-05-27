@@ -2,11 +2,12 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { StickerCard } from '../StickerCard';
 import { STICKERS, StickerDef } from '../../../../constants/achievements';
-import * as assets from '../assets';
 
-// Helper: grab a sticker we know has null asset
+// welcome and pattern_spotter both have real PNG assets;
+// seasonal_fall is still a null placeholder (used for the fallback test).
 const welcomeSticker: StickerDef = STICKERS.welcome;
 const patternSticker: StickerDef = STICKERS.pattern_spotter;
+const nullSticker: StickerDef = STICKERS.seasonal_fall;
 
 describe('StickerCard', () => {
   // 1. Renders with earned styling
@@ -37,13 +38,16 @@ describe('StickerCard', () => {
 
   // 4. Falls back to placeholder (first letter) when STICKER_ASSETS[id] is null
   it('4. shows first letter of title as placeholder when asset is null', () => {
-    // All assets are null in this codebase currently
+    // seasonal_fall still has a null asset
     const { getByText } = render(
-      <StickerCard sticker={welcomeSticker} earned />
+      <StickerCard sticker={nullSticker} earned />
     );
-    // First letter of "Welcome to PupLog" is "W"
-    expect(getByText('W')).toBeTruthy();
+    // First letter of "Fall Collection" is "F"
+    expect(getByText('F')).toBeTruthy();
   });
+
+  // 5. accessibilityLabel reflects earned state correctly for both values
+  // (kept as-is, just renamed the variable that drove the locked variant)
 
   // 5. accessibilityLabel reflects earned state correctly for both values
   it('5. accessibilityLabel changes based on earned prop', () => {

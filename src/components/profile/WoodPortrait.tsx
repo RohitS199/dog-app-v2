@@ -1,85 +1,73 @@
 import React from 'react';
 import { Image, StyleSheet, View, ViewStyle } from 'react-native';
+import { SvgXml } from 'react-native-svg';
 import { OB_COLORS } from '../../constants/onboardingTheme';
+import {
+  WOOD_FRAME_SVG,
+  AVATAR_DIAMETER_RATIO,
+  AVATAR_TOP_RATIO,
+  AVATAR_LEFT_RATIO,
+} from './WoodFrameSvg';
 
 interface WoodPortraitProps {
-  size: 68 | 76 | 130;
+  size: number;
   avatar?: string | null;
   testID?: string;
   style?: ViewStyle;
 }
 
 export function WoodPortrait({ size, avatar, testID, style }: WoodPortraitProps) {
-  const outerRing = Math.max(3, Math.round(size * 0.06));
-  const middleRing = Math.max(2, Math.round(size * 0.04));
-  const photoSize = size - 2 * (outerRing + middleRing);
+  const photoDiameter = Math.round(size * AVATAR_DIAMETER_RATIO);
+  const photoTop = Math.round(size * AVATAR_TOP_RATIO);
+  const photoLeft = Math.round(size * AVATAR_LEFT_RATIO);
 
   return (
-    <View
-      testID={testID}
-      style={[
-        styles.outer,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          padding: outerRing,
-          backgroundColor: OB_COLORS.woodDk,
-        },
-        style,
-      ]}
-    >
+    <View testID={testID} style={[{ width: size, height: size }, style]}>
+      <SvgXml xml={WOOD_FRAME_SVG} width={size} height={size} />
       <View
         style={[
-          styles.middle,
+          styles.photoContainer,
           {
-            borderRadius: (size - 2 * outerRing) / 2,
-            padding: middleRing,
-            backgroundColor: OB_COLORS.wood,
+            width: photoDiameter,
+            height: photoDiameter,
+            borderRadius: photoDiameter / 2,
+            top: photoTop,
+            left: photoLeft,
+            backgroundColor: OB_COLORS.cream,
           },
         ]}
       >
-        <View
-          style={[
-            styles.inner,
-            {
-              width: photoSize,
-              height: photoSize,
-              borderRadius: photoSize / 2,
-              backgroundColor: OB_COLORS.cream,
-            },
-          ]}
-        >
-          {avatar ? (
-            <Image
-              source={{ uri: avatar }}
-              style={[styles.photo, { width: photoSize, height: photoSize, borderRadius: photoSize / 2 }]}
-              accessibilityLabel="Profile photo"
-            />
-          ) : (
-            <View
-              style={[
-                styles.placeholder,
-                {
-                  width: photoSize,
-                  height: photoSize,
-                  borderRadius: photoSize / 2,
-                  backgroundColor: OB_COLORS.cream2,
-                },
-              ]}
-              accessibilityLabel="Profile photo placeholder"
-            />
-          )}
-        </View>
+        {avatar ? (
+          <Image
+            source={{ uri: avatar }}
+            style={{
+              width: photoDiameter,
+              height: photoDiameter,
+              borderRadius: photoDiameter / 2,
+            }}
+            accessibilityLabel="Profile photo"
+          />
+        ) : (
+          <View
+            style={{
+              width: photoDiameter,
+              height: photoDiameter,
+              borderRadius: photoDiameter / 2,
+              backgroundColor: OB_COLORS.cream2,
+            }}
+            accessibilityLabel="Profile photo placeholder"
+          />
+        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  outer: { alignItems: 'center', justifyContent: 'center' },
-  middle: { alignItems: 'center', justifyContent: 'center', flex: 1, width: '100%' },
-  inner: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  photo: {},
-  placeholder: {},
+  photoContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
 });

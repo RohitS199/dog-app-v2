@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PupLog — Trophy Detail: Option 3 (Cork Board)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Nunito:wght@400;500;600;700;800&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+  /* ── Tokens ── */
+  :root {
+    --ink: #3E2723;
+    --ink-soft: #6D5D54;
+    --ink-tertiary: #8D7E76;
+    --cork-base: #C9A063;
+    --cork-mid: #B98A4F;
+    --cork-dark: #8E6336;
+    --cork-deep: #5F4222;
+    --note-paper: #FBF7E8;
+    --note-paper-shade: #F2EAD0;
+    --pin-red: #C75F4A;
+    --pin-shadow: rgba(199, 95, 74, 0.35);
+    --accent: #FF6F00;
+    --grid-bg: #FAFAFA;
+    --grid-border: #E8E0DC;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: #E8E0DC;
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: var(--ink);
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  /* ── Phone Frame ── */
+  .phone-frame {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    border-radius: 40px;
+    overflow: hidden;
+    background: var(--grid-bg);
+    box-shadow:
+      0 0 0 2px #1a1a1a,
+      0 20px 60px rgba(0,0,0,0.3),
+      0 0 0 14px #2a2a2a;
+    isolation: isolate;
+  }
+
+  /* ── Status bar + grid scene (background) ── */
+  .status-bar {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    position: relative;
+    z-index: 1;
+  }
+  .grid-scene {
+    position: absolute;
+    inset: 0;
+    padding: 70px 24px 0;
+    z-index: 0;
+  }
+  .grid-scene .scene-title {
+    font-family: 'Caveat', cursive;
+    font-size: 36px;
+    color: var(--ink);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .grid-scene .scene-subtitle {
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-bottom: 28px;
+    font-weight: 500;
+  }
+  .sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .grid-cell {
+    aspect-ratio: 1;
+    background: #FFFFFF;
+    border: 1.5px solid var(--grid-border);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+  }
+  .grid-cell img {
+    width: 105%;
+    height: 105%;
+    object-fit: contain;
+  }
+  .grid-cell.locked {
+    opacity: 0.35;
+    background: #F4EFEA;
+  }
+  .grid-cell.locked .placeholder {
+    font-family: 'Caveat', cursive;
+    font-size: 38px;
+    color: var(--ink-tertiary);
+  }
+
+  /* ── Cork Board overlay ── */
+  .cork-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+
+    /* Cork texture: layered radial spots + grain noise */
+    background:
+      radial-gradient(circle at 20% 30%, var(--cork-mid) 1px, transparent 2px),
+      radial-gradient(circle at 70% 60%, var(--cork-dark) 1px, transparent 2.5px),
+      radial-gradient(circle at 45% 80%, var(--cork-mid) 1.5px, transparent 3px),
+      radial-gradient(circle at 85% 20%, var(--cork-dark) 1px, transparent 2px),
+      radial-gradient(ellipse at center, var(--cork-base) 0%, var(--cork-mid) 100%);
+    background-size:
+      40px 40px,
+      55px 55px,
+      35px 35px,
+      48px 48px,
+      100% 100%;
+
+    box-shadow: inset 0 0 80px rgba(95, 66, 34, 0.55);
+    animation: cork-in 350ms ease-out both;
+  }
+  @keyframes cork-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  /* Cork board paper-grain overlay (deeper than the others) */
+  .cork-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.32  0 0 0 0 0.22  0 0 0 0 0.12  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity: 0.55;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    animation: grain-shift 14s linear infinite;
+  }
+  @keyframes grain-shift {
+    0%   { transform: translate(0, 0); }
+    50%  { transform: translate(-8px, -6px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  /* ── Trophy sticker pinned to cork ── */
+  .pin-anchor {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, calc(-50% - 60px));
+    transform-origin: center top;
+    animation:
+      pin-drop 520ms cubic-bezier(0.5, 0, 0.2, 1) both,
+      sway 5000ms ease-in-out 600ms infinite;
+  }
+  @keyframes pin-drop {
+    0%   { transform: translate(-50%, calc(-50% - 200px)) scale(0.92) rotate(-3deg); opacity: 0; }
+    70%  { opacity: 1; }
+    100% { transform: translate(-50%, calc(-50% - 60px)) scale(1) rotate(0deg); opacity: 1; }
+  }
+  @keyframes sway {
+    0%, 100% { transform: translate(-50%, calc(-50% - 60px)) rotate(-1.5deg); }
+    50%      { transform: translate(-50%, calc(-50% - 60px)) rotate(1.5deg); }
+  }
+
+  .trophy-shadow {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translate(-50%, -10px);
+    width: 200px;
+    height: 28px;
+    background: radial-gradient(ellipse at center, rgba(40, 28, 16, 0.45) 0%, transparent 65%);
+    filter: blur(6px);
+    z-index: -1;
+    animation: shadow-track 5000ms ease-in-out 600ms infinite;
+  }
+  @keyframes shadow-track {
+    0%, 100% { transform: translate(calc(-50% + 4px), -10px) scaleX(0.97); opacity: 0.85; }
+    50%      { transform: translate(calc(-50% - 4px), -10px) scaleX(1.03); opacity: 1; }
+  }
+
+  .trophy-sticker {
+    width: 235px;
+    height: 235px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 0 rgba(95, 66, 34, 0.25));
+  }
+
+  /* The pushpin head */
+  .pushpin {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 30% 30%, #FFB3A0 0%, var(--pin-red) 55%, #8A3F2E 100%);
+    box-shadow:
+      0 2px 4px rgba(40, 28, 16, 0.5),
+      inset 0 -3px 4px rgba(0, 0, 0, 0.25),
+      inset 0 2px 2px rgba(255, 255, 255, 0.3);
+    z-index: 2;
+  }
+  .pushpin::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 4px;
+    width: 6px; height: 6px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    filter: blur(1px);
+  }
+
+  /* ── Field note card (bottom 25%) ── */
+  .field-note {
+    position: absolute;
+    left: 24px; right: 24px;
+    bottom: 50px;
+    background: var(--note-paper);
+    border-radius: 4px;
+    padding: 22px 22px 18px;
+    transform: rotate(-1.2deg);
+    box-shadow:
+      0 6px 16px rgba(40, 28, 16, 0.35),
+      0 2px 4px rgba(40, 28, 16, 0.25);
+    background-image:
+      repeating-linear-gradient(transparent 0 28px, rgba(180, 150, 100, 0.18) 28px 29px),
+      linear-gradient(180deg, var(--note-paper) 0%, var(--note-paper-shade) 100%);
+    opacity: 0;
+    animation: note-in 380ms ease-out 600ms forwards;
+  }
+  @keyframes note-in {
+    0% { opacity: 0; transform: rotate(-1.2deg) translateY(8px); }
+    100% { opacity: 1; transform: rotate(-1.2deg) translateY(0); }
+  }
+
+  /* Tiny thumbtack in field-note top-left corner */
+  .note-tack {
+    position: absolute;
+    top: -6px; left: 14px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #FFD898 0%, #E8A24A 55%, #8C5A1E 100%);
+    box-shadow:
+      0 2px 3px rgba(40, 28, 16, 0.4),
+      inset 0 -2px 2px rgba(0, 0, 0, 0.25);
+  }
+
+  .note-title {
+    font-family: 'Caveat', cursive;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--ink);
+    text-align: center;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .note-description {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 16px;
+    line-height: 1.4;
+    color: var(--ink);
+    text-align: center;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+
+  .earned-stamp {
+    position: absolute;
+    bottom: -10px;
+    right: 14px;
+    font-family: 'Patrick Hand', cursive;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--pin-red);
+    border: 2px solid var(--pin-red);
+    padding: 3px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    transform: rotate(4deg);
+    background: rgba(251, 247, 232, 0.9);
+    opacity: 0.85;
+  }
+
+  /* Dismiss hint */
+  .dismiss-hint {
+    position: absolute;
+    top: 92px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: rgba(251, 247, 232, 0.7);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: hint-pulse 4000ms ease-in-out 1800ms infinite;
+  }
+  @keyframes hint-pulse {
+    0%, 100% { opacity: 0; }
+    50%      { opacity: 0.7; }
+  }
+
+  /* ── Locked variant ── */
+  body.locked .trophy-sticker { filter: grayscale(0.85) brightness(0.95); opacity: 0.5; }
+  body.locked .note-description { font-style: italic; color: var(--ink-soft); }
+  body.locked .note-description::before {
+    content: '"Pin this when you log 3 days through a rough patch."';
+    color: var(--ink-tertiary);
+    font-style: italic;
+    display: block;
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  body.locked .note-description { font-size: 0; line-height: 1; }
+  body.locked .earned-stamp { display: none; }
+
+  /* ── Dismiss (reverse pin) ── */
+  body.dismissed .cork-overlay {
+    animation: cork-out 450ms ease-in forwards;
+    pointer-events: none;
+  }
+  body.dismissed .pin-anchor {
+    animation: pin-up 440ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+  body.dismissed .field-note,
+  body.dismissed .trophy-shadow,
+  body.dismissed .dismiss-hint {
+    animation: fade-out 250ms ease-out forwards;
+  }
+  @keyframes cork-out {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes pin-up {
+    0%   { transform: translate(-50%, calc(-50% - 60px)) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, calc(-50% - 220px)) scale(0.92) rotate(2deg); opacity: 0; }
+  }
+  @keyframes fade-out {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 420px;
+  }
+  .controls button {
+    appearance: none;
+    border: 2px solid var(--ink);
+    background: var(--note-paper);
+    color: var(--ink);
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 14px;
+    border-radius: 18px;
+    cursor: pointer;
+    transition: transform 120ms ease, background 120ms ease;
+  }
+  .controls button:hover { background: var(--note-paper-shade); }
+  .controls button:active { transform: translateY(1px); }
+  .controls button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  /* ── Notes ── */
+  .notes {
+    max-width: 420px;
+    background: var(--note-paper);
+    border: 1.5px solid #C9B998;
+    border-radius: 14px;
+    padding: 16px 18px;
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .notes h3 {
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+  .notes .tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: var(--cork-dark);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+  .notes ul { margin: 8px 0 0 0; padding-left: 18px; }
+  .notes li { margin-bottom: 4px; }
+  .notes strong { color: var(--ink); }
+</style>
+</head>
+<body>
+
+  <div class="phone-frame" id="phone">
+
+    <!-- Background: sticker grid -->
+    <div class="status-bar"><span>9:41</span><span>•••</span></div>
+    <div class="grid-scene">
+      <div class="scene-title">My Stickers</div>
+      <div class="scene-subtitle">9 of 12 bloomed</div>
+      <div class="sticker-grid">
+        <div class="grid-cell"><img src="assets/stickers/welcome@3x.png" alt=""></div>
+        <div class="grid-cell"><img src="assets/stickers/multi_pup_parent@3x.png" alt=""></div>
+        <div class="grid-cell"><img src="assets/stickers/tender_caretaker@3x.png" alt=""></div>
+        <div class="grid-cell"><img src="assets/stickers/pattern_spotter@3x.png" alt=""></div>
+        <div class="grid-cell"><img src="assets/stickers/first_peony@3x.png" alt=""></div>
+        <div class="grid-cell"><img src="assets/stickers/bouquet_of_joy@3x.png" alt=""></div>
+        <div class="grid-cell"><img src="assets/stickers/full_spectrum@3x.png" alt=""></div>
+        <div class="grid-cell"><img src="assets/stickers/bloom_master@3x.png" alt=""></div>
+        <div class="grid-cell"><img src="assets/stickers/seasonal_spring@3x.png" alt=""></div>
+        <div class="grid-cell locked"><div class="placeholder">?</div></div>
+        <div class="grid-cell locked"><div class="placeholder">?</div></div>
+        <div class="grid-cell locked"><div class="placeholder">?</div></div>
+      </div>
+    </div>
+
+    <!-- Cork overlay -->
+    <div class="cork-overlay" id="cork">
+      <div class="dismiss-hint">Tap cork to close</div>
+
+      <div class="pin-anchor">
+        <div class="pushpin"></div>
+        <img class="trophy-sticker" src="assets/stickers/welcome@3x.png" alt="Welcome trophy">
+        <div class="trophy-shadow"></div>
+      </div>
+
+      <div class="field-note">
+        <div class="note-tack"></div>
+        <div class="note-title">Welcome</div>
+        <div class="note-description">You opened your journal for the very first time. Every garden starts with a single page.</div>
+        <div class="earned-stamp">Pinned · May 9, 2026</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="replay-btn">▶ Replay pinning</button>
+    <button id="lock-btn">Toggle locked variant</button>
+  </div>
+
+  <div class="notes">
+    <span class="tag">Option 3</span>
+    <h3>Specimen Card on a Cork Board</h3>
+    <ul>
+      <li><strong>Entrance:</strong> Backdrop snaps to warm cork texture (350ms fade). Sticker drops in from above with pushpin landing, 520ms <code>cubic-bezier(0.5, 0, 0.2, 1)</code>.</li>
+      <li><strong>Idle motion:</strong> Sticker sways ±1.5° on its pin, 5s sinusoidal. Drop shadow tracks the sway (counter-translates and scales).</li>
+      <li><strong>Layout:</strong> Sticker pinned upper-center (235px). Field-note paper card at bottom 25%, rotated -1.2°, with thumbtack in corner. "Pinned · DATE" stamp at bottom-right, rotated +4°.</li>
+      <li><strong>New asset cost:</strong> Cork texture is procedural in HTML; in RN we'd want a real cork PNG (or layered SVG noise via <code>react-native-svg</code>).</li>
+      <li><strong>Brand fit:</strong> Playful, on-brand. Reads as "your wall of wins."</li>
+      <li><strong>Dismiss:</strong> Tap anywhere on the cork → pushpin lifts up, sticker exits top, field note fades.</li>
+    </ul>
+  </div>
+
+<script>
+  const cork = document.getElementById('cork');
+  const replayBtn = document.getElementById('replay-btn');
+  const lockBtn = document.getElementById('lock-btn');
+
+  function replay() {
+    document.body.classList.remove('dismissed');
+    const fresh = cork.cloneNode(true);
+    cork.replaceWith(fresh);
+    bindCork(fresh);
+  }
+
+  function dismiss() {
+    document.body.classList.add('dismissed');
+    setTimeout(() => {
+      document.body.classList.remove('dismissed');
+      const stale = document.getElementById('cork') || document.querySelector('.cork-overlay');
+      if (stale) {
+        const fresh = stale.cloneNode(true);
+        fresh.id = 'cork';
+        stale.replaceWith(fresh);
+        bindCork(fresh);
+      }
+    }, 470);
+  }
+
+  function bindCork(node) {
+    node.addEventListener('click', (e) => {
+      if (e.target.closest('.field-note')) return;
+      dismiss();
+    });
+  }
+  bindCork(cork);
+
+  replayBtn.addEventListener('click', replay);
+  lockBtn.addEventListener('click', () => {
+    document.body.classList.toggle('locked');
+    replay();
+  });
+</script>
+
+</body>
+</html>
