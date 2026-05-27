@@ -62,8 +62,27 @@ describe('StickerCard', () => {
     expect(getLocked('Pattern Spotter sticker, locked')).toBeTruthy();
   });
 
-  // 6. Applies rotation transform from sticker.rotation
-  it('6. renders the pressable with rotation style from sticker.rotation', () => {
+  // 6. Locked sticker WITH asset shows the cream-tinted sepia overlay (Pattern E PR 1, HANDOFF 4.9)
+  it('6. renders sepia overlay on locked sticker that has an asset', () => {
+    const { getByTestId } = render(
+      <StickerCard sticker={welcomeSticker} earned={false} />,
+    );
+    expect(getByTestId('locked-overlay')).toBeTruthy();
+
+    const { queryByTestId: queryEarned } = render(
+      <StickerCard sticker={welcomeSticker} earned />,
+    );
+    expect(queryEarned('locked-overlay')).toBeNull();
+
+    // Sticker with NULL asset uses the ghost placeholder, NOT the overlay
+    const { queryByTestId: queryNull } = render(
+      <StickerCard sticker={nullSticker} earned={false} />,
+    );
+    expect(queryNull('locked-overlay')).toBeNull();
+  });
+
+  // 7. Applies rotation transform from sticker.rotation
+  it('7. renders the pressable with rotation style from sticker.rotation', () => {
     const { getByLabelText } = render(
       <StickerCard sticker={welcomeSticker} earned />
     );

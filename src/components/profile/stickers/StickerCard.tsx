@@ -45,16 +45,28 @@ export function StickerCard({ sticker, earned, onPress, size = 56 }: StickerCard
       ]}
     >
       {asset !== null ? (
-        <Image
-          source={asset}
-          style={{
-            width: size,
-            height: size,
-            opacity: earned ? 1 : 0.4,
-            transform: [{ scale: STICKER_VISUAL_SCALE }],
-          }}
-          resizeMode="contain"
-        />
+        <View style={{ width: size, height: size }}>
+          <Image
+            source={asset}
+            style={{
+              width: size,
+              height: size,
+              opacity: earned ? 1 : 0.5,
+              transform: [{ scale: STICKER_VISUAL_SCALE }],
+            }}
+            resizeMode="contain"
+          />
+          {!earned && (
+            <View
+              testID="locked-overlay"
+              pointerEvents="none"
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: 'rgba(246, 240, 230, 0.35)' },
+              ]}
+            />
+          )}
+        </View>
       ) : earned ? (
         <View
           style={[

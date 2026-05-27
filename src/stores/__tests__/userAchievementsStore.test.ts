@@ -1,4 +1,4 @@
-import { useUserAchievementsStore } from '../userAchievementsStore';
+import { useUserAchievementsStore, FeaturedSlots } from '../userAchievementsStore';
 import { supabase } from '../../lib/supabase';
 
 // Cast supabase to any for mock access
@@ -11,6 +11,7 @@ const initialState = {
   error: null,
   lastEarned: null,
   seasonalCheckedThisSession: false,
+  featuredIds: [null, null, null] as FeaturedSlots,
 };
 
 beforeEach(() => {
@@ -147,6 +148,7 @@ it('6. checkSeasonal does not invoke edge function when seasonal sticker already
     error: null,
     lastEarned: null,
     seasonalCheckedThisSession: false,
+    featuredIds: [null, null, null],
   });
 
   const invokeMock = jest.fn();
@@ -245,6 +247,7 @@ it('9. clearLastEarned sets lastEarned to null without touching other state', ()
     error: null,
     lastEarned: 'welcome',
     seasonalCheckedThisSession: true,
+    featuredIds: [null, null, null],
   });
 
   useUserAchievementsStore.getState().clearLastEarned();
@@ -269,6 +272,7 @@ it('10. clearAchievements resets all state to initial values', () => {
     error: 'some error',
     lastEarned: 'welcome',
     seasonalCheckedThisSession: true,
+    featuredIds: [null, null, null],
   });
 
   useUserAchievementsStore.getState().clearAchievements();
@@ -280,4 +284,152 @@ it('10. clearAchievements resets all state to initial values', () => {
   expect(state.error).toBeNull();
   expect(state.lastEarned).toBeNull();
   expect(state.seasonalCheckedThisSession).toBe(false);
+});
+
+// ─── Featured slots (Pattern E PR 1) ───────────────────────────────────────
+
+it('20. initial featuredIds is [null, null, null]', () => {
+  const state = useUserAchievementsStore.getState();
+  expect(state.featuredIds).toEqual([null, null, null]);
+});
+
+// ─── 21. setFeatured fills slot and persists ──────────────────────────────────
+
+it('12. setFeatured fills the specified slot and persists to Supabase', async () => {
+  mockAuthUser();
+
+  const updateMock = jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) }));
+  mockSupabase.from = jest.fn(() => ({ update: updateMock }));
+
+  await useUserAchievementsStore.getState().setFeatured(0, 'welcome');
+
+  const state = useUserAchievementsStore.getState();
+  expect(state.featuredIds).toEqual(['welcome', null, null]);
+  expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles');
+  expect(updateMock).toHaveBeenCalledWith({ featured_stickers: ['welcome', null, null] });
+});
+
+// ─── 22. setFeatured replaces existing value ──────────────────────────────────
+
+it('13. setFeatured replaces existing value in the slot', async () => {
+  mockAuthUser();
+  mockSupabase.from = jest.fn(() => ({
+    update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+  }));
+
+  useUserAchievementsStore.setState({ featuredIds: ['welcome', null, null] });
+
+  await useUserAchievementsStore.getState().setFeatured(0, 'multi_pup_parent');
+
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual(['multi_pup_parent', null, null]);
+});
+
+// ─── 14. unsetFeatured nulls out the slot containing the given id ─────────────
+
+it('14. unsetFeatured nulls out the slot containing the given id and persists', async () => {
+  mockAuthUser();
+  mockSupabase.from = jest.fn(() => ({
+    update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+  }));
+
+  useUserAchievementsStore.setState({ featuredIds: ['welcome', 'multi_pup_parent', null] });
+
+  await useUserAchievementsStore.getState().unsetFeatured('welcome');
+
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual([null, 'multi_pup_parent', null]);
+});
+
+// ─── 15. unsetFeatured for id not in any slot is a no-op ────────────────────
+
+it('15. unsetFeatured for id not in any slot is a no-op', async () => {
+  mockAuthUser();
+  mockSupabase.from = jest.fn(() => ({
+    update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+  }));
+
+  useUserAchievementsStore.setState({ featuredIds: ['welcome', null, null] });
+
+  await useUserAchievementsStore.getState().unsetFeatured('multi_pup_parent');
+
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual(['welcome', null, null]);
+});
+
+// ─── 16. swapFeatured removes oldId and inserts newId in its slot ──────────────
+
+it('16. swapFeatured removes oldId and inserts newId in its slot', async () => {
+  mockAuthUser();
+  mockSupabase.from = jest.fn(() => ({
+    update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ error: null })) })),
+  }));
+
+  useUserAchievementsStore.setState({
+    featuredIds: ['welcome', 'multi_pup_parent', 'pattern_spotter'],
+  });
+
+  await useUserAchievementsStore.getState().swapFeatured('multi_pup_parent', 'tender_caretaker');
+
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual([
+    'welcome',
+    'tender_caretaker',
+    'pattern_spotter',
+  ]);
+});
+
+// ─── 17. hydrateFeatured replaces local state without DB write ─────────────────
+
+it('17. hydrateFeatured replaces local state without DB write', () => {
+  useUserAchievementsStore.setState({ featuredIds: [null, null, null] });
+
+  useUserAchievementsStore.getState().hydrateFeatured(['welcome', 'multi_pup_parent', null]);
+
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual([
+    'welcome',
+    'multi_pup_parent',
+    null,
+  ]);
+});
+
+// ─── 18. hydrateFeatured falls back to [null, null, null] when given null ─────
+
+it('18. hydrateFeatured falls back to [null, null, null] when given null', () => {
+  useUserAchievementsStore.getState().hydrateFeatured(null);
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual([null, null, null]);
+});
+
+// ─── 19. computeAutoFill fills empty slots when totalEarned <= 3 ──────────────
+
+it('19. computeAutoFill fills empty slots when totalEarned <= 3', () => {
+  const result = useUserAchievementsStore.getState().computeAutoFill(
+    [null, null, null],
+    ['welcome'],
+  );
+  expect(result).toEqual(['welcome', null, null]);
+});
+
+// ─── 20. computeAutoFill skips already-featured ids ───────────────────────────
+
+it('20. computeAutoFill skips already-featured ids', () => {
+  const result = useUserAchievementsStore.getState().computeAutoFill(
+    ['welcome', null, null],
+    ['welcome', 'multi_pup_parent'],
+  );
+  expect(result).toEqual(['welcome', 'multi_pup_parent', null]);
+});
+
+// ─── 21. computeAutoFill no-ops when totalEarned > 3 (manual swap required) ───
+
+it('21. computeAutoFill no-ops when totalEarned > 3 (manual swap required)', () => {
+  const result = useUserAchievementsStore.getState().computeAutoFill(
+    ['welcome', 'multi_pup_parent', 'pattern_spotter'],
+    ['welcome', 'multi_pup_parent', 'pattern_spotter', 'tender_caretaker'],
+  );
+  expect(result).toEqual(['welcome', 'multi_pup_parent', 'pattern_spotter']);
+});
+
+// ─── 22. clearAchievements resets featuredIds to [null, null, null] ──────────
+
+it('22. clearAchievements resets featuredIds to [null, null, null]', () => {
+  useUserAchievementsStore.setState({ featuredIds: ['welcome', null, null] });
+  useUserAchievementsStore.getState().clearAchievements();
+  expect(useUserAchievementsStore.getState().featuredIds).toEqual([null, null, null]);
 });

@@ -306,3 +306,20 @@ jest.mock('react-native-svg', () => {
   };
 });
 
+// Mock expo-linear-gradient
+jest.mock('expo-linear-gradient', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  const LinearGradient = React.forwardRef((props, ref) =>
+    React.createElement(View, { ...props, ref })
+  );
+  LinearGradient.displayName = 'LinearGradient';
+
+  return {
+    __esModule: true,
+    LinearGradient,
+    default: LinearGradient,
+  };
+});
+

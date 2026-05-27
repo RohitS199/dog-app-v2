@@ -1,4 +1,5 @@
 import { useProfileStore, splitName } from '../profileStore';
+import { useUserAchievementsStore } from '../userAchievementsStore';
 import { supabase } from '../../lib/supabase';
 
 // Cast supabase to any for mock access
@@ -213,6 +214,51 @@ describe('profileStore', () => {
       expect(state.draft!.location).toBe('');
       expect(state.draft!.first_name).toBe('');
       expect(state.draft!.last_name).toBe('');
+    });
+
+    it('hydrates userAchievementsStore.featuredIds from user_profiles.featured_stickers', async () => {
+      mockSupabase.auth.getUser = jest.fn(() =>
+        Promise.resolve({
+          data: {
+            user: {
+              id: 'user-abc',
+              email: 'test@example.com',
+              user_metadata: {},
+            },
+          },
+          error: null,
+        })
+      );
+
+      mockSupabase.from = jest.fn(() => ({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn(() =>
+          Promise.resolve({
+            data: {
+              user_id: 'user-abc',
+              phone: null,
+              birthday: null,
+              location: null,
+              avatar_url: null,
+              featured_stickers: ['welcome', 'multi_pup_parent', null],
+            },
+            error: null,
+          })
+        ),
+        insert: jest.fn().mockReturnThis(),
+        upsert: jest.fn(() => Promise.resolve({ error: null })),
+        single: jest.fn(() => Promise.resolve({ data: {}, error: null })),
+      }));
+
+      // Spy on hydrateFeatured before the call
+      const hydrateSpy = jest.spyOn(useUserAchievementsStore.getState(), 'hydrateFeatured');
+
+      await useProfileStore.getState().loadFromAuthAndProfile();
+
+      expect(hydrateSpy).toHaveBeenCalledWith(['welcome', 'multi_pup_parent', null]);
+
+      hydrateSpy.mockRestore();
     });
   });
 
