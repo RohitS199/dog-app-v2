@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { useAuthStore } from './authStore';
 import { useUserAchievementsStore, FeaturedSlots } from './userAchievementsStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -37,6 +38,7 @@ interface ProfileState {
   save: () => Promise<{ success: boolean; error?: string }>;
   discardDraft: () => void;
   clearProfile: () => void;
+  updateAvatar: (uri: string | null) => Promise<{ success: boolean; error?: string }>;
 }
 
 // ─── Helper: splitName ────────────────────────────────────────────────────────
@@ -238,6 +240,70 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       isSaving: false,
       error: null,
     });
+  },
+
+  updateAvatar: async (uri) => {
+    const { loaded } = get();
+    const previousAvatarUrl = loaded?.avatar_url ?? null;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return { success: false, error: 'Not authenticated' };
+      }
+
+      if (uri !== null) {
+        // Optimistic UI — show the local URI immediately
+        if (loaded) {
+          set({ loaded: { ...loaded, avatar_url: uri } });
+        }
+
+        const filePath = `${user.id}/avatar.jpg`;
+        const formData = new FormData();
+        formData.append('file', {
+          uri,
+          name: 'avatar.jpg',
+          type: 'image/jpeg',
+        } as any);
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, formData, {
+            upsert: true,
+            contentType: 'multipart/form-data',
+          });
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+        const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+        const { error: upsertError } = await supabase
+          .from('user_profiles')
+          .upsert({ user_id: user.id, avatar_url: avatarUrl }, { onConflict: 'user_id' });
+        if (upsertError) throw upsertError;
+
+        const { data: authData, error: authError } = await supabase.auth.updateUser({
+          data: { avatar_url: avatarUrl },
+        });
+        if (authError) throw authError;
+
+        if (loaded) {
+          set({ loaded: { ...loaded, avatar_url: avatarUrl } });
+        }
+        useAuthStore.getState().setUser(authData.user);
+
+        return { success: true };
+      }
+
+      // Remove path comes in Task 6
+      return { success: false, error: 'Remove not yet implemented' };
+    } catch (err) {
+      // Revert handling comes in Task 5
+      const message = err instanceof Error ? err.message : 'Avatar update failed';
+      return { success: false, error: message };
+    }
   },
 }));
 

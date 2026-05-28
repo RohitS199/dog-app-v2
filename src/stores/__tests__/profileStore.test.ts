@@ -497,4 +497,73 @@ describe('profileStore', () => {
       expect(state.error).toBeNull();
     });
   });
+
+  // ─── updateAvatar ──────────────────────────────────────────────────────────
+
+  describe('updateAvatar', () => {
+    const seedAvatarState = (existingUrl: string | null = null) => {
+      useProfileStore.setState({
+        loaded: {
+          first_name: 'Alice',
+          last_name: 'Smith',
+          email: 'alice@example.com',
+          phone: '555-0000',
+          birthday: '1992-05-14',
+          location: 'NYC',
+          avatar_url: existingUrl,
+        },
+        draft: {
+          first_name: 'Alice',
+          last_name: 'Smith',
+          email: 'alice@example.com',
+          phone: '555-0000',
+          birthday: '1992-05-14',
+          location: 'NYC',
+        },
+      });
+    };
+
+    it('uploads to Storage, writes to user_profiles and auth metadata, and updates loaded.avatar_url', async () => {
+      seedAvatarState(null);
+
+      mockSupabase.auth.getUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123' } }, error: null })
+      );
+
+      const uploadMock = jest.fn(() => Promise.resolve({ error: null }));
+      const getPublicUrlMock = jest.fn(() => ({
+        data: { publicUrl: 'https://example.supabase.co/storage/v1/object/public/avatars/user-123/avatar.jpg' },
+      }));
+      const upsertMock = jest.fn(() => Promise.resolve({ error: null }));
+
+      mockSupabase.storage = {
+        from: jest.fn(() => ({
+          upload: uploadMock,
+          getPublicUrl: getPublicUrlMock,
+          remove: jest.fn(),
+        })),
+      };
+      mockSupabase.from = jest.fn(() => ({
+        upsert: upsertMock,
+      }));
+      mockSupabase.auth.updateUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123', user_metadata: { avatar_url: 'final-url' } } }, error: null })
+      );
+
+      const result = await useProfileStore.getState().updateAvatar('file:///local/img.jpg');
+
+      expect(result.success).toBe(true);
+      expect(uploadMock).toHaveBeenCalledTimes(1);
+      expect(upsertMock).toHaveBeenCalledWith(
+        expect.objectContaining({ user_id: 'user-123', avatar_url: expect.stringContaining('avatars/user-123/avatar.jpg') }),
+        expect.objectContaining({ onConflict: 'user_id' })
+      );
+      expect(mockSupabase.auth.updateUser).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ avatar_url: expect.stringContaining('avatars/user-123/avatar.jpg') }) })
+      );
+      const loaded = useProfileStore.getState().loaded!;
+      expect(loaded.avatar_url).toContain('avatars/user-123/avatar.jpg');
+      expect(loaded.avatar_url).toContain('?t=');
+    });
+  });
 });
