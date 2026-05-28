@@ -6,6 +6,7 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withDelay,
   withRepeat,
   withSequence,
   withTiming,
@@ -58,12 +59,25 @@ export function TrophyDetailView({
   const reducedMotion = useReducedMotion();
   const fade = useSharedValue(0);
   const idle = useSharedValue(0);
+  // underlineDraw: 0 → 1 = watercolor underline scaleX draw. Delayed ~300ms
+  // so it lands after the backdrop has settled — feels like "trophy appears,
+  // then a brush confirms the title."
+  const underlineDraw = useSharedValue(0);
 
   useEffect(() => {
     fade.value = withTiming(1, {
       duration: reducedMotion ? 0 : 480,
       easing: Easing.bezier(0.16, 1, 0.3, 1),
     });
+
+    if (reducedMotion) {
+      underlineDraw.value = 1;
+    } else {
+      underlineDraw.value = withDelay(
+        300,
+        withTiming(1, { duration: 600, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      );
+    }
 
     if (!reducedMotion) {
       const t = setTimeout(() => {
@@ -79,7 +93,7 @@ export function TrophyDetailView({
       );
       return () => clearTimeout(t);
     }
-  }, [reducedMotion, fade, idle]);
+  }, [reducedMotion, fade, idle, underlineDraw]);
 
   const backdropStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
 
@@ -94,6 +108,11 @@ export function TrophyDetailView({
       ],
     };
   });
+
+  const underlineStyle = useAnimatedStyle(() => ({
+    // Center-out watercolor bloom from the title midpoint outward.
+    transform: [{ scaleX: underlineDraw.value }],
+  }));
 
   const asset = STICKER_ASSETS[sticker.id];
   const ribbonState: 'featured' | 'unfeatured' | 'locked' = !earned
@@ -144,7 +163,7 @@ export function TrophyDetailView({
 
       <Text style={styles.title}>{sticker.title}</Text>
 
-      <View style={styles.underline} />
+      <Animated.View style={[styles.underline, underlineStyle]} />
 
       <Text style={styles.description}>{sticker.unlockCriteria}</Text>
 
