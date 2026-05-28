@@ -29,6 +29,10 @@ export const OB_COLORS = {
   // Pattern E — Featured-state palette (May 2026). Dusty dog-park dusk blue.
   // Paired with `cream` foreground = 4.92:1 contrast (WCAG AA pass for 9pt label).
   featuredBlue: '#3F6E8F',
+  // 10% featuredBlue wash — unfeatured ribbon bg + featured grid tile tint.
+  // Picks up enough hue to distinguish from the cream trophy backdrop without
+  // competing with the solid featured state.
+  featuredBlueWash: 'rgba(63, 110, 143, 0.10)',
 } as const;
 
 export const OB_FONTS = {
