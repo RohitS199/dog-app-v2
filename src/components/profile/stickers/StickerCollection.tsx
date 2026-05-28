@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { STICKERS, StickerId } from '../../../constants/achievements';
 import { OB_COLORS, OB_FONTS } from '../../../constants/onboardingTheme';
@@ -7,6 +7,34 @@ import type { FeaturedSlots } from '../../../stores/userAchievementsStore';
 import { EmptySlotMount } from './EmptySlotMount';
 import { Star } from './Star';
 import { StickerCard } from './StickerCard';
+import type { OriginRect } from './TrophyDetailView';
+
+// Measures the node's window-space rect via measureInWindow and calls
+// `onMeasured(rect)` once the native callback fires. In jest the measureInWindow
+// method exists on host nodes but its callback never fires (no native bridge),
+// so we explicitly short-circuit to `onUnmeasured()` in test env. Both callbacks
+// take no rect argument from the caller's perspective, letting callers decide
+// whether to pass it to onPress or omit it entirely (keeps single-arg call
+// signatures compatible with existing tests that use `toHaveBeenCalledWith(id)`).
+function measureAndFire(
+  node: View | null | undefined,
+  onMeasured: (rect: OriginRect) => void,
+  onUnmeasured: () => void,
+): void {
+  if (process.env.NODE_ENV === 'test' || !node) {
+    onUnmeasured();
+    return;
+  }
+  const measure = (node as unknown as { measureInWindow?: typeof View.prototype.measureInWindow })
+    .measureInWindow;
+  if (typeof measure === 'function') {
+    measure.call(node, (x: number, y: number, w: number, h: number) => {
+      onMeasured({ x, y, w, h });
+    });
+  } else {
+    onUnmeasured();
+  }
+}
 
 // Vertical stagger per slot for scrapbook feel (HANDOFF section 4.2)
 const SLOT_STAGGER: Record<0 | 1 | 2, number> = {
@@ -19,7 +47,12 @@ export type ProfileRowProps = {
   variant: 'profile-row';
   featuredIds: FeaturedSlots;
   earnedIds: Set<StickerId>;
-  onPressFilledSlot: (id: StickerId) => void;
+  // `originRect` is captured at tap time via measureInWindow on the slot's
+  // host node, then handed to TrophyDetailView so it can fly the sticker
+  // from the source position into the centered trophy view. In jest /
+  // when measurement isn't available, `originRect` is undefined and the
+  // trophy view falls back to its plain fade entrance.
+  onPressFilledSlot: (id: StickerId, originRect?: OriginRect) => void;
   onPressEmptySlot: (slotIndex: 0 | 1 | 2) => void;
   onPressViewAll: () => void;
 };
@@ -28,12 +61,20 @@ export type GridProps = {
   variant: 'sheet' | 'picker' | 'browse';
   featuredIds: FeaturedSlots;
   earnedIds: Set<StickerId>;
-  onPressSticker: (id: StickerId) => void;
+  onPressSticker: (id: StickerId, originRect?: OriginRect) => void;
 };
 
 export type StickerCollectionProps = ProfileRowProps | GridProps;
 
 export function StickerCollection(props: StickerCollectionProps) {
+  // Refs for measureInWindow at tap time. Row uses fixed slot indices (3),
+  // grid uses sticker id (12). Both are stored in callback refs so React
+  // garbage-collects them on unmount. measureInWindow is called inside the
+  // outer Pressable's onPress; the underlying ref points to StickerCard's
+  // forwarded inner Pressable (row) or the outer tile Pressable (grid).
+  const rowRefs = useRef<Map<number, View>>(new Map());
+  const gridRefs = useRef<Map<StickerId, View>>(new Map());
+
   if (props.variant === 'profile-row') {
     const { featuredIds, earnedIds, onPressFilledSlot, onPressEmptySlot, onPressViewAll } = props;
 
@@ -60,9 +101,19 @@ export function StickerCollection(props: StickerCollectionProps) {
                 style={[styles.filledSlot, { transform: [{ translateY: stagger }] }]}
               >
                 <StickerCard
+                  ref={(node) => {
+                    if (node) rowRefs.current.set(slotIndex, node);
+                    else rowRefs.current.delete(slotIndex);
+                  }}
                   sticker={sticker}
                   earned={earnedIds.has(id)}
-                  onPress={() => onPressFilledSlot(id)}
+                  onPress={() => {
+                    measureAndFire(
+                      rowRefs.current.get(slotIndex),
+                      (rect) => onPressFilledSlot(id, rect),
+                      () => onPressFilledSlot(id),
+                    );
+                  }}
                   size={74}
                 />
               </View>
@@ -105,8 +156,22 @@ export function StickerCollection(props: StickerCollectionProps) {
         return (
           <View key={sticker.id} style={styles.gridCell}>
             <Pressable
+              ref={(node) => {
+                if (node) gridRefs.current.set(sticker.id, node as unknown as View);
+                else gridRefs.current.delete(sticker.id);
+              }}
               testID={`sticker-tile-${sticker.id}`}
-              onPress={isPickable ? () => onPressSticker(sticker.id) : undefined}
+              onPress={
+                isPickable
+                  ? () => {
+                      measureAndFire(
+                        gridRefs.current.get(sticker.id),
+                        (rect) => onPressSticker(sticker.id, rect),
+                        () => onPressSticker(sticker.id),
+                      );
+                    }
+                  : undefined
+              }
               accessibilityRole="button"
               accessibilityLabel={
                 `${sticker.title} sticker, ${isEarned ? 'earned' : 'locked'}` +
