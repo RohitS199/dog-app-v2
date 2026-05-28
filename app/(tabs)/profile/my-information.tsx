@@ -119,10 +119,7 @@ export default function MyInformationScreen() {
   }
 
   function handleAvatarPress() {
-    Alert.alert(
-      COPY.MY_INFO_AVATAR_COMING_SOON_TITLE,
-      COPY.MY_INFO_AVATAR_COMING_SOON_BODY,
-    );
+    // Picker implementation lands in Task 9
   }
 
   function handleBirthdayFieldPress() {
