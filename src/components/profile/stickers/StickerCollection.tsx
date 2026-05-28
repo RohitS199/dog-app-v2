@@ -182,9 +182,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   tileFeatured: {
-    // OB_COLORS.featuredBlue (#3F6E8F) at 10% / 45% — matches the Featured
-    // ribbon stamp palette landed in ba0c091.
-    backgroundColor: 'rgba(63, 110, 143, 0.10)',
+    // OB_COLORS.featuredBlueWash (10% featuredBlue) — matches unfeatured ribbon
+    // bg. 45% border is unique to grid tiles (no token; localized to this style).
+    backgroundColor: OB_COLORS.featuredBlueWash,
     borderWidth: 1.5,
     borderColor: 'rgba(63, 110, 143, 0.45)',
   },

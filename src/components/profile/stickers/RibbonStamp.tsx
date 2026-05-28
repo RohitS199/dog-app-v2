@@ -43,7 +43,7 @@ export function RibbonStamp({ state, tilt, size = 'large', onPress }: RibbonStam
           width: dim,
           height: dim,
           borderRadius: dim / 2,
-          backgroundColor: isFeatured ? OB_COLORS.featuredBlue : OB_COLORS.cream,
+          backgroundColor: isFeatured ? OB_COLORS.featuredBlue : OB_COLORS.featuredBlueWash,
           borderWidth: isFeatured ? 0 : 2,
           borderStyle: isFeatured ? 'solid' : 'dashed',
           borderColor: OB_COLORS.sketch,
