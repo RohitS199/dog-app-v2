@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StickerDef, StickerCategory } from '../../../constants/achievements';
 import { OB_BORDERS, OB_COLORS, OB_FONTS } from '../../../constants/onboardingTheme';
@@ -30,7 +30,12 @@ function categoryColor(category: StickerCategory): string {
   }
 }
 
-export function StickerCard({ sticker, earned, onPress, size = 56 }: StickerCardProps) {
+export type StickerCardRef = View;
+
+export const StickerCard = forwardRef<StickerCardRef, StickerCardProps>(function StickerCard(
+  { sticker, earned, onPress, size = 56 },
+  ref,
+) {
   const asset = STICKER_ASSETS[sticker.id];
   const radius = Math.round(size * 0.2);
 
@@ -60,6 +65,7 @@ export function StickerCard({ sticker, earned, onPress, size = 56 }: StickerCard
 
   return (
     <Container
+      ref={ref as React.Ref<View>}
       {...containerProps}
       style={[
         styles.outer,
@@ -130,7 +136,7 @@ export function StickerCard({ sticker, earned, onPress, size = 56 }: StickerCard
       )}
     </Container>
   );
-}
+});
 
 const styles = StyleSheet.create({
   outer: {

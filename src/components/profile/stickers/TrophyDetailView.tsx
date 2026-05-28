@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   Easing,
@@ -18,6 +18,14 @@ import { STICKER_ASSETS } from './assets';
 import { LightWashOverlay } from './LightWashOverlay';
 import { RibbonStamp } from './RibbonStamp';
 
+/** Window-space rect of the sticker that opened the trophy view. Captured
+ * via measureInWindow at tap time so the trophy entrance can interpolate
+ * from the source position into the centered target ("matched-position"
+ * entrance). When undefined (e.g. trophy opened from a non-tap code path
+ * or in tests where measureInWindow isn't available), the trophy falls
+ * back to the plain backdrop-fade entrance. */
+export type OriginRect = { x: number; y: number; w: number; h: number };
+
 export type TrophyDetailViewProps = {
   sticker: StickerDef;
   earned: boolean;
@@ -25,6 +33,7 @@ export type TrophyDetailViewProps = {
   earnedAt: string | null;
   onDismiss: () => void;
   onRibbonPress?: () => void;
+  originRect?: OriginRect;
 };
 
 function formatBloomedDate(iso: string): string {
@@ -55,14 +64,32 @@ export function TrophyDetailView({
   earnedAt,
   onDismiss,
   onRibbonPress,
+  originRect,
 }: TrophyDetailViewProps) {
   const reducedMotion = useReducedMotion();
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const fade = useSharedValue(0);
   const idle = useSharedValue(0);
   // underlineDraw: 0 → 1 = watercolor underline scaleX draw. Delayed ~300ms
   // so it lands after the backdrop has settled — feels like "trophy appears,
   // then a brush confirms the title."
   const underlineDraw = useSharedValue(0);
+  // entrance: 0 → 1 = sticker flies from originRect (source) into the
+  // centered target. When originRect is undefined we initialize to 1 so the
+  // sticker renders at its natural transform with no flight. (Hazard 8.3
+  // means the Modal already fades behind us; the matched-position entrance
+  // is a sticker-only motion that composes ON TOP of that fade.)
+  const entrance = useSharedValue(originRect && !reducedMotion ? 0 : 1);
+
+  // Approximation: the sticker visually sits a touch above true screen center
+  // because there's title + underline + description + flavor + stamp below it.
+  // ~60px above the dead vertical center is the empirical sweet spot — enough
+  // to make the motion FEEL like it lands where the sticker actually is.
+  const targetCx = screenW / 2;
+  const targetCy = screenH / 2 - 60;
+  const initialDx = originRect ? originRect.x + originRect.w / 2 - targetCx : 0;
+  const initialDy = originRect ? originRect.y + originRect.h / 2 - targetCy : 0;
+  const initialScale = originRect ? originRect.w / STICKER_DIM : 1;
 
   useEffect(() => {
     fade.value = withTiming(1, {
@@ -72,11 +99,20 @@ export function TrophyDetailView({
 
     if (reducedMotion) {
       underlineDraw.value = 1;
+      entrance.value = 1;
     } else {
       underlineDraw.value = withDelay(
         300,
         withTiming(1, { duration: 600, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
       );
+      if (originRect) {
+        // Slightly faster than the backdrop fade so the sticker "lands" before
+        // the room finishes lighting up — feels punchier.
+        entrance.value = withTiming(1, {
+          duration: 380,
+          easing: Easing.bezier(0.16, 1, 0.3, 1),
+        });
+      }
     }
 
     if (!reducedMotion) {
@@ -93,17 +129,30 @@ export function TrophyDetailView({
       );
       return () => clearTimeout(t);
     }
-  }, [reducedMotion, fade, idle, underlineDraw]);
+  }, [reducedMotion, fade, idle, underlineDraw, entrance, originRect]);
 
   const backdropStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
 
   const stickerStyle = useAnimatedStyle(() => {
-    const ty = -2 + idle.value * 4;
-    const scale = 0.99 + idle.value * 0.03;
+    // Idle motion (existing): subtle y-bob + scale breathe.
+    const idleTy = -2 + idle.value * 4;
+    const idleScale = 0.99 + idle.value * 0.03;
+
+    // Matched-position entrance (new): linearly interpolate from source rect
+    // to centered identity as `entrance` goes 0 → 1. When originRect is
+    // absent, initialDx/Dy/Scale resolve to 0/0/1 so this is a no-op (idle +
+    // rotation only).
+    const p = entrance.value;
+    const inv = 1 - p;
+    const entranceDx = initialDx * inv;
+    const entranceDy = initialDy * inv;
+    const entranceScale = initialScale + (1 - initialScale) * p;
+
     return {
       transform: [
-        { translateY: ty },
-        { scale },
+        { translateX: entranceDx },
+        { translateY: entranceDy + idleTy },
+        { scale: entranceScale * idleScale },
         { rotate: `${sticker.rotation}deg` },
       ],
     };

@@ -20,7 +20,7 @@ import { NavButton } from '../../../src/components/profile/NavButton';
 import { PillButton } from '../../../src/components/profile/PillButton';
 import { LogOutModal } from '../../../src/components/profile/LogOutModal';
 import { StickerCollection } from '../../../src/components/profile/stickers/StickerCollection';
-import { TrophyDetailView } from '../../../src/components/profile/stickers/TrophyDetailView';
+import { TrophyDetailView, type OriginRect } from '../../../src/components/profile/stickers/TrophyDetailView';
 import { SwapPanel } from '../../../src/components/profile/stickers/SwapPanel';
 import { StickerEarnCelebration } from '../../../src/components/profile/stickers/StickerEarnCelebration';
 import { STICKER_IDS, STICKERS, type StickerId } from '../../../src/constants/achievements';
@@ -61,8 +61,8 @@ type ModalMode =
   | { kind: 'closed' }
   | { kind: 'browse' }
   | { kind: 'picker'; slotIndex: 0 | 1 | 2 }
-  | { kind: 'trophy'; stickerId: StickerId; source: TrophySource }
-  | { kind: 'swap'; stickerId: StickerId; source: TrophySource };
+  | { kind: 'trophy'; stickerId: StickerId; source: TrophySource; originRect?: OriginRect }
+  | { kind: 'swap'; stickerId: StickerId; source: TrophySource; originRect?: OriginRect };
 
 const TOAST_DURATION_MS = 1500;
 
@@ -110,8 +110,8 @@ export default function ProfileScreen() {
 
   // ---- modal handlers ----
 
-  function handleRowFilledPress(id: StickerId) {
-    setModalMode({ kind: 'trophy', stickerId: id, source: 'row' });
+  function handleRowFilledPress(id: StickerId, originRect?: OriginRect) {
+    setModalMode({ kind: 'trophy', stickerId: id, source: 'row', originRect });
   }
 
   function handleRowEmptyPress(slotIndex: 0 | 1 | 2) {
@@ -122,8 +122,8 @@ export default function ProfileScreen() {
     setModalMode({ kind: 'browse' });
   }
 
-  function handleBrowseStickerPress(id: StickerId) {
-    setModalMode({ kind: 'trophy', stickerId: id, source: 'browse' });
+  function handleBrowseStickerPress(id: StickerId, originRect?: OriginRect) {
+    setModalMode({ kind: 'trophy', stickerId: id, source: 'browse', originRect });
   }
 
   async function handlePickerStickerPress(id: StickerId) {
@@ -181,8 +181,10 @@ export default function ProfileScreen() {
       return;
     }
 
-    // All 3 slots full - open swap panel
-    setModalMode({ kind: 'swap', stickerId, source });
+    // All 3 slots full - open swap panel. Preserve originRect so the
+    // trophy underneath continues to render with the same matched-position
+    // identity transform (entrance has already completed, no re-fly).
+    setModalMode({ kind: 'swap', stickerId, source, originRect: modalMode.originRect });
   }
 
   async function handleSwapPick(oldStickerId: StickerId) {
@@ -195,8 +197,14 @@ export default function ProfileScreen() {
 
   function handleSwapCancel() {
     if (modalMode.kind !== 'swap') return;
-    // Return to the underlying trophy view
-    setModalMode({ kind: 'trophy', stickerId: modalMode.stickerId, source: modalMode.source });
+    // Return to the underlying trophy view, preserving the originRect so the
+    // trophy stays at its natural centered position (entrance already done).
+    setModalMode({
+      kind: 'trophy',
+      stickerId: modalMode.stickerId,
+      source: modalMode.source,
+      originRect: modalMode.originRect,
+    });
   }
 
   async function handleConfirmLogout() {
@@ -366,6 +374,11 @@ export default function ProfileScreen() {
                 earnedAt={trophyEarnedAt}
                 onDismiss={handleTrophyDismiss}
                 onRibbonPress={handleRibbonPress}
+                originRect={
+                  modalMode.kind === 'trophy' || modalMode.kind === 'swap'
+                    ? modalMode.originRect
+                    : undefined
+                }
               />
               {swapVisible && trophySticker ? (
                 <SwapPanel
