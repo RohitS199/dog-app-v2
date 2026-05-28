@@ -25,6 +25,7 @@ interface AuthState {
   signInWithApple: () => Promise<void>;
   checkTermsAcceptance: () => Promise<boolean>;
   setSession: (session: Session | null) => void;
+  setUser: (user: User | null) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -222,4 +223,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setSession: (session) => {
     set({ session, user: session?.user ?? null });
   },
+
+  setUser: (user) => set({ user }),
 }));
