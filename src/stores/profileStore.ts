@@ -300,7 +300,11 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       // Remove path comes in Task 6
       return { success: false, error: 'Remove not yet implemented' };
     } catch (err) {
-      // Revert handling comes in Task 5
+      // Revert optimistic UI to the previous avatar URL
+      const currentLoaded = get().loaded;
+      if (currentLoaded) {
+        set({ loaded: { ...currentLoaded, avatar_url: previousAvatarUrl } });
+      }
       const message = err instanceof Error ? err.message : 'Avatar update failed';
       return { success: false, error: message };
     }

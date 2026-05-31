@@ -565,5 +565,35 @@ describe('profileStore', () => {
       expect(loaded.avatar_url).toContain('avatars/user-123/avatar.jpg');
       expect(loaded.avatar_url).toContain('?t=');
     });
+
+    it('reverts loaded.avatar_url to previous value when storage.upload fails', async () => {
+      const previous = 'https://example.com/old-avatar.jpg';
+      seedAvatarState(previous);
+
+      mockSupabase.auth.getUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123' } }, error: null })
+      );
+
+      const uploadMock = jest.fn(() =>
+        Promise.resolve({ error: { message: 'Network error' } })
+      );
+
+      mockSupabase.storage = {
+        from: jest.fn(() => ({
+          upload: uploadMock,
+          getPublicUrl: jest.fn(),
+          remove: jest.fn(),
+        })),
+      };
+      mockSupabase.from = jest.fn(() => ({ upsert: jest.fn() }));
+      mockSupabase.auth.updateUser = jest.fn();
+
+      const result = await useProfileStore.getState().updateAvatar('file:///local/img.jpg');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeTruthy();
+      const loaded = useProfileStore.getState().loaded!;
+      expect(loaded.avatar_url).toBe(previous);
+    });
   });
 });
