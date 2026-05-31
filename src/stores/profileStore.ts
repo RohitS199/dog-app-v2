@@ -297,8 +297,31 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         return { success: true };
       }
 
-      // Remove path comes in Task 6
-      return { success: false, error: 'Remove not yet implemented' };
+      // Remove path
+      if (loaded) {
+        set({ loaded: { ...loaded, avatar_url: null } });
+      }
+
+      const filePath = `${user.id}/avatar.jpg`;
+      try {
+        await supabase.storage.from('avatars').remove([filePath]);
+      } catch {
+        // Storage delete failure is non-blocking — DB writes are the source of truth
+      }
+
+      const { error: upsertError } = await supabase
+        .from('user_profiles')
+        .upsert({ user_id: user.id, avatar_url: null }, { onConflict: 'user_id' });
+      if (upsertError) throw upsertError;
+
+      const { data: authData, error: authError } = await supabase.auth.updateUser({
+        data: { avatar_url: null },
+      });
+      if (authError) throw authError;
+
+      useAuthStore.getState().setUser(authData.user);
+
+      return { success: true };
     } catch (err) {
       // Revert optimistic UI to the previous avatar URL
       const currentLoaded = get().loaded;
