@@ -632,5 +632,36 @@ describe('profileStore', () => {
       const loaded = useProfileStore.getState().loaded!;
       expect(loaded.avatar_url).toBeNull();
     });
+
+    it('reverts loaded.avatar_url to previous value when DB upsert fails during remove', async () => {
+      const previous = 'https://example.com/existing.jpg';
+      seedAvatarState(previous);
+
+      mockSupabase.auth.getUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123' } }, error: null })
+      );
+
+      const removeMock = jest.fn(() => Promise.resolve({ error: null }));
+      const upsertMock = jest.fn(() =>
+        Promise.resolve({ error: { message: 'DB write failed' } })
+      );
+
+      mockSupabase.storage = {
+        from: jest.fn(() => ({
+          upload: jest.fn(),
+          getPublicUrl: jest.fn(),
+          remove: removeMock,
+        })),
+      };
+      mockSupabase.from = jest.fn(() => ({ upsert: upsertMock }));
+      mockSupabase.auth.updateUser = jest.fn();
+
+      const result = await useProfileStore.getState().updateAvatar(null);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeTruthy();
+      const loaded = useProfileStore.getState().loaded!;
+      expect(loaded.avatar_url).toBe(previous);
+    });
   });
 });
