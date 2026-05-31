@@ -663,5 +663,35 @@ describe('profileStore', () => {
       const loaded = useProfileStore.getState().loaded!;
       expect(loaded.avatar_url).toBe(previous);
     });
+
+    it('returns success on remove even if storage.remove throws (non-blocking)', async () => {
+      seedAvatarState('https://example.com/existing.jpg');
+
+      mockSupabase.auth.getUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123' } }, error: null })
+      );
+
+      const removeMock = jest.fn(() => Promise.reject(new Error('Storage offline')));
+      const upsertMock = jest.fn(() => Promise.resolve({ error: null }));
+
+      mockSupabase.storage = {
+        from: jest.fn(() => ({
+          upload: jest.fn(),
+          getPublicUrl: jest.fn(),
+          remove: removeMock,
+        })),
+      };
+      mockSupabase.from = jest.fn(() => ({ upsert: upsertMock }));
+      mockSupabase.auth.updateUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123', user_metadata: {} } }, error: null })
+      );
+
+      const result = await useProfileStore.getState().updateAvatar(null);
+
+      expect(result.success).toBe(true);
+      expect(upsertMock).toHaveBeenCalled();
+      const loaded = useProfileStore.getState().loaded!;
+      expect(loaded.avatar_url).toBeNull();
+    });
   });
 });
