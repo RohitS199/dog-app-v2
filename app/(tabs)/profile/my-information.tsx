@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -13,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 
 import { NavBar } from '../../../src/components/profile/NavBar';
 import { WoodPortrait } from '../../../src/components/profile/WoodPortrait';
@@ -118,8 +121,73 @@ export default function MyInformationScreen() {
     store.setDraftField('last_name', last);
   }
 
+  function handleTakePhotoStub() {
+    // Wired in Task 11
+  }
+
+  function handleChooseFromLibraryStub() {
+    // Wired in Task 10
+  }
+
+  function handleRemovePhotoStub() {
+    // Wired in Task 12
+  }
+
   function handleAvatarPress() {
-    // Picker implementation lands in Task 9
+    const hasAvatar = (loaded?.avatar_url ?? null) !== null;
+
+    if (Platform.OS === 'ios') {
+      const iosOptions = hasAvatar
+        ? [
+            COPY.MY_INFO_AVATAR_TAKE_PHOTO,
+            COPY.MY_INFO_AVATAR_CHOOSE_LIBRARY,
+            COPY.MY_INFO_AVATAR_REMOVE,
+            COPY.MY_INFO_AVATAR_CANCEL,
+          ]
+        : [
+            COPY.MY_INFO_AVATAR_TAKE_PHOTO,
+            COPY.MY_INFO_AVATAR_CHOOSE_LIBRARY,
+            COPY.MY_INFO_AVATAR_CANCEL,
+          ];
+      const cancelButtonIndex = iosOptions.length - 1;
+      const destructiveButtonIndex = hasAvatar ? 2 : undefined;
+
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: COPY.MY_INFO_AVATAR_SHEET_TITLE,
+          options: iosOptions,
+          cancelButtonIndex,
+          destructiveButtonIndex,
+        },
+        (selectedIndex) => {
+          if (selectedIndex === 0) {
+            handleTakePhotoStub();
+          } else if (selectedIndex === 1) {
+            handleChooseFromLibraryStub();
+          } else if (selectedIndex === 2 && hasAvatar) {
+            handleRemovePhotoStub();
+          }
+          // Cancel button: no-op
+        },
+      );
+      return;
+    }
+
+    // Android — use Alert.alert with buttons array
+    const androidButtons: { text: string; style?: 'default' | 'cancel' | 'destructive'; onPress?: () => void }[] = [
+      { text: COPY.MY_INFO_AVATAR_TAKE_PHOTO, onPress: handleTakePhotoStub },
+      { text: COPY.MY_INFO_AVATAR_CHOOSE_LIBRARY, onPress: handleChooseFromLibraryStub },
+    ];
+    if (hasAvatar) {
+      androidButtons.push({
+        text: COPY.MY_INFO_AVATAR_REMOVE,
+        style: 'destructive',
+        onPress: handleRemovePhotoStub,
+      });
+    }
+    androidButtons.push({ text: COPY.MY_INFO_AVATAR_CANCEL, style: 'cancel' });
+
+    Alert.alert(COPY.MY_INFO_AVATAR_SHEET_TITLE, undefined, androidButtons, { cancelable: true });
   }
 
   function handleBirthdayFieldPress() {
