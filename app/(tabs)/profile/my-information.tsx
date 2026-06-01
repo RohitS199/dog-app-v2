@@ -88,6 +88,8 @@ export default function MyInformationScreen() {
   const [pickerMonth, setPickerMonth] = useState(defaultPickerDate().month);
   const [pickerDay, setPickerDay] = useState(defaultPickerDate().day);
   const [pickerYear, setPickerYear] = useState(defaultPickerDate().year);
+  // Avatar upload state
+  const [isUploading, setIsUploading] = useState(false);
 
   // Load profile data on mount
   useEffect(() => {
@@ -125,8 +127,36 @@ export default function MyInformationScreen() {
     // Wired in Task 11
   }
 
-  function handleChooseFromLibraryStub() {
-    // Wired in Task 10
+  async function handleChooseFromLibrary() {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets[0]) {
+        return;
+      }
+
+      setIsUploading(true);
+      const uploadResult = await store.updateAvatar(result.assets[0].uri);
+      setIsUploading(false);
+
+      if (!uploadResult.success) {
+        Alert.alert(
+          COPY.MY_INFO_AVATAR_UPLOAD_ERROR_TITLE,
+          COPY.MY_INFO_AVATAR_UPLOAD_ERROR_BODY,
+        );
+      }
+    } catch {
+      setIsUploading(false);
+      Alert.alert(
+        COPY.MY_INFO_AVATAR_UPLOAD_ERROR_TITLE,
+        COPY.MY_INFO_AVATAR_UPLOAD_ERROR_BODY,
+      );
+    }
   }
 
   function handleRemovePhotoStub() {
@@ -163,7 +193,7 @@ export default function MyInformationScreen() {
           if (selectedIndex === 0) {
             handleTakePhotoStub();
           } else if (selectedIndex === 1) {
-            handleChooseFromLibraryStub();
+            handleChooseFromLibrary();
           } else if (selectedIndex === 2 && hasAvatar) {
             handleRemovePhotoStub();
           }
@@ -176,7 +206,7 @@ export default function MyInformationScreen() {
     // Android — use Alert.alert with buttons array
     const androidButtons: { text: string; style?: 'default' | 'cancel' | 'destructive'; onPress?: () => void }[] = [
       { text: COPY.MY_INFO_AVATAR_TAKE_PHOTO, onPress: handleTakePhotoStub },
-      { text: COPY.MY_INFO_AVATAR_CHOOSE_LIBRARY, onPress: handleChooseFromLibraryStub },
+      { text: COPY.MY_INFO_AVATAR_CHOOSE_LIBRARY, onPress: handleChooseFromLibrary },
     ];
     if (hasAvatar) {
       androidButtons.push({
@@ -278,10 +308,15 @@ export default function MyInformationScreen() {
                 style={styles.pencilPill}
                 onPress={handleAvatarPress}
                 accessibilityRole="button"
-                accessibilityLabel="Edit profile photo"
+                accessibilityLabel={isUploading ? 'Uploading photo' : 'Edit profile photo'}
                 hitSlop={8}
+                disabled={isUploading}
               >
-                <Text style={styles.pencilText}>{'✎'}</Text>
+                {isUploading ? (
+                  <ActivityIndicator size="small" color={OB_COLORS.ctaText} />
+                ) : (
+                  <Text style={styles.pencilText}>{'✎'}</Text>
+                )}
               </Pressable>
             </View>
           </View>
