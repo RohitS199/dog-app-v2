@@ -48,6 +48,8 @@ export const COPY = {
   MY_INFO_AVATAR_PERMISSION_TITLE: 'Camera access needed',
   MY_INFO_AVATAR_PERMISSION_BODY: 'Enable camera access in Settings to take a photo.',
   MY_INFO_AVATAR_OPEN_SETTINGS: 'Open Settings',
+  MY_INFO_AVATAR_OFFLINE_TITLE: "You're offline",
+  MY_INFO_AVATAR_OFFLINE_BODY: 'Connect to upload your photo.',
 
   // My Subscription screen (PR 3)
   MY_SUBSCRIPTION_TITLE: 'My Subscription',
