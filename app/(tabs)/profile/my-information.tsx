@@ -123,8 +123,49 @@ export default function MyInformationScreen() {
     store.setDraftField('last_name', last);
   }
 
-  function handleTakePhotoStub() {
-    // Wired in Task 11
+  async function handleTakePhoto() {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (permission.status !== 'granted') {
+        Alert.alert(
+          COPY.MY_INFO_AVATAR_PERMISSION_TITLE,
+          COPY.MY_INFO_AVATAR_PERMISSION_BODY,
+          [
+            { text: COPY.MY_INFO_AVATAR_CANCEL, style: 'cancel' },
+            { text: COPY.MY_INFO_AVATAR_OPEN_SETTINGS, onPress: () => Linking.openSettings() },
+          ],
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets[0]) {
+        return;
+      }
+
+      setIsUploading(true);
+      const uploadResult = await store.updateAvatar(result.assets[0].uri);
+      setIsUploading(false);
+
+      if (!uploadResult.success) {
+        Alert.alert(
+          COPY.MY_INFO_AVATAR_UPLOAD_ERROR_TITLE,
+          COPY.MY_INFO_AVATAR_UPLOAD_ERROR_BODY,
+        );
+      }
+    } catch {
+      setIsUploading(false);
+      Alert.alert(
+        COPY.MY_INFO_AVATAR_UPLOAD_ERROR_TITLE,
+        COPY.MY_INFO_AVATAR_UPLOAD_ERROR_BODY,
+      );
+    }
   }
 
   async function handleChooseFromLibrary() {
@@ -191,7 +232,7 @@ export default function MyInformationScreen() {
         },
         (selectedIndex) => {
           if (selectedIndex === 0) {
-            handleTakePhotoStub();
+            handleTakePhoto();
           } else if (selectedIndex === 1) {
             handleChooseFromLibrary();
           } else if (selectedIndex === 2 && hasAvatar) {
@@ -205,7 +246,7 @@ export default function MyInformationScreen() {
 
     // Android — use Alert.alert with buttons array
     const androidButtons: { text: string; style?: 'default' | 'cancel' | 'destructive'; onPress?: () => void }[] = [
-      { text: COPY.MY_INFO_AVATAR_TAKE_PHOTO, onPress: handleTakePhotoStub },
+      { text: COPY.MY_INFO_AVATAR_TAKE_PHOTO, onPress: handleTakePhoto },
       { text: COPY.MY_INFO_AVATAR_CHOOSE_LIBRARY, onPress: handleChooseFromLibrary },
     ];
     if (hasAvatar) {
