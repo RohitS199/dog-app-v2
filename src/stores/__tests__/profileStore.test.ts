@@ -523,7 +523,7 @@ describe('profileStore', () => {
       });
     };
 
-    it('uploads to Storage, writes to user_profiles and auth metadata, and updates loaded.avatar_url', async () => {
+    it('uploads to Storage, writes to user_profiles, and updates loaded.avatar_url (no auth metadata write)', async () => {
       seedAvatarState(null);
 
       mockSupabase.auth.getUser = jest.fn(() =>
@@ -558,9 +558,7 @@ describe('profileStore', () => {
         expect.objectContaining({ user_id: 'user-123', avatar_url: expect.stringContaining('avatars/user-123/avatar.jpg') }),
         expect.objectContaining({ onConflict: 'user_id' })
       );
-      expect(mockSupabase.auth.updateUser).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ avatar_url: expect.stringContaining('avatars/user-123/avatar.jpg') }) })
-      );
+      expect(mockSupabase.auth.updateUser).not.toHaveBeenCalled();
       const loaded = useProfileStore.getState().loaded!;
       expect(loaded.avatar_url).toContain('avatars/user-123/avatar.jpg');
       expect(loaded.avatar_url).toContain('?t=');
@@ -596,7 +594,7 @@ describe('profileStore', () => {
       expect(loaded.avatar_url).toBe(previous);
     });
 
-    it('removes the avatar: deletes storage file, clears user_profiles and auth metadata', async () => {
+    it('removes the avatar: deletes storage file and clears user_profiles (no auth metadata write)', async () => {
       seedAvatarState('https://example.com/existing.jpg');
 
       mockSupabase.auth.getUser = jest.fn(() =>
@@ -626,9 +624,7 @@ describe('profileStore', () => {
         expect.objectContaining({ user_id: 'user-123', avatar_url: null }),
         expect.objectContaining({ onConflict: 'user_id' })
       );
-      expect(mockSupabase.auth.updateUser).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ avatar_url: null }) })
-      );
+      expect(mockSupabase.auth.updateUser).not.toHaveBeenCalled();
       const loaded = useProfileStore.getState().loaded!;
       expect(loaded.avatar_url).toBeNull();
     });

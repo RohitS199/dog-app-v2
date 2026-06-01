@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import { useAuthStore } from './authStore';
 import { useUserAchievementsStore, FeaturedSlots } from './userAchievementsStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -285,16 +284,10 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
           .upsert({ user_id: user.id, avatar_url: avatarUrl }, { onConflict: 'user_id' });
         if (upsertError) throw upsertError;
 
-        const { data: authData, error: authError } = await supabase.auth.updateUser({
-          data: { avatar_url: avatarUrl },
-        });
-        if (authError) throw authError;
-
         const currentAfterUpload = get().loaded;
         if (currentAfterUpload) {
           set({ loaded: { ...currentAfterUpload, avatar_url: avatarUrl } });
         }
-        useAuthStore.getState().setUser(authData.user);
 
         return { success: true };
       }
@@ -316,13 +309,6 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         .from('user_profiles')
         .upsert({ user_id: user.id, avatar_url: null }, { onConflict: 'user_id' });
       if (upsertError) throw upsertError;
-
-      const { data: authData, error: authError } = await supabase.auth.updateUser({
-        data: { avatar_url: null },
-      });
-      if (authError) throw authError;
-
-      useAuthStore.getState().setUser(authData.user);
 
       return { success: true };
     } catch (err) {
