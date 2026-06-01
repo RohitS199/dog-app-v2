@@ -33,6 +33,7 @@ import { useProfileStore, splitName } from '../../../src/stores/profileStore';
 import { formatBirthdayDisplay } from '../../../src/lib/formatBirthday';
 import { COPY } from '../../../src/constants/profileCopy';
 import { useNetworkStatus } from '../../../src/hooks/useNetworkStatus';
+import { resizeForAvatar } from '../../../src/lib/resizeImage';
 import {
   OB_COLORS,
   OB_FONTS,
@@ -156,7 +157,8 @@ export default function MyInformationScreen() {
       }
 
       setIsUploading(true);
-      const uploadResult = await store.updateAvatar(result.assets[0].uri);
+      const resizedUri = await resizeForAvatar(result.assets[0].uri);
+      const uploadResult = await store.updateAvatar(resizedUri);
       setIsUploading(false);
 
       if (!uploadResult.success) {
@@ -192,7 +194,8 @@ export default function MyInformationScreen() {
       }
 
       setIsUploading(true);
-      const uploadResult = await store.updateAvatar(result.assets[0].uri);
+      const resizedUri = await resizeForAvatar(result.assets[0].uri);
+      const uploadResult = await store.updateAvatar(resizedUri);
       setIsUploading(false);
 
       if (!uploadResult.success) {
