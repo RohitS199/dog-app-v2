@@ -200,8 +200,29 @@ export default function MyInformationScreen() {
     }
   }
 
-  function handleRemovePhotoStub() {
-    // Wired in Task 12
+  function handleRemovePhoto() {
+    Alert.alert(
+      COPY.MY_INFO_AVATAR_REMOVE_CONFIRM_TITLE,
+      COPY.MY_INFO_AVATAR_REMOVE_CONFIRM_BODY,
+      [
+        { text: COPY.MY_INFO_AVATAR_CANCEL, style: 'cancel' },
+        {
+          text: COPY.MY_INFO_AVATAR_REMOVE,
+          style: 'destructive',
+          onPress: async () => {
+            setIsUploading(true);
+            const result = await store.updateAvatar(null);
+            setIsUploading(false);
+            if (!result.success) {
+              Alert.alert(
+                COPY.MY_INFO_AVATAR_UPLOAD_ERROR_TITLE,
+                COPY.MY_INFO_AVATAR_UPLOAD_ERROR_BODY,
+              );
+            }
+          },
+        },
+      ],
+    );
   }
 
   function handleAvatarPress() {
@@ -236,7 +257,7 @@ export default function MyInformationScreen() {
           } else if (selectedIndex === 1) {
             handleChooseFromLibrary();
           } else if (selectedIndex === 2 && hasAvatar) {
-            handleRemovePhotoStub();
+            handleRemovePhoto();
           }
           // Cancel button: no-op
         },
@@ -253,7 +274,7 @@ export default function MyInformationScreen() {
       androidButtons.push({
         text: COPY.MY_INFO_AVATAR_REMOVE,
         style: 'destructive',
-        onPress: handleRemovePhotoStub,
+        onPress: handleRemovePhoto,
       });
     }
     androidButtons.push({ text: COPY.MY_INFO_AVATAR_CANCEL, style: 'cancel' });
