@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { useDogStore } from '../../stores/dogStore';
-import { useAuthStore } from '../../stores/authStore';
+import { useProfileStore } from '../../stores/profileStore';
 import { useArticleTransitionStore } from '../../stores/articleTransitionStore';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { ProfileTabGlyph } from '../profile/glyphs';
@@ -59,7 +59,7 @@ function Tab({
       {isProfile ? (
         avatarUrl ? (
           <View style={[styles.tabAvatar, isFocused && styles.tabAvatarActive]}>
-            <Image source={{ uri: avatarUrl }} style={styles.tabAvatarImage} />
+            <Image source={{ uri: avatarUrl }} style={styles.tabAvatarImage} testID="profile-tab-avatar" />
           </View>
         ) : (
           <ProfileTabGlyph active={isFocused} />
@@ -75,9 +75,8 @@ function Tab({
 export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const router = useRouter();
   const { dogs, selectedDogId, selectDog } = useDogStore();
-  const user = useAuthStore((s) => s.user);
+  const avatarUrl = useProfileStore((s) => s.loaded?.avatar_url) ?? undefined;
   const isArticleExpanded = useArticleTransitionStore((s) => s.isExpanded);
-  const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
 
   // TODO: Remove FAB once Journey redesign delivers an alternative check-in CTA.
   // Gated on project_journey_redesign.md (TBD). Until then, the FAB stays even
