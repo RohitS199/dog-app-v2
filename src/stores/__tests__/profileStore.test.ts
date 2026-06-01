@@ -497,4 +497,201 @@ describe('profileStore', () => {
       expect(state.error).toBeNull();
     });
   });
+
+  // ─── updateAvatar ──────────────────────────────────────────────────────────
+
+  describe('updateAvatar', () => {
+    const seedAvatarState = (existingUrl: string | null = null) => {
+      useProfileStore.setState({
+        loaded: {
+          first_name: 'Alice',
+          last_name: 'Smith',
+          email: 'alice@example.com',
+          phone: '555-0000',
+          birthday: '1992-05-14',
+          location: 'NYC',
+          avatar_url: existingUrl,
+        },
+        draft: {
+          first_name: 'Alice',
+          last_name: 'Smith',
+          email: 'alice@example.com',
+          phone: '555-0000',
+          birthday: '1992-05-14',
+          location: 'NYC',
+        },
+      });
+    };
+
+    it('uploads to Storage, writes to user_profiles and auth metadata, and updates loaded.avatar_url', async () => {
+      seedAvatarState(null);
+
+      mockSupabase.auth.getUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123' } }, error: null })
+      );
+
+      const uploadMock = jest.fn(() => Promise.resolve({ error: null }));
+      const getPublicUrlMock = jest.fn(() => ({
+        data: { publicUrl: 'https://example.supabase.co/storage/v1/object/public/avatars/user-123/avatar.jpg' },
+      }));
+      const upsertMock = jest.fn(() => Promise.resolve({ error: null }));
+
+      mockSupabase.storage = {
+        from: jest.fn(() => ({
+          upload: uploadMock,
+          getPublicUrl: getPublicUrlMock,
+          remove: jest.fn(),
+        })),
+      };
+      mockSupabase.from = jest.fn(() => ({
+        upsert: upsertMock,
+      }));
+      mockSupabase.auth.updateUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123', user_metadata: { avatar_url: 'final-url' } } }, error: null })
+      );
+
+      const result = await useProfileStore.getState().updateAvatar('file:///local/img.jpg');
+
+      expect(result.success).toBe(true);
+      expect(uploadMock).toHaveBeenCalledTimes(1);
+      expect(upsertMock).toHaveBeenCalledWith(
+        expect.objectContaining({ user_id: 'user-123', avatar_url: expect.stringContaining('avatars/user-123/avatar.jpg') }),
+        expect.objectContaining({ onConflict: 'user_id' })
+      );
+      expect(mockSupabase.auth.updateUser).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ avatar_url: expect.stringContaining('avatars/user-123/avatar.jpg') }) })
+      );
+      const loaded = useProfileStore.getState().loaded!;
+      expect(loaded.avatar_url).toContain('avatars/user-123/avatar.jpg');
+      expect(loaded.avatar_url).toContain('?t=');
+    });
+
+    it('reverts loaded.avatar_url to previous value when storage.upload fails', async () => {
+      const previous = 'https://example.com/old-avatar.jpg';
+      seedAvatarState(previous);
+
+      mockSupabase.auth.getUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123' } }, error: null })
+      );
+
+      const uploadMock = jest.fn(() =>
+        Promise.resolve({ error: { message: 'Network error' } })
+      );
+
+      mockSupabase.storage = {
+        from: jest.fn(() => ({
+          upload: uploadMock,
+          getPublicUrl: jest.fn(),
+          remove: jest.fn(),
+        })),
+      };
+      mockSupabase.from = jest.fn(() => ({ upsert: jest.fn() }));
+      mockSupabase.auth.updateUser = jest.fn();
+
+      const result = await useProfileStore.getState().updateAvatar('file:///local/img.jpg');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeTruthy();
+      const loaded = useProfileStore.getState().loaded!;
+      expect(loaded.avatar_url).toBe(previous);
+    });
+
+    it('removes the avatar: deletes storage file, clears user_profiles and auth metadata', async () => {
+      seedAvatarState('https://example.com/existing.jpg');
+
+      mockSupabase.auth.getUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123' } }, error: null })
+      );
+
+      const removeMock = jest.fn(() => Promise.resolve({ error: null }));
+      const upsertMock = jest.fn(() => Promise.resolve({ error: null }));
+
+      mockSupabase.storage = {
+        from: jest.fn(() => ({
+          upload: jest.fn(),
+          getPublicUrl: jest.fn(),
+          remove: removeMock,
+        })),
+      };
+      mockSupabase.from = jest.fn(() => ({ upsert: upsertMock }));
+      mockSupabase.auth.updateUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123', user_metadata: {} } }, error: null })
+      );
+
+      const result = await useProfileStore.getState().updateAvatar(null);
+
+      expect(result.success).toBe(true);
+      expect(removeMock).toHaveBeenCalledWith(['user-123/avatar.jpg']);
+      expect(upsertMock).toHaveBeenCalledWith(
+        expect.objectContaining({ user_id: 'user-123', avatar_url: null }),
+        expect.objectContaining({ onConflict: 'user_id' })
+      );
+      expect(mockSupabase.auth.updateUser).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ avatar_url: null }) })
+      );
+      const loaded = useProfileStore.getState().loaded!;
+      expect(loaded.avatar_url).toBeNull();
+    });
+
+    it('reverts loaded.avatar_url to previous value when DB upsert fails during remove', async () => {
+      const previous = 'https://example.com/existing.jpg';
+      seedAvatarState(previous);
+
+      mockSupabase.auth.getUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123' } }, error: null })
+      );
+
+      const removeMock = jest.fn(() => Promise.resolve({ error: null }));
+      const upsertMock = jest.fn(() =>
+        Promise.resolve({ error: { message: 'DB write failed' } })
+      );
+
+      mockSupabase.storage = {
+        from: jest.fn(() => ({
+          upload: jest.fn(),
+          getPublicUrl: jest.fn(),
+          remove: removeMock,
+        })),
+      };
+      mockSupabase.from = jest.fn(() => ({ upsert: upsertMock }));
+      mockSupabase.auth.updateUser = jest.fn();
+
+      const result = await useProfileStore.getState().updateAvatar(null);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeTruthy();
+      const loaded = useProfileStore.getState().loaded!;
+      expect(loaded.avatar_url).toBe(previous);
+    });
+
+    it('returns success on remove even if storage.remove throws (non-blocking)', async () => {
+      seedAvatarState('https://example.com/existing.jpg');
+
+      mockSupabase.auth.getUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123' } }, error: null })
+      );
+
+      const removeMock = jest.fn(() => Promise.reject(new Error('Storage offline')));
+      const upsertMock = jest.fn(() => Promise.resolve({ error: null }));
+
+      mockSupabase.storage = {
+        from: jest.fn(() => ({
+          upload: jest.fn(),
+          getPublicUrl: jest.fn(),
+          remove: removeMock,
+        })),
+      };
+      mockSupabase.from = jest.fn(() => ({ upsert: upsertMock }));
+      mockSupabase.auth.updateUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123', user_metadata: {} } }, error: null })
+      );
+
+      const result = await useProfileStore.getState().updateAvatar(null);
+
+      expect(result.success).toBe(true);
+      expect(upsertMock).toHaveBeenCalled();
+      const loaded = useProfileStore.getState().loaded!;
+      expect(loaded.avatar_url).toBeNull();
+    });
+  });
 });

@@ -19,6 +19,8 @@ import { useCheckInStore } from '../src/stores/checkInStore';
 import { useHealthStore } from '../src/stores/healthStore';
 import { useLearnStore } from '../src/stores/learnStore';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
+import { useProfileStore } from '../src/stores/profileStore';
+import { useUserAchievementsStore } from '../src/stores/userAchievementsStore';
 import { supabase } from '../src/lib/supabase';
 import { InputField } from '../src/components/ui/InputField';
 import { Button } from '../src/components/ui/Button';
@@ -38,6 +40,8 @@ export default function DeleteAccount() {
   const clearHealth = useHealthStore((s) => s.clearHealth);
   const clearLearn = useLearnStore((s) => s.clearLearn);
   const clearSubscription = useSubscriptionStore((s) => s.clearSubscription);
+  const clearProfile = useProfileStore((s) => s.clearProfile);
+  const clearAchievements = useUserAchievementsStore((s) => s.clearAchievements);
   const router = useRouter();
 
   const canDelete = password.length > 0 && confirmText === 'DELETE';
@@ -73,6 +77,8 @@ export default function DeleteAccount() {
       clearHealth();
       clearLearn();
       clearSubscription();
+      clearProfile();
+      clearAchievements();
       await signOut();
     } catch (err) {
       setError(

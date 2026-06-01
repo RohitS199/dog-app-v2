@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -13,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 
 import { NavBar } from '../../../src/components/profile/NavBar';
 import { WoodPortrait } from '../../../src/components/profile/WoodPortrait';
@@ -85,6 +88,8 @@ export default function MyInformationScreen() {
   const [pickerMonth, setPickerMonth] = useState(defaultPickerDate().month);
   const [pickerDay, setPickerDay] = useState(defaultPickerDate().day);
   const [pickerYear, setPickerYear] = useState(defaultPickerDate().year);
+  // Avatar upload state
+  const [isUploading, setIsUploading] = useState(false);
 
   // Load profile data on mount
   useEffect(() => {
@@ -118,11 +123,163 @@ export default function MyInformationScreen() {
     store.setDraftField('last_name', last);
   }
 
-  function handleAvatarPress() {
+  async function handleTakePhoto() {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (permission.status !== 'granted') {
+        Alert.alert(
+          COPY.MY_INFO_AVATAR_PERMISSION_TITLE,
+          COPY.MY_INFO_AVATAR_PERMISSION_BODY,
+          [
+            { text: COPY.MY_INFO_AVATAR_CANCEL, style: 'cancel' },
+            { text: COPY.MY_INFO_AVATAR_OPEN_SETTINGS, onPress: () => Linking.openSettings() },
+          ],
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets[0]) {
+        return;
+      }
+
+      setIsUploading(true);
+      const uploadResult = await store.updateAvatar(result.assets[0].uri);
+      setIsUploading(false);
+
+      if (!uploadResult.success) {
+        Alert.alert(
+          COPY.MY_INFO_AVATAR_UPLOAD_ERROR_TITLE,
+          COPY.MY_INFO_AVATAR_UPLOAD_ERROR_BODY,
+        );
+      }
+    } catch {
+      setIsUploading(false);
+      Alert.alert(
+        COPY.MY_INFO_AVATAR_UPLOAD_ERROR_TITLE,
+        COPY.MY_INFO_AVATAR_UPLOAD_ERROR_BODY,
+      );
+    }
+  }
+
+  async function handleChooseFromLibrary() {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets[0]) {
+        return;
+      }
+
+      setIsUploading(true);
+      const uploadResult = await store.updateAvatar(result.assets[0].uri);
+      setIsUploading(false);
+
+      if (!uploadResult.success) {
+        Alert.alert(
+          COPY.MY_INFO_AVATAR_UPLOAD_ERROR_TITLE,
+          COPY.MY_INFO_AVATAR_UPLOAD_ERROR_BODY,
+        );
+      }
+    } catch {
+      setIsUploading(false);
+      Alert.alert(
+        COPY.MY_INFO_AVATAR_UPLOAD_ERROR_TITLE,
+        COPY.MY_INFO_AVATAR_UPLOAD_ERROR_BODY,
+      );
+    }
+  }
+
+  function handleRemovePhoto() {
     Alert.alert(
-      COPY.MY_INFO_AVATAR_COMING_SOON_TITLE,
-      COPY.MY_INFO_AVATAR_COMING_SOON_BODY,
+      COPY.MY_INFO_AVATAR_REMOVE_CONFIRM_TITLE,
+      COPY.MY_INFO_AVATAR_REMOVE_CONFIRM_BODY,
+      [
+        { text: COPY.MY_INFO_AVATAR_CANCEL, style: 'cancel' },
+        {
+          text: COPY.MY_INFO_AVATAR_REMOVE,
+          style: 'destructive',
+          onPress: async () => {
+            setIsUploading(true);
+            const result = await store.updateAvatar(null);
+            setIsUploading(false);
+            if (!result.success) {
+              Alert.alert(
+                COPY.MY_INFO_AVATAR_UPLOAD_ERROR_TITLE,
+                COPY.MY_INFO_AVATAR_UPLOAD_ERROR_BODY,
+              );
+            }
+          },
+        },
+      ],
     );
+  }
+
+  function handleAvatarPress() {
+    const hasAvatar = (loaded?.avatar_url ?? null) !== null;
+
+    if (Platform.OS === 'ios') {
+      const iosOptions = hasAvatar
+        ? [
+            COPY.MY_INFO_AVATAR_TAKE_PHOTO,
+            COPY.MY_INFO_AVATAR_CHOOSE_LIBRARY,
+            COPY.MY_INFO_AVATAR_REMOVE,
+            COPY.MY_INFO_AVATAR_CANCEL,
+          ]
+        : [
+            COPY.MY_INFO_AVATAR_TAKE_PHOTO,
+            COPY.MY_INFO_AVATAR_CHOOSE_LIBRARY,
+            COPY.MY_INFO_AVATAR_CANCEL,
+          ];
+      const cancelButtonIndex = iosOptions.length - 1;
+      const destructiveButtonIndex = hasAvatar ? 2 : undefined;
+
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: COPY.MY_INFO_AVATAR_SHEET_TITLE,
+          options: iosOptions,
+          cancelButtonIndex,
+          destructiveButtonIndex,
+        },
+        (selectedIndex) => {
+          if (selectedIndex === 0) {
+            handleTakePhoto();
+          } else if (selectedIndex === 1) {
+            handleChooseFromLibrary();
+          } else if (selectedIndex === 2 && hasAvatar) {
+            handleRemovePhoto();
+          }
+          // Cancel button: no-op
+        },
+      );
+      return;
+    }
+
+    // Android — use Alert.alert with buttons array
+    const androidButtons: { text: string; style?: 'default' | 'cancel' | 'destructive'; onPress?: () => void }[] = [
+      { text: COPY.MY_INFO_AVATAR_TAKE_PHOTO, onPress: handleTakePhoto },
+      { text: COPY.MY_INFO_AVATAR_CHOOSE_LIBRARY, onPress: handleChooseFromLibrary },
+    ];
+    if (hasAvatar) {
+      androidButtons.push({
+        text: COPY.MY_INFO_AVATAR_REMOVE,
+        style: 'destructive',
+        onPress: handleRemovePhoto,
+      });
+    }
+    androidButtons.push({ text: COPY.MY_INFO_AVATAR_CANCEL, style: 'cancel' });
+
+    Alert.alert(COPY.MY_INFO_AVATAR_SHEET_TITLE, undefined, androidButtons, { cancelable: true });
   }
 
   function handleBirthdayFieldPress() {
@@ -203,20 +360,36 @@ export default function MyInformationScreen() {
           {/* Avatar row */}
           <View style={styles.avatarRow}>
             <View accessibilityRole="none">
-              <WoodPortrait
-                size={116}
-                avatar={loaded?.avatar_url ?? null}
-                testID="my-info-avatar"
-              />
+              <Pressable
+                onPress={handleAvatarPress}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  loaded?.avatar_url
+                    ? 'Change profile photo'
+                    : 'Add profile photo'
+                }
+                disabled={isUploading}
+              >
+                <WoodPortrait
+                  size={116}
+                  avatar={loaded?.avatar_url ?? null}
+                  testID="my-info-avatar"
+                />
+              </Pressable>
               {/* Pencil pill overlay */}
               <Pressable
                 style={styles.pencilPill}
                 onPress={handleAvatarPress}
-                accessibilityRole="button"
-                accessibilityLabel="Edit profile photo"
+                accessibilityElementsHidden={true}
+                importantForAccessibility="no"
                 hitSlop={8}
+                disabled={isUploading}
               >
-                <Text style={styles.pencilText}>{'✎'}</Text>
+                {isUploading ? (
+                  <ActivityIndicator size="small" color={OB_COLORS.ctaText} />
+                ) : (
+                  <Text style={styles.pencilText}>{'✎'}</Text>
+                )}
               </Pressable>
             </View>
           </View>

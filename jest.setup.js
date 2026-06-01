@@ -101,8 +101,12 @@ jest.mock('expo-apple-authentication', () => ({
 // Mock expo-image-picker
 jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn(),
+  launchCameraAsync: jest.fn(),
   MediaTypeOptions: { Images: 'Images' },
   requestMediaLibraryPermissionsAsync: jest.fn(() =>
+    Promise.resolve({ status: 'granted', granted: true })
+  ),
+  requestCameraPermissionsAsync: jest.fn(() =>
     Promise.resolve({ status: 'granted', granted: true })
   ),
 }));
@@ -118,6 +122,7 @@ jest.mock('expo-image-manipulator', () => ({
 // Mock Linking
 jest.mock('react-native/Libraries/Linking/Linking', () => ({
   openURL: jest.fn(),
+  openSettings: jest.fn(() => Promise.resolve()),
 }));
 
 // Mock expo-haptics
