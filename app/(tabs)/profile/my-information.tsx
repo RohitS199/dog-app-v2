@@ -360,11 +360,22 @@ export default function MyInformationScreen() {
           {/* Avatar row */}
           <View style={styles.avatarRow}>
             <View accessibilityRole="none">
-              <WoodPortrait
-                size={116}
-                avatar={loaded?.avatar_url ?? null}
-                testID="my-info-avatar"
-              />
+              <Pressable
+                onPress={handleAvatarPress}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  loaded?.avatar_url
+                    ? 'Change profile photo'
+                    : 'Add profile photo'
+                }
+                disabled={isUploading}
+              >
+                <WoodPortrait
+                  size={116}
+                  avatar={loaded?.avatar_url ?? null}
+                  testID="my-info-avatar"
+                />
+              </Pressable>
               {/* Pencil pill overlay */}
               <Pressable
                 style={styles.pencilPill}
