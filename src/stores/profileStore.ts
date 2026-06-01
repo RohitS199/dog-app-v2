@@ -287,6 +287,10 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         const currentAfterUpload = get().loaded;
         if (currentAfterUpload) {
           set({ loaded: { ...currentAfterUpload, avatar_url: avatarUrl } });
+        } else {
+          // Profile wasn't loaded when this ran, so the optimistic set was
+          // skipped — hydrate so the new avatar is reflected locally.
+          await get().loadFromAuthAndProfile();
         }
 
         return { success: true };

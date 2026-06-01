@@ -689,5 +689,36 @@ describe('profileStore', () => {
       const loaded = useProfileStore.getState().loaded!;
       expect(loaded.avatar_url).toBeNull();
     });
+
+    it('hydrates the profile via loadFromAuthAndProfile when loaded is null at upload time', async () => {
+      useProfileStore.setState({ loaded: null });
+
+      mockSupabase.auth.getUser = jest.fn(() =>
+        Promise.resolve({ data: { user: { id: 'user-123' } }, error: null })
+      );
+      mockSupabase.storage = {
+        from: jest.fn(() => ({
+          upload: jest.fn(() => Promise.resolve({ error: null })),
+          getPublicUrl: jest.fn(() => ({
+            data: { publicUrl: 'https://example.supabase.co/storage/v1/object/public/avatars/user-123/avatar.jpg' },
+          })),
+          remove: jest.fn(),
+        })),
+      };
+      mockSupabase.from = jest.fn(() => ({
+        upsert: jest.fn(() => Promise.resolve({ error: null })),
+      }));
+
+      const hydrateSpy = jest
+        .spyOn(useProfileStore.getState(), 'loadFromAuthAndProfile')
+        .mockResolvedValue(undefined);
+
+      const result = await useProfileStore.getState().updateAvatar('file:///local/img.jpg');
+
+      expect(result.success).toBe(true);
+      expect(hydrateSpy).toHaveBeenCalledTimes(1);
+
+      hydrateSpy.mockRestore();
+    });
   });
 });

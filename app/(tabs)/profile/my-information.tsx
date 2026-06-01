@@ -32,6 +32,7 @@ import { WheelPicker } from '../../../src/components/onboarding/WheelPicker';
 import { useProfileStore, splitName } from '../../../src/stores/profileStore';
 import { formatBirthdayDisplay } from '../../../src/lib/formatBirthday';
 import { COPY } from '../../../src/constants/profileCopy';
+import { useNetworkStatus } from '../../../src/hooks/useNetworkStatus';
 import {
   OB_COLORS,
   OB_FONTS,
@@ -79,6 +80,7 @@ export default function MyInformationScreen() {
   const router = useRouter();
   const store = useProfileStore();
   const { loaded, draft, isLoading, isSaving } = store;
+  const isConnected = useNetworkStatus();
 
   // Local name state: single combined string for the NAME field
   const [nameInput, setNameInput] = useState('');
@@ -124,6 +126,10 @@ export default function MyInformationScreen() {
   }
 
   async function handleTakePhoto() {
+    if (!isConnected) {
+      Alert.alert(COPY.MY_INFO_AVATAR_OFFLINE_TITLE, COPY.MY_INFO_AVATAR_OFFLINE_BODY);
+      return;
+    }
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (permission.status !== 'granted') {
@@ -169,6 +175,10 @@ export default function MyInformationScreen() {
   }
 
   async function handleChooseFromLibrary() {
+    if (!isConnected) {
+      Alert.alert(COPY.MY_INFO_AVATAR_OFFLINE_TITLE, COPY.MY_INFO_AVATAR_OFFLINE_BODY);
+      return;
+    }
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: 'images',
@@ -382,7 +392,7 @@ export default function MyInformationScreen() {
                 onPress={handleAvatarPress}
                 accessibilityElementsHidden={true}
                 importantForAccessibility="no"
-                hitSlop={8}
+                hitSlop={12}
                 disabled={isUploading}
               >
                 {isUploading ? (
