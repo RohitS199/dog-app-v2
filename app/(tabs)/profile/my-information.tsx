@@ -380,8 +380,8 @@ export default function MyInformationScreen() {
               <Pressable
                 style={styles.pencilPill}
                 onPress={handleAvatarPress}
-                accessibilityRole="button"
-                accessibilityLabel={isUploading ? 'Uploading photo' : 'Edit profile photo'}
+                accessibilityElementsHidden={true}
+                importantForAccessibility="no"
                 hitSlop={8}
                 disabled={isUploading}
               >
