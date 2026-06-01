@@ -382,7 +382,7 @@ export default function MyInformationScreen() {
                 onPress={handleAvatarPress}
                 accessibilityElementsHidden={true}
                 importantForAccessibility="no"
-                hitSlop={8}
+                hitSlop={12}
                 disabled={isUploading}
               >
                 {isUploading ? (
