@@ -254,8 +254,9 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
 
       if (uri !== null) {
         // Optimistic UI — show the local URI immediately
-        if (loaded) {
-          set({ loaded: { ...loaded, avatar_url: uri } });
+        const current = get().loaded;
+        if (current) {
+          set({ loaded: { ...current, avatar_url: uri } });
         }
 
         const filePath = `${user.id}/avatar.jpg`;
@@ -289,8 +290,9 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         });
         if (authError) throw authError;
 
-        if (loaded) {
-          set({ loaded: { ...loaded, avatar_url: avatarUrl } });
+        const currentAfterUpload = get().loaded;
+        if (currentAfterUpload) {
+          set({ loaded: { ...currentAfterUpload, avatar_url: avatarUrl } });
         }
         useAuthStore.getState().setUser(authData.user);
 
@@ -298,8 +300,9 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       }
 
       // Remove path
-      if (loaded) {
-        set({ loaded: { ...loaded, avatar_url: null } });
+      const currentForRemove = get().loaded;
+      if (currentForRemove) {
+        set({ loaded: { ...currentForRemove, avatar_url: null } });
       }
 
       const filePath = `${user.id}/avatar.jpg`;
