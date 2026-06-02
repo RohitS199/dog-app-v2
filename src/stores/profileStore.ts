@@ -87,14 +87,14 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      // 1. Get current user from auth
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      // 1. Resolve the user from the cached session. getUser() always hits the
+      //    network and would reject (hanging this screen) when offline; the
+      //    session is read from secure storage and works offline.
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
 
-      if (authError || !user) {
-        set({
-          isLoading: false,
-          error: authError?.message ?? 'Not authenticated',
-        });
+      if (!user) {
+        set({ isLoading: false, error: 'Not authenticated' });
         return;
       }
 
@@ -104,16 +104,20 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       const first_name: string | null = meta.first_name ?? null;
       const last_name: string | null = meta.last_name ?? null;
 
-      // 2. Fetch user_profiles row
-      let profileRow = await fetchProfileRow(userId);
+      // 2. Fetch the user_profiles row (network). Offline this returns an
+      //    error and we fall back to the cached auth fields below, so the
+      //    screen renders instead of hanging on the loading spinner.
+      const { row: fetchedRow, error: fetchError } = await fetchProfileRow(userId);
+      let profileRow = fetchedRow;
 
-      // 3. Defensive: if row is missing, create it and re-fetch
-      if (profileRow === null) {
+      // 3. Only create the row when the server is reachable and it is
+      //    genuinely missing — never attempt an offline write.
+      if (!fetchError && profileRow === null) {
         await supabase
           .from('user_profiles')
           .upsert({ user_id: userId }, { onConflict: 'user_id' });
 
-        profileRow = await fetchProfileRow(userId);
+        ({ row: profileRow } = await fetchProfileRow(userId));
       }
 
       const loaded: LoadedProfile = {
@@ -340,11 +344,13 @@ interface UserProfileRow {
   updated_at?: string;
 }
 
-async function fetchProfileRow(userId: string): Promise<UserProfileRow | null> {
-  const { data } = await supabase
+async function fetchProfileRow(
+  userId: string,
+): Promise<{ row: UserProfileRow | null; error: unknown }> {
+  const { data, error } = await supabase
     .from('user_profiles')
     .select('*')
     .eq('user_id', userId)
     .maybeSingle();
-  return (data as UserProfileRow | null) ?? null;
+  return { row: (data as UserProfileRow | null) ?? null, error };
 }

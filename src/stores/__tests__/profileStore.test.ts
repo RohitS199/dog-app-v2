@@ -51,16 +51,17 @@ describe('splitName', () => {
 describe('profileStore', () => {
   describe('loadFromAuthAndProfile', () => {
     it('populates loaded and draft from auth user + user_profiles row', async () => {
-      mockSupabase.auth.getUser = jest.fn(() =>
+      mockSupabase.auth.getSession = jest.fn(() =>
         Promise.resolve({
           data: {
-            user: {
-              id: 'user-123',
-              email: 'test@example.com',
-              user_metadata: { first_name: 'Alice', last_name: 'Smith' },
+            session: {
+              user: {
+                id: 'user-123',
+                email: 'test@example.com',
+                user_metadata: { first_name: 'Alice', last_name: 'Smith' },
+              },
             },
           },
-          error: null,
         })
       );
 
@@ -104,16 +105,17 @@ describe('profileStore', () => {
     });
 
     it('handles missing user_profiles row with defensive INSERT then re-fetch', async () => {
-      mockSupabase.auth.getUser = jest.fn(() =>
+      mockSupabase.auth.getSession = jest.fn(() =>
         Promise.resolve({
           data: {
-            user: {
-              id: 'user-456',
-              email: 'new@example.com',
-              user_metadata: {},
+            session: {
+              user: {
+                id: 'user-456',
+                email: 'new@example.com',
+                user_metadata: {},
+              },
             },
           },
-          error: null,
         })
       );
 
@@ -158,11 +160,8 @@ describe('profileStore', () => {
     });
 
     it('sets error on auth failure', async () => {
-      mockSupabase.auth.getUser = jest.fn(() =>
-        Promise.resolve({
-          data: { user: null },
-          error: { message: 'Not authenticated' },
-        })
+      mockSupabase.auth.getSession = jest.fn(() =>
+        Promise.resolve({ data: { session: null } })
       );
 
       await useProfileStore.getState().loadFromAuthAndProfile();
@@ -173,16 +172,17 @@ describe('profileStore', () => {
     });
 
     it('converts null fields to empty strings in draft', async () => {
-      mockSupabase.auth.getUser = jest.fn(() =>
+      mockSupabase.auth.getSession = jest.fn(() =>
         Promise.resolve({
           data: {
-            user: {
-              id: 'user-789',
-              email: 'empty@example.com',
-              user_metadata: {},
+            session: {
+              user: {
+                id: 'user-789',
+                email: 'empty@example.com',
+                user_metadata: {},
+              },
             },
           },
-          error: null,
         })
       );
 
@@ -217,16 +217,17 @@ describe('profileStore', () => {
     });
 
     it('hydrates userAchievementsStore.featuredIds from user_profiles.featured_stickers', async () => {
-      mockSupabase.auth.getUser = jest.fn(() =>
+      mockSupabase.auth.getSession = jest.fn(() =>
         Promise.resolve({
           data: {
-            user: {
-              id: 'user-abc',
-              email: 'test@example.com',
-              user_metadata: {},
+            session: {
+              user: {
+                id: 'user-abc',
+                email: 'test@example.com',
+                user_metadata: {},
+              },
             },
           },
-          error: null,
         })
       );
 
@@ -259,6 +260,60 @@ describe('profileStore', () => {
       expect(hydrateSpy).toHaveBeenCalledWith(['welcome', 'multi_pup_parent', null]);
 
       hydrateSpy.mockRestore();
+    });
+
+    it('populates draft from the cached session when the profile fetch fails offline', async () => {
+      // Cached session is read from secure storage and works offline.
+      mockSupabase.auth.getSession = jest.fn(() =>
+        Promise.resolve({
+          data: {
+            session: {
+              user: {
+                id: 'user-offline',
+                email: 'offline@example.com',
+                user_metadata: { first_name: 'Cached', last_name: 'User' },
+              },
+            },
+          },
+        })
+      );
+      // getUser() would hit the network and reject offline — the fix must not call it.
+      mockSupabase.auth.getUser = jest.fn(() =>
+        Promise.reject(new Error('Network request failed'))
+      );
+
+      // user_profiles fetch fails (offline) — returns an error, no row.
+      const upsertSpy = jest.fn(() =>
+        Promise.resolve({ error: { message: 'Network request failed' } })
+      );
+      mockSupabase.from = jest.fn(() => ({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn(() =>
+          Promise.resolve({ data: null, error: { message: 'Network request failed' } })
+        ),
+        insert: jest.fn().mockReturnThis(),
+        upsert: upsertSpy,
+        single: jest.fn(() =>
+          Promise.resolve({ data: null, error: { message: 'Network request failed' } })
+        ),
+      }));
+
+      await useProfileStore.getState().loadFromAuthAndProfile();
+
+      const state = useProfileStore.getState();
+      // Screen no longer hangs — draft is populated from the cached session.
+      expect(state.isLoading).toBe(false);
+      expect(state.draft).not.toBeNull();
+      expect(state.draft!.first_name).toBe('Cached');
+      expect(state.draft!.last_name).toBe('User');
+      expect(state.loaded!.email).toBe('offline@example.com');
+      // Profile-only fields couldn't be fetched offline — fall back to empty.
+      expect(state.draft!.phone).toBe('');
+      // Must not attempt an offline write when the fetch errored.
+      expect(upsertSpy).not.toHaveBeenCalled();
+      // Must not use the network getUser path.
+      expect(mockSupabase.auth.getUser).not.toHaveBeenCalled();
     });
   });
 
