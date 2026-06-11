@@ -59,10 +59,10 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 - After acceptance, calls `checkTermsAcceptance()` which updates the auth store, triggering the root layout to redirect to `/(tabs)`
 
 ### (tabs)/_layout.tsx
-- Bottom tab navigator with 5 tabs: Home (`index`), Health (`health`), Learn (`learn`), Triage (`triage`), Settings (`settings`)
+- Bottom tab navigator with 4 visible tabs: Journey (`index`), My Dogs (`dogs`), Discovery (`learn`), Profile (`settings`). `health` and `triage` tabs are registered but hidden from the bar (`href: null`) — Health is reachable via My Dogs → Ask Biscuit card.
 - Uses custom `FloatingTabBar` component as `tabBar` prop — absolutely positioned pill-shaped bar with centered FAB (+ button)
 - `ArticleExpandOverlay` rendered as sibling to `<Tabs>` for Pinterest-style shared element transitions
-- Tab icons use `MaterialCommunityIcons` from `@expo/vector-icons`: `home` (Home), `calendar-heart` (Health), `book-open-variant` (Learn), `stethoscope` (Triage), `cog-outline` (Settings)
+- Tab icons use `MaterialCommunityIcons` from `@expo/vector-icons`: `home` (Journey), `paw` (My Dogs), `book-open-variant` (Discovery), `cog-outline` (Profile)
 - Uses theme colors for active/inactive tint
 
 ### (tabs)/index.tsx (Home Screen)
@@ -124,6 +124,12 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 - If `type === 'off_topic'`: renders `OffTopicResult` (friendly message + Try Again button)
 - Otherwise: renders `TriageResult` (full urgency badge, headline, educational info, vet phone, sources, disclaimer)
 
+### dog-weeks.tsx (All-Weeks Scrapbook)
+Full-screen page showing every week in a scrollable grid of `WeekSceneCard` components.
+- Phase 1 reads the currently-loaded `healthStore` month window (no multi-month fetch yet)
+- Each card shows week tone (worst day-summary tier), date range, and scene illustration
+- Reached via "See more" from `WeekLookBack` on the My Dogs tab
+
 ### add-dog.tsx
 - Form: name*, breed*, age* (0-30 decimal), weight* (lbs), vet_phone (optional)
 - Validation: name and breed required, age within LIMITS.DOG_AGE_MIN-MAX, weight > 0 and <= 300
@@ -174,7 +180,18 @@ This works by watching `useSegments()` and checking auth state from `useAuthStor
 - `handleSubmit` checks for errors before transitioning to summary (prevents dead state on failure)
 - Error display at bottom of screen
 
-### delete-account.tsx
+### (tabs)/dogs.tsx (My Dogs Hub — "Living Scrapbook" Phase 1)
+Per-dog hub screen built on scrapbook tokens (see `src/constants/onboardingTheme.ts`). Design rationale in `docs/superpowers/specs/2026-06-11-my-dogs-visual-addendum.md`.
+- `DogSwitcher` — avatar pills + Add button at the top
+- `DogIdentityHero` — portrait, identity chips, `describeDog` personality line, today chip with check-in CTA
+- Current-month read-only calendar via `CalendarGrid` (shared with Health tab via `computeDayStatuses`); day tap opens `DayDetailSheet`
+- `WeekLookBack` — horizontal polaroid strip of the last 3 weeks + "See more" → `/dog-weeks`
+- `DogStickerShelf` — honest Phase-1 empty shelf (per-dog sticker data layer not yet implemented)
+- `AskBiscuitCard` — single bridge to health analysis; routes to `/health` until a real Discovery screen ships
+- `DogCareDetails` — weight, conditions, vet phone + Edit → `/edit-dog`
+- NO health analysis on this tab (that's Discovery's job)
+
+### (tabs)/learn.tsx (Discovery Tab)
 - **3-step confirmation**: password re-entry + type "DELETE" + final `Alert.alert`
 - Verifies password by calling `supabase.auth.signInWithPassword()` before deletion
 - Calls `delete-account` Edge Function (v1, deployed Feb 18, 2026)

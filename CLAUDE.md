@@ -36,7 +36,7 @@ Every feature, every component, every urgency color choice exists in service of 
 - **react-native-markdown-display** — Markdown renderer for Learn tab article body
 - **expo-superwall** — Paywall integration (SuperwallProvider wraps app)
 - **react-native-purchases** — RevenueCat subscription management
-- **Jest 29** + **React Native Testing Library** — 279 tests across 22 suites
+- **Jest 29** + **React Native Testing Library** — 565 tests across 66 suites
 
 ## Project Structure
 
@@ -300,11 +300,11 @@ npx expo start
 ## Running Tests
 
 ```bash
-npm test          # Runs all 279 tests
+npm test          # Runs all 565 tests
 npx jest --no-cache  # If you encounter stale cache issues
 ```
 
-**22 test suites:**
+**66 test suites:**
 
 *Lib tests (5 suites, 105 tests):*
 - `emergencyKeywords.test.ts` — 39 tests (pattern matching, normalization, clusters, v9/v10 compound patterns)
@@ -368,7 +368,7 @@ Do not remove or weaken these components. They are legally required.
 - **Backend Completion**: COMPLETE — all tasks done, security hardened, stress test passed, delete-account verified
 - **v2.6 Phase 1** (Daily Check-Ins + Pattern Detection): COMPLETE — all 9 blocks implemented, 7-bug audit fix applied
 - **v2.6 Phase 2** (AI Pattern Analysis): COMPLETE — backend (daily Sonnet 4.5, weekly Haiku 4.5, `ai_health_insights` table, `dogs.health_summary`) + **frontend dashboard** (AIInsightCard, HealthSummaryCard, PatternAlertCard AI enrichment, tab focus refresh) + **orchestration files** (n8n workflow JSON + GitHub Actions YAML, not yet active). 279/279 tests pass, 22 suites.
-- **UI Redesign** (Playful Overhaul): IN PROGRESS — HTML mockups for journey home (park scene), health calendar (notebook), onboarding (19-step), alert card stack, dog mascot, article transitions. Onboarding store, subscription store, breed data, social auth buttons created.
+- **UI Redesign** (Playful Overhaul): IN PROGRESS — HTML mockups for journey home (park scene), health calendar (notebook), onboarding (19-step), alert card stack, dog mascot, article transitions. Onboarding store, subscription store, breed data, social auth buttons created. **My Dogs hub (Living Scrapbook Phase 1) SHIPPED** — switcher, hero, current-month calendar, week look-back, sticker shelf (empty state), Ask Biscuit bridge, care details; built on scrapbook tokens per the 2026-06-11 visual addendum. Follow-ups: per-dog sticker data layer (`dog_id` on `user_achievements`), real Discovery screen + Health-tab retirement, multi-month look-back fetch, Phase 2 watercolor flower art.
 - **Milestone 6** (Beta Testing): NOT STARTED — needs TestFlight build + real user testers
 
 ## Stress Test Results (Feb 19, 2026 — v10 full retest)
@@ -391,7 +391,7 @@ Full 120-prompt stress test against v10: **Tier 1 (safety) = 100% (60/60)**, **T
 12. **Privacy Policy** — Needs attorney drafting (outlined in legal compliance docs).
 13. **LLC formation + E&O insurance** — Business prerequisites before launch.
 14. **Tier 2 RAG gaps** — Cat 12 needs dog_health_content expansion (post-beta).
-15. **UI Redesign** — IN PROGRESS. HTML mockups created (preview-*.html files). Implementing playful park/notebook theme. Onboarding flow (19-step), social auth, subscription/paywall integration, breed health data in progress.
+15. **UI Redesign** — IN PROGRESS. HTML mockups created (preview-*.html files). Implementing playful park/notebook theme. Onboarding flow (19-step), social auth, subscription/paywall integration, breed health data in progress. My Dogs hub (Living Scrapbook Phase 1) shipped — follow-ups: per-dog sticker data layer, real Discovery screen + Health-tab retirement, multi-month look-back fetch, Phase 2 watercolor flower art.
 16. **Onboarding flow** — 19-step flow built (`app/onboarding.tsx` + `onboardingStore.ts`). Needs integration testing and routing from auth screens.
 17. **Subscription/Paywall** — `subscriptionStore.ts` + `SuperwallProvider.tsx` created. expo-superwall and react-native-purchases installed. Needs configuration and testing.
 

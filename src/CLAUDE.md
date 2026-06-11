@@ -9,10 +9,11 @@ src/
 ├── components/
 │   ├── legal/       # Safety-critical legal/compliance components (5)
 │   ├── ui/          # General UI components (31)
-│   └── __tests__/   # Component tests (9 suites, 69 tests)
+│   ├── dogs/        # My Dogs Hub components (7): DogSwitcher, DogIdentityHero, WeekSceneCard, WeekLookBack, DogStickerShelf, AskBiscuitCard, DogCareDetails
+│   └── __tests__/   # Component tests (16 suites, 90 tests)
 ├── constants/       # Theme tokens, config, loading tips, check-in questions
 ├── hooks/           # useAppState, useNetworkStatus
-├── lib/             # Supabase client, emergency keywords, pattern rules, consistency score, day summary
+├── lib/             # Supabase client, emergency keywords, pattern rules, consistency score, day summary, calendar status helpers, week grouping, dog personality
 │   └── __tests__/   # Lib tests (5 suites, 105 tests)
 ├── stores/          # Zustand state management (7: auth, dog, triage, checkIn, health, learn, articleTransition)
 │   └── __tests__/   # Store tests (4 suites, 54 tests)
@@ -33,6 +34,9 @@ src/
 3. **`stores/triageStore.ts`** — Triage submission with auto-retry, rate limit handling, cached results, triage nudge.
 4. **`lib/emergencyKeywords.ts`** — Client-side emergency detection. 35 single + 44 compound + 3 cluster patterns. Golden Rule's first line of defense.
 5. **`lib/patternRules.ts`** — 17 rule-based pattern detection rules (5 single-day, 12 trend).
+5a. **`lib/calendarStatus.ts`** — `computeDayStatuses()` (extracted from health.tsx, shared by Health + My Dogs calendars) + `getTodayString()` (device-local date, single source of truth).
+5b. **`lib/weekGrouping.ts`** — `getWeekStart()`, `addDaysStr()`, `groupCheckInsByWeek()`. Types: `WeekSummary`, `WeekTone` (worst day-summary tier per week).
+5c. **`lib/dogPersonality.ts`** — `describeDog()` generates a one-line personality description from dog profile fields, with JSONB-safe fallback.
 6. **`stores/dogStore.ts`** — Dog CRUD. `addDog()` must include `user_id` explicitly (RLS requirement). Omit type excludes server-managed fields (`last_checkin_date`, `checkin_streak`, `health_summary`).
 7. **`stores/healthStore.ts`** — Calendar data with trailing window fetch (7 days before month start), active alerts, dismiss.
 8. **`stores/learnStore.ts`** — Learn tab articles with 5-min cache TTL, section grouping, slug lookup.
@@ -43,4 +47,4 @@ src/
 
 ## Testing
 
-228 tests across 18 suites, all passing. Run with `npm test` or `npx jest --no-cache`.
+565 tests across 66 suites, all passing. Run with `npm test` or `npx jest --no-cache`.
