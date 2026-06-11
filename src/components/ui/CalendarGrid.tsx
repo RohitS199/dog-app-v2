@@ -10,6 +10,10 @@ interface CalendarGridProps {
   todayString: string;
   /** Today-circle highlight color. Defaults to COLORS.accent (Health tab). */
   accentColor?: string;
+  /** Today-number color on the today circle. Defaults to white (Health tab). */
+  todayTextColor?: string;
+  /** Render without the built-in card surface/shadow (for embedding in a styled wrapper). */
+  flat?: boolean;
 }
 
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -30,6 +34,8 @@ export function CalendarGrid({
   onDayPress,
   todayString,
   accentColor = COLORS.accent,
+  todayTextColor = '#FFFFFF',
+  flat = false,
 }: CalendarGridProps) {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
@@ -48,7 +54,7 @@ export function CalendarGrid({
   while (lastRow.length < 7) lastRow.push(null);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, flat && styles.containerFlat]}>
       {/* Day headers */}
       <View style={styles.headerRow}>
         {DAY_HEADERS.map((day) => (
@@ -86,7 +92,7 @@ export function CalendarGrid({
                 accessibilityLabel={`${dateStr}, status: ${status}`}
               >
                 <View style={[styles.dayCircle, isToday && [styles.todayCircle, { backgroundColor: accentColor }]]}>
-                  <Text style={[styles.dayNumber, isToday && styles.todayText]}>
+                  <Text style={[styles.dayNumber, isToday && [styles.todayText, { color: todayTextColor }]]}>
                     {day}
                   </Text>
                 </View>
@@ -110,6 +116,15 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.sm,
     ...SHADOWS.elevated,
+  },
+  containerFlat: {
+    backgroundColor: 'transparent',
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 0,
+    elevation: 0,
+    padding: 0,
   },
   headerRow: {
     flexDirection: 'row',

@@ -164,6 +164,8 @@ export default function MyDogsScreen() {
                 onDayPress={(date) => setSelectedDate(date)}
                 todayString={todayString}
                 accentColor={OB_COLORS.cta}
+                todayTextColor={OB_COLORS.ink}
+                flat
               />
             </View>
           </View>
