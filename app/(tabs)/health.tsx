@@ -21,7 +21,6 @@ import { AlertCardStack } from '../../src/components/ui/AlertCardStack';
 import { AIInsightCard } from '../../src/components/ui/AIInsightCard';
 import { HealthSummaryCard } from '../../src/components/ui/HealthSummaryCard';
 import { DogSelector } from '../../src/components/ui/DogSelector';
-import type { CalendarDayStatus } from '../../src/types/health';
 import type { DailyCheckIn } from '../../src/types/checkIn';
 
 function getTodayString(): string {
