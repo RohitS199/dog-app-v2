@@ -140,8 +140,9 @@ const styles = StyleSheet.create({
     borderColor: OB_COLORS.sketch,
     padding: PORTRAIT_INNER_PAD,
     backgroundColor: OB_COLORS.cardWhite,
+    // No overflow:'hidden' here — it would clip the iOS shadow; portraitInner
+    // does the circular clipping.
     ...OB_SHADOWS.card,
-    overflow: 'hidden',
   },
   portraitInner: {
     flex: 1,
