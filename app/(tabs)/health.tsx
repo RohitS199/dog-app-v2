@@ -12,6 +12,7 @@ import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, FONTS, MIN_TOUCH_TARGET } f
 
 const TAB_BAR_HEIGHT = 100;
 import { calculateConsistencyScore } from '../../src/lib/consistencyScore';
+import { computeDayStatuses } from '../../src/lib/calendarStatus';
 import { CalendarGrid } from '../../src/components/ui/CalendarGrid';
 import { DayDetailSheet } from '../../src/components/ui/DayDetailSheet';
 import { StreakCounter } from '../../src/components/ui/StreakCounter';
@@ -113,51 +114,11 @@ export default function HealthScreen() {
     year: 'numeric',
   });
 
-  // Compute day statuses for calendar
-  const dayStatuses = useMemo(() => {
-    const statuses: Record<string, CalendarDayStatus> = {};
-    const today = new Date(todayString);
-    const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
-
-    // Get all check-ins sorted by date for consistency scoring
-    const sortedCheckIns = Object.values(calendarData).sort(
-      (a, b) => b.check_in_date.localeCompare(a.check_in_date)
-    );
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${viewYear}-${String(viewMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const dateObj = new Date(dateStr);
-
-      if (dateObj > today) {
-        statuses[dateStr] = 'future';
-        continue;
-      }
-
-      const checkIn = calendarData[dateStr];
-      if (!checkIn) {
-        statuses[dateStr] = 'missed';
-        continue;
-      }
-
-      // Get trailing window from this date
-      const trailingCheckIns = sortedCheckIns.filter(
-        (c) => c.check_in_date <= dateStr
-      ).slice(0, 7);
-
-      const score = calculateConsistencyScore(trailingCheckIns);
-      if (!score) {
-        statuses[dateStr] = 'new';
-      } else if (score.score >= 4) {
-        statuses[dateStr] = 'good';
-      } else if (score.score >= 2) {
-        statuses[dateStr] = 'fair';
-      } else {
-        statuses[dateStr] = 'poor';
-      }
-    }
-
-    return statuses;
-  }, [calendarData, viewYear, viewMonth, todayString]);
+  // Compute day statuses for calendar (shared helper — see src/lib/calendarStatus.ts)
+  const dayStatuses = useMemo(
+    () => computeDayStatuses(calendarData, viewYear, viewMonth, todayString),
+    [calendarData, viewYear, viewMonth, todayString]
+  );
 
   // Consistency score for display
   const consistencyScore = useMemo(() => {
