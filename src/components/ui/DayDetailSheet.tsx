@@ -9,6 +9,8 @@ interface DayDetailSheetProps {
   checkIn: DailyCheckIn | null;
   previousCheckIn?: DailyCheckIn | null;
   dateString: string;
+  /** Sheet container background. Defaults to COLORS.surface (Health tab). */
+  backgroundColor?: string;
 }
 
 function getLabel(questionIndex: number, value: string): string {
@@ -47,6 +49,7 @@ export function DayDetailSheet({
   checkIn,
   previousCheckIn,
   dateString,
+  backgroundColor = COLORS.surface,
 }: DayDetailSheetProps) {
   return (
     <Modal
@@ -56,7 +59,7 @@ export function DayDetailSheet({
       onRequestClose={onClose}
     >
       <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel="Close day details">
-        <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+        <View style={[styles.sheet, { backgroundColor }]} onStartShouldSetResponder={() => true}>
           <View style={styles.handle} />
           <Text style={styles.title}>{dateString}</Text>
 

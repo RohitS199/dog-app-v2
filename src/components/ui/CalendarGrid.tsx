@@ -8,6 +8,8 @@ interface CalendarGridProps {
   dayStatuses: Record<string, CalendarDayStatus>; // date string -> status
   onDayPress: (date: string) => void;
   todayString: string;
+  /** Today-circle highlight color. Defaults to COLORS.accent (Health tab). */
+  accentColor?: string;
 }
 
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -27,6 +29,7 @@ export function CalendarGrid({
   dayStatuses,
   onDayPress,
   todayString,
+  accentColor = COLORS.accent,
 }: CalendarGridProps) {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
@@ -82,7 +85,7 @@ export function CalendarGrid({
                 accessibilityRole="button"
                 accessibilityLabel={`${dateStr}, status: ${status}`}
               >
-                <View style={[styles.dayCircle, isToday && styles.todayCircle]}>
+                <View style={[styles.dayCircle, isToday && [styles.todayCircle, { backgroundColor: accentColor }]]}>
                   <Text style={[styles.dayNumber, isToday && styles.todayText]}>
                     {day}
                   </Text>
