@@ -79,6 +79,7 @@ const styles = StyleSheet.create({
   emptyState: {
     backgroundColor: OB_COLORS.washNeutral,
     borderWidth: 2,
+    borderStyle: 'dashed',
     borderColor: OB_COLORS.sketch,
     borderRadius: 8,
     padding: 16,
