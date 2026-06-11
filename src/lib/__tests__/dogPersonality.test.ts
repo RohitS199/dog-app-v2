@@ -48,4 +48,49 @@ describe('describeDog', () => {
     });
     expect(describeDog(dog)).toBe('Luna is usually easygoing and a bundle of energy.');
   });
+
+  it('falls back when the LLM writes an out-of-union mood into JSONB', () => {
+    const dog = makeDog({
+      health_summary: {
+        summary_text: '',
+        notable_events: [],
+        annotations: [],
+        last_updated: '2026-06-01T00:00:00Z',
+        baseline_profile: {
+          typical_appetite: 'normal',
+          typical_water_intake: 'normal',
+          // 'calm' is not in the BaselineProfile['typical_mood'] union
+          typical_energy: 'normal',
+          typical_stool: 'normal',
+          typical_mobility: 'normal',
+          typical_mood: 'calm' as any,
+          vomiting_history_note: null,
+          known_sensitivities: [],
+        },
+      },
+    });
+    expect(describeDog(dog)).toBe('Tell us about Luna as you log.');
+  });
+
+  it('renders anxious + below_normal baseline correctly', () => {
+    const dog = makeDog({
+      health_summary: {
+        summary_text: '',
+        notable_events: [],
+        annotations: [],
+        last_updated: '2026-06-01T00:00:00Z',
+        baseline_profile: {
+          typical_appetite: 'normal',
+          typical_water_intake: 'normal',
+          typical_energy: 'below_normal',
+          typical_stool: 'normal',
+          typical_mobility: 'normal',
+          typical_mood: 'anxious',
+          vomiting_history_note: null,
+          known_sensitivities: [],
+        },
+      },
+    });
+    expect(describeDog(dog)).toBe('Luna is usually a worrier at heart and on the mellow side.');
+  });
 });

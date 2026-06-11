@@ -12,13 +12,22 @@ const ENERGY_WORD: Record<BaselineProfile['typical_energy'], string> = {
   above_normal: 'a bundle of energy',
 };
 
+function noDataSentence(name: string): string {
+  return `Tell us about ${name} as you log.`;
+}
+
 /** One friendly, data-derived sentence about the dog. Fallback when no data. */
 export function describeDog(dog: Dog): string {
   const baseline = dog.health_summary?.baseline_profile;
   if (!baseline) {
-    return `Tell us about ${dog.name} as you log.`;
+    return noDataSentence(dog.name);
   }
-  const mood = MOOD_WORD[baseline.typical_mood];
-  const energy = ENERGY_WORD[baseline.typical_energy];
+  // Widen to string index so out-of-union JSONB values produce undefined rather
+  // than a TypeScript error or a silent "undefined" in the rendered sentence.
+  const mood = (MOOD_WORD as Record<string, string | undefined>)[baseline.typical_mood];
+  const energy = (ENERGY_WORD as Record<string, string | undefined>)[baseline.typical_energy];
+  if (!mood || !energy) {
+    return noDataSentence(dog.name);
+  }
   return `${dog.name} is usually ${mood} and ${energy}.`;
 }

@@ -72,4 +72,46 @@ describe('groupCheckInsByWeek', () => {
     const weeks = groupCheckInsByWeek([makeCheckIn('2026-06-03')]);
     expect(weeks[0].label).toBe('May 31 – Jun 6');
   });
+
+  // Week tone mapping: one concerning day among all-normal days
+  //
+  // Fixture verification (against daySummary.ts classifyAbnormalities):
+  //   vet_recommended: stool_quality='blood' triggers the blood-in-stool branch
+  //     (hasDryHeaving || hasBloodInStool || significantCount>=3 → vet_recommended)
+  //   attention_needed: stool_quality='diarrhea' is 'significant' severity;
+  //     one significant → attention_needed (significantCount>0, no vet trigger)
+  //   minor_notes: appetite='less' is 'mild' severity; mood='quiet' is 'mild';
+  //     only mild abnormalities → minor_notes
+  it('maps a week with a vet_recommended day to concern tone', () => {
+    const weeks = groupCheckInsByWeek([
+      makeCheckIn('2026-06-01'),
+      // stool_quality='blood' → generateDaySummary returns type:'vet_recommended'
+      makeCheckIn('2026-06-02', { stool_quality: 'blood' }),
+      makeCheckIn('2026-06-03'),
+    ]);
+    expect(weeks).toHaveLength(1);
+    expect(weeks[0].tone).toBe('concern');
+  });
+
+  it('maps a week with an attention_needed day to attention tone', () => {
+    const weeks = groupCheckInsByWeek([
+      makeCheckIn('2026-06-01'),
+      // stool_quality='diarrhea' → significant severity → type:'attention_needed'
+      makeCheckIn('2026-06-02', { stool_quality: 'diarrhea' }),
+      makeCheckIn('2026-06-03'),
+    ]);
+    expect(weeks).toHaveLength(1);
+    expect(weeks[0].tone).toBe('attention');
+  });
+
+  it('maps a week with only minor_notes days to okay tone', () => {
+    const weeks = groupCheckInsByWeek([
+      makeCheckIn('2026-06-01'),
+      // appetite='less' and mood='quiet' are both mild → type:'minor_notes'
+      makeCheckIn('2026-06-02', { appetite: 'less', mood: 'quiet' }),
+      makeCheckIn('2026-06-03'),
+    ]);
+    expect(weeks).toHaveLength(1);
+    expect(weeks[0].tone).toBe('okay');
+  });
 });

@@ -12,7 +12,7 @@ import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, FONTS, MIN_TOUCH_TARGET } f
 
 const TAB_BAR_HEIGHT = 100;
 import { calculateConsistencyScore } from '../../src/lib/consistencyScore';
-import { computeDayStatuses } from '../../src/lib/calendarStatus';
+import { computeDayStatuses, getTodayString } from '../../src/lib/calendarStatus';
 import { CalendarGrid } from '../../src/components/ui/CalendarGrid';
 import { DayDetailSheet } from '../../src/components/ui/DayDetailSheet';
 import { StreakCounter } from '../../src/components/ui/StreakCounter';
@@ -22,11 +22,6 @@ import { AIInsightCard } from '../../src/components/ui/AIInsightCard';
 import { HealthSummaryCard } from '../../src/components/ui/HealthSummaryCard';
 import { DogSelector } from '../../src/components/ui/DogSelector';
 import type { DailyCheckIn } from '../../src/types/checkIn';
-
-function getTodayString(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
 
 export default function HealthScreen() {
   const focusStyle = useTabFocusAnimation();

@@ -1,5 +1,6 @@
 import { generateDaySummary } from './daySummary';
 import type { DailyCheckIn } from '../types/checkIn';
+import type { DaySummaryType } from '../types/health';
 
 export type WeekTone = 'thriving' | 'okay' | 'attention' | 'concern' | 'empty';
 
@@ -36,7 +37,10 @@ export function addDaysStr(dateStr: string, n: number): string {
   return fmt(date);
 }
 
-const TIER_ORDER: Record<string, number> = {
+// Exhaustive over DaySummaryType — TS will error if the union grows and this
+// isn't updated. No fallback: generateDaySummary always returns a typed value,
+// so an unknown tier is a compile-time bug, not a runtime default.
+const TIER_ORDER: Record<DaySummaryType, number> = {
   all_normal: 0,
   minor_notes: 1,
   attention_needed: 2,
@@ -58,7 +62,7 @@ function summarizeWeek(weekCheckIns: DailyCheckIn[], weekStartDate: string): Wee
 
   let worst = 0;
   for (const c of weekCheckIns) {
-    const tier = TIER_ORDER[generateDaySummary(c).type] ?? 0;
+    const tier = TIER_ORDER[generateDaySummary(c).type];
     if (tier > worst) worst = tier;
   }
 
@@ -76,6 +80,14 @@ function summarizeWeek(weekCheckIns: DailyCheckIn[], weekStartDate: string): Wee
 /**
  * Group check-ins into Sun-Sat weeks, one WeekSummary per week that has data,
  * sorted most-recent week first.
+ *
+ * @param checkIns - Must be a SINGLE dog's check-ins. The 0-7 loggedCount
+ *   assumption relies on each date appearing at most once per dog (enforced by
+ *   the DB UNIQUE(dog_id, check_in_date) constraint).
+ *
+ * Note: the 'empty' WeekTone is reserved for synthesized gap weeks (i.e. weeks
+ * with no check-ins at all). There is currently no public producer of gap weeks
+ * — this function only emits a WeekSummary when loggedCount > 0.
  */
 export function groupCheckInsByWeek(
   checkIns: DailyCheckIn[],
