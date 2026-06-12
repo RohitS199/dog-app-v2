@@ -17,7 +17,10 @@ export const OB_COLORS = {
   accent: '#475E3D',
   blush: '#f2c6bd',
   cta: '#F4845F',
-  ctaText: '#ffffff',
+  // Label color for coral cta fills. Ink, NOT white: white-on-coral is 2.53:1
+  // (fails WCAG AA 4.5:1); ink #2a221c on coral is 6.2:1. Matches the My Dogs
+  // CTA recipe (docs/superpowers/specs/2026-06-11-my-dogs-visual-addendum.md, section 1.3).
+  ctaText: '#2a221c',
   selectedBg: '#e3ead9',
   selectedBorder: '#475E3D',
   // Profile redesign additions (May 2026)
