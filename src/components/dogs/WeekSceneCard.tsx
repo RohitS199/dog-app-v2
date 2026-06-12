@@ -1,7 +1,5 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — @expo/vector-icons type resolution is broken repo-wide (24 pre-existing tsc errors); suppressed so new files stay out of the error baseline
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { OB_COLORS, OB_FONTS, OB_SHADOWS } from '../../constants/onboardingTheme';
 import type { WeekSummary, WeekTone } from '../../lib/weekGrouping';

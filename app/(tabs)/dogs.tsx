@@ -11,8 +11,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useNavigation, useRouter } from 'expo-router';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — @expo/vector-icons type resolution is broken repo-wide (24 pre-existing tsc errors); suppressed so new files stay out of the error baseline
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDogStore } from '../../src/stores/dogStore';
 import { useHealthStore } from '../../src/stores/healthStore';
