@@ -12,13 +12,14 @@ function makeDog(overrides: Partial<Dog> = {}): Dog {
   };
 }
 
-function makeCheckIn(): DailyCheckIn {
+function makeCheckIn(overrides: Partial<DailyCheckIn> = {}): DailyCheckIn {
   return {
     id: 'c1', user_id: 'u1', dog_id: 'd1', check_in_date: '2026-06-15',
     appetite: 'normal', water_intake: 'normal', energy_level: 'normal', stool_quality: 'normal',
     vomiting: 'none', mobility: 'normal', mood: 'normal', additional_symptoms: [],
     free_text: null, emergency_flagged: false, revision_history: [],
     created_at: '2026-06-15T00:00:00Z', updated_at: '2026-06-15T00:00:00Z',
+    ...overrides,
   };
 }
 
@@ -47,5 +48,18 @@ describe('DogIdentityHero', () => {
     );
     expect(getByText(/Logged/)).toBeTruthy();
     expect(queryByText("How's Luna today?")).toBeNull();
+  });
+
+  it('keeps the chip neutral when today needs attention (no "feeling good" on a vet-tier day)', () => {
+    // stool_quality 'blood' makes generateDaySummary return vet_recommended.
+    const { getByText, queryByText } = render(
+      <DogIdentityHero
+        dog={makeDog()}
+        todayCheckIn={makeCheckIn({ stool_quality: 'blood' })}
+        onStartCheckIn={jest.fn()}
+      />
+    );
+    expect(getByText('Logged today')).toBeTruthy();
+    expect(queryByText(/feeling good/)).toBeNull();
   });
 });

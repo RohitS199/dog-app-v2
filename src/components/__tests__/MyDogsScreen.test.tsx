@@ -33,7 +33,9 @@ describe('MyDogsScreen', () => {
     useHealthStore.setState({
       calendarData: {},
       isLoading: false,
+      activeAlerts: [],
       fetchMonthData: jest.fn(),
+      fetchActiveAlerts: jest.fn(),
     } as any);
   });
 
@@ -53,6 +55,23 @@ describe('MyDogsScreen', () => {
     const { getByText } = render(<MyDogsScreen />);
     expect(getByText('Care')).toBeTruthy();
     expect(getByText('Ask Biscuit about Luna')).toBeTruthy();
+  });
+
+  it('surfaces active pattern alerts with a review card', () => {
+    useHealthStore.setState({
+      activeAlerts: [
+        { id: 'a1', alert_level: 'vet_recommended' },
+        { id: 'a2', alert_level: 'watch' },
+      ],
+    } as any);
+    const { getByText } = render(<MyDogsScreen />);
+    expect(getByText('2 health alerts for Luna')).toBeTruthy();
+    expect(getByText('Tap to review')).toBeTruthy();
+  });
+
+  it('shows no alert card when there are no active alerts', () => {
+    const { queryByText } = render(<MyDogsScreen />);
+    expect(queryByText(/health alert/)).toBeNull();
   });
 
   it('shows an empty state when no dog is selected', () => {

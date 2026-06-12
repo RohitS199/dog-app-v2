@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     gap: 14,
     paddingVertical: 8,
-    paddingHorizontal: 4,
+    paddingHorizontal: 8, // room for the polaroid tilt at the strip edges
   },
   emptyState: {
     backgroundColor: OB_COLORS.washNeutral,

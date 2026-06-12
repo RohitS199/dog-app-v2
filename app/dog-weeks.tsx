@@ -3,7 +3,7 @@
 // present in that window. True multi-month history (paginated fetch across
 // months) is a documented follow-up.
 import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — @expo/vector-icons type resolution is broken repo-wide (24 pre-existing tsc errors); suppressed so new files stay out of the error baseline
@@ -22,14 +22,20 @@ export default function DogWeeksScreen() {
   const router = useRouter();
   const { dogs, selectedDogId } = useDogStore();
   const calendarData = useHealthStore((s) => s.calendarData);
+  const isLoading = useHealthStore((s) => s.isLoading);
 
   const selectedDog = dogs.find((d) => d.id === selectedDogId);
   const title = selectedDog ? selectedDog.name + "'s weeks" : 'Weeks';
 
-  const weeks = useMemo(
-    () => groupCheckInsByWeek(Object.values(calendarData)),
-    [calendarData]
-  );
+  // Ownership guard: calendarData is a shared store slice that can briefly
+  // hold the PREVIOUS dog's rows while a switch-triggered fetch is in flight —
+  // never render another dog's weeks under this dog's title.
+  const weeks = useMemo(() => {
+    const ownCheckIns = Object.values(calendarData).filter(
+      (c) => c.dog_id === selectedDogId
+    );
+    return groupCheckInsByWeek(ownCheckIns);
+  }, [calendarData, selectedDogId]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -54,7 +60,9 @@ export default function DogWeeksScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {weeks.length === 0 ? (
+        {isLoading ? (
+          <ActivityIndicator size="small" color={OB_COLORS.wood} style={styles.loading} />
+        ) : weeks.length === 0 ? (
           <Text style={styles.emptyText}>No weeks logged yet.</Text>
         ) : (
           <View style={styles.grid}>
@@ -116,6 +124,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: OB_COLORS.ink2,
     textAlign: 'center',
+    marginTop: 32,
+  },
+  loading: {
     marginTop: 32,
   },
 });

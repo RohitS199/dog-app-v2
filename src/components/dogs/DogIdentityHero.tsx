@@ -16,6 +16,7 @@ import {
 } from '../../constants/onboardingTheme';
 import { MIN_TOUCH_TARGET } from '../../constants/theme';
 import { describeDog } from '../../lib/dogPersonality';
+import { generateDaySummary } from '../../lib/daySummary';
 import type { Dog } from '../../types/api';
 import type { DailyCheckIn, Mood } from '../../types/checkIn';
 
@@ -53,11 +54,19 @@ export function DogIdentityHero({ dog, todayCheckIn, onStartCheckIn }: DogIdenti
   const personality = describeDog(dog);
 
   const breedChip = dog.breed;
-  const ageChip = `${dog.age_years} yrs`;
+  const ageChip =
+    dog.age_years < 1 ? '<1 yr' : dog.age_years === 1 ? '1 yr' : `${dog.age_years} yrs`;
   const tenureChip = tenureLabel(dog.created_at);
 
+  // Mood-only copy like "feeling good" must never contradict a day whose
+  // overall summary tier needs attention — keep the chip neutral then.
+  const todayTier = todayCheckIn ? generateDaySummary(todayCheckIn).type : null;
+  const isConcerningDay =
+    todayTier === 'attention_needed' || todayTier === 'vet_recommended';
   const loggedLabel = todayCheckIn
-    ? `Logged · ${MOOD_LABEL[todayCheckIn.mood]} today`
+    ? isConcerningDay
+      ? 'Logged today'
+      : `Logged · ${MOOD_LABEL[todayCheckIn.mood]} today`
     : null;
 
   return (
@@ -103,8 +112,10 @@ export function DogIdentityHero({ dog, todayCheckIn, onStartCheckIn }: DogIdenti
 
       {/* Today state */}
       {loggedLabel ? (
-        <View style={styles.loggedChip}>
-          <Text style={styles.loggedText}>{loggedLabel}</Text>
+        <View style={[styles.loggedChip, isConcerningDay && styles.loggedChipNeutral]}>
+          <Text style={[styles.loggedText, isConcerningDay && styles.loggedTextNeutral]}>
+            {loggedLabel}
+          </Text>
         </View>
       ) : (
         <Pressable
@@ -209,6 +220,14 @@ const styles = StyleSheet.create({
     fontFamily: OB_FONTS.btnLabel,
     fontSize: 13,
     color: OB_COLORS.accent,
+  },
+  // Neutral (non-celebratory) variant for attention/vet-tier days — the sage
+  // "all good" look must not appear on a day that needs watching.
+  loggedChipNeutral: {
+    backgroundColor: OB_COLORS.washNeutral,
+  },
+  loggedTextNeutral: {
+    color: OB_COLORS.ink2,
   },
   ctaButton: {
     backgroundColor: OB_COLORS.cta,

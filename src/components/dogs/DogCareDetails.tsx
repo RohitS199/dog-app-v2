@@ -25,7 +25,7 @@ function Row({ label, value, isLast = false }: RowProps) {
 }
 
 export function DogCareDetails({ dog, onEdit }: DogCareDetailsProps) {
-  const weightValue = `${dog.weight_lbs} lbs`;
+  const weightValue = dog.weight_lbs ? `${dog.weight_lbs} lbs` : 'Not added';
   const conditionsValue =
     dog.known_conditions.length > 0 ? dog.known_conditions.join(', ') : 'None on file';
   const trimmedVetPhone = dog.vet_phone ? dog.vet_phone.trim() : '';

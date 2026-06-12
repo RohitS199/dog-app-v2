@@ -11,6 +11,10 @@ interface DayDetailSheetProps {
   dateString: string;
   /** Sheet container background. Defaults to COLORS.surface (Health tab). */
   backgroundColor?: string;
+  /** Close-button fill. Defaults to COLORS.primary (Health tab). */
+  closeButtonColor?: string;
+  /** Close-button label color. Defaults to white (Health tab). */
+  closeTextColor?: string;
 }
 
 function getLabel(questionIndex: number, value: string): string {
@@ -50,6 +54,8 @@ export function DayDetailSheet({
   previousCheckIn,
   dateString,
   backgroundColor = COLORS.surface,
+  closeButtonColor,
+  closeTextColor,
 }: DayDetailSheetProps) {
   return (
     <Modal
@@ -99,12 +105,14 @@ export function DayDetailSheet({
           )}
 
           <Pressable
-            style={styles.closeButton}
+            style={[styles.closeButton, closeButtonColor ? { backgroundColor: closeButtonColor } : null]}
             onPress={onClose}
             accessibilityRole="button"
             accessibilityLabel="Close"
           >
-            <Text style={styles.closeText}>Close</Text>
+            <Text style={[styles.closeText, closeTextColor ? { color: closeTextColor } : null]}>
+              Close
+            </Text>
           </Pressable>
         </View>
       </Pressable>

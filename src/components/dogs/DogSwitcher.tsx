@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 0, // the screen's 24px gutter provides the inset
     paddingVertical: 8,
   },
   pill: {

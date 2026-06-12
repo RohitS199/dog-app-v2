@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  InteractionManager,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -33,8 +34,17 @@ import {
   OB_RADII,
   OB_SHADOWS,
 } from '../../src/constants/onboardingTheme';
-import { MIN_TOUCH_TARGET } from '../../src/constants/theme';
+import { ALERT_LEVEL_CONFIG, MIN_TOUCH_TARGET } from '../../src/constants/theme';
+import type { AlertLevel } from '../../src/types/health';
 import type { DailyCheckIn } from '../../src/types/checkIn';
+
+// Highest-severity-first ranking for the hub's alert summary card.
+const ALERT_RANK: Record<AlertLevel, number> = {
+  vet_recommended: 3,
+  concern: 2,
+  watch: 1,
+  info: 0,
+};
 
 // Floating tab bar clearance (mirrors health.tsx's TAB_BAR_HEIGHT pattern).
 const TAB_BAR_HEIGHT = 120;
@@ -44,7 +54,8 @@ export default function MyDogsScreen() {
   const navigation = useNavigation();
   const { dogs, selectedDogId, selectDog } = useDogStore();
   const selectedDog = dogs.find((d) => d.id === selectedDogId);
-  const { calendarData, isLoading, fetchMonthData } = useHealthStore();
+  const { calendarData, isLoading, fetchMonthData, activeAlerts, fetchActiveAlerts } =
+    useHealthStore();
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
@@ -55,20 +66,25 @@ export default function MyDogsScreen() {
 
   useEffect(() => {
     if (selectedDogId) {
-      fetchMonthData(selectedDogId, year, month);
+      const handle = InteractionManager.runAfterInteractions(() => {
+        fetchMonthData(selectedDogId, year, month);
+        fetchActiveAlerts(selectedDogId);
+      });
+      return () => handle.cancel();
     }
   }, [selectedDogId, year, month]);
 
-  // Re-fetch on tab focus (same pattern as health.tsx — covers check-ins
-  // submitted while this tab was unfocused).
+  // On tab focus, refresh only the non-clearing alert fetch. Re-running
+  // fetchMonthData here would blank calendarData on every visit (it clears
+  // first), flashing an empty calendar — health.tsx avoids that the same way.
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       if (selectedDogId) {
-        fetchMonthData(selectedDogId, year, month);
+        fetchActiveAlerts(selectedDogId);
       }
     });
     return unsubscribe;
-  }, [navigation, selectedDogId, year, month]);
+  }, [navigation, selectedDogId]);
 
   const dayStatuses = useMemo(
     () => computeDayStatuses(calendarData, year, month, todayString),
@@ -85,6 +101,14 @@ export default function MyDogsScreen() {
   // UTC-safe previous-day lookup (addDaysStr, NOT toISOString).
   const getPreviousCheckIn = (dateStr: string): DailyCheckIn | null =>
     calendarData[addDaysStr(dateStr, -1)] ?? null;
+
+  // Golden Rule: with the Health tab off the bar, active pattern alerts must
+  // still be visible somewhere persistent — this summary card is that surface.
+  const topAlertLevel = activeAlerts.reduce<AlertLevel | null>(
+    (top, a) => (top === null || ALERT_RANK[a.alert_level] > ALERT_RANK[top] ? a.alert_level : top),
+    null
+  );
+  const topAlertConfig = topAlertLevel ? ALERT_LEVEL_CONFIG[topAlertLevel] : null;
 
   if (!selectedDog) {
     return (
@@ -126,18 +150,22 @@ export default function MyDogsScreen() {
             <Pressable
               onPress={() => router.push('/profile' as any)}
               accessibilityRole="button"
-              accessibilityLabel="Settings"
+              accessibilityLabel="Profile and settings"
               style={styles.gearButton}
             >
               <MaterialCommunityIcons name="cog-outline" size={24} color={OB_COLORS.ink} />
             </Pressable>
           </View>
 
-          {/* Dog switcher */}
+          {/* Dog switcher — closing the day sheet first prevents it showing a
+              blank state for the previous dog while the new fetch clears data */}
           <DogSwitcher
             dogs={dogs}
             selectedDogId={selectedDogId}
-            onSelectDog={selectDog}
+            onSelectDog={(id) => {
+              setSelectedDate(null);
+              selectDog(id);
+            }}
             onAddDog={() => router.push('/add-dog')}
           />
 
@@ -147,6 +175,39 @@ export default function MyDogsScreen() {
             todayCheckIn={todayCheckIn}
             onStartCheckIn={() => router.push('/check-in')}
           />
+
+          {/* Active health alerts — honest urgency accent, scrapbook frame */}
+          {activeAlerts.length > 0 && topAlertConfig && (
+            <Pressable
+              onPress={() => router.push('/health' as any)}
+              accessibilityRole="button"
+              accessibilityLabel={
+                'Review ' +
+                activeAlerts.length +
+                ' active health alert' +
+                (activeAlerts.length === 1 ? '' : 's') +
+                ' for ' +
+                selectedDog.name
+              }
+              style={({ pressed }) => [styles.alertCard, pressed && { opacity: 0.85 }]}
+            >
+              <View style={[styles.alertStripe, { backgroundColor: topAlertConfig.color }]} />
+              <MaterialCommunityIcons
+                name={topAlertConfig.icon}
+                size={22}
+                color={topAlertConfig.color}
+              />
+              <View style={styles.alertTextWrap}>
+                <Text style={styles.alertTitle}>
+                  {activeAlerts.length === 1
+                    ? '1 health alert for ' + selectedDog.name
+                    : activeAlerts.length + ' health alerts for ' + selectedDog.name}
+                </Text>
+                <Text style={styles.alertSubtitle}>Tap to review</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={22} color={OB_COLORS.wood} />
+            </Pressable>
+          )}
 
           {/* Calendar */}
           <View style={styles.calendarSection}>
@@ -201,6 +262,8 @@ export default function MyDogsScreen() {
           previousCheckIn={selectedDate ? getPreviousCheckIn(selectedDate) : null}
           dateString={selectedDate ?? ''}
           backgroundColor={OB_COLORS.cream}
+          closeButtonColor={OB_COLORS.cta}
+          closeTextColor={OB_COLORS.ink}
         />
       </SafeAreaView>
     </GestureHandlerRootView>
@@ -213,7 +276,7 @@ const styles = StyleSheet.create({
     backgroundColor: OB_COLORS.cream,
   },
   scroll: {
-    padding: 16,
+    padding: 24, // matches Profile's screenPaddingH for sibling-tab parity
     paddingBottom: TAB_BAR_HEIGHT,
   },
   topBar: {
@@ -231,6 +294,42 @@ const styles = StyleSheet.create({
     height: MIN_TOUCH_TARGET,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  alertCard: {
+    marginTop: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: OB_COLORS.cardWhite,
+    borderWidth: OB_BORDERS.standard,
+    borderColor: OB_COLORS.sketch,
+    borderRadius: OB_RADII.rowItem,
+    padding: 14,
+    paddingLeft: 20, // room for the severity stripe
+    minHeight: MIN_TOUCH_TARGET,
+    overflow: 'hidden',
+    ...OB_SHADOWS.card,
+  },
+  alertStripe: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 6,
+  },
+  alertTextWrap: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontFamily: OB_FONTS.btnLabel,
+    fontSize: 14,
+    color: OB_COLORS.ink,
+  },
+  alertSubtitle: {
+    fontFamily: OB_FONTS.dataValue,
+    fontSize: 12,
+    color: OB_COLORS.ink2,
+    marginTop: 1,
   },
   calendarSection: {
     marginTop: 24,

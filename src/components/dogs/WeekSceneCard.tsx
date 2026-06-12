@@ -18,6 +18,15 @@ const TOTAL_DAYS = 7;
 const DOT_SIZE = 8;
 const DOT_GAP = 4;
 
+// Caring-neutral text markers for weeks containing attention/vet-tier days.
+// The tone wash alone is color-only encoding — these keep the health signal
+// readable (WCAG 1.4.1) and honest (Golden Rule: never soften a tough week
+// into a pretty card with no words).
+const TONE_NOTE: Partial<Record<WeekTone, string>> = {
+  attention: 'A bumpy week',
+  concern: 'A tough week',
+};
+
 export interface WeekSceneCardProps {
   summary: WeekSummary;
   onPress?: () => void;
@@ -26,8 +35,10 @@ export interface WeekSceneCardProps {
 
 export function WeekSceneCard({ summary, onPress, rotation = -2 }: WeekSceneCardProps) {
   const toneColors = WEEK_TONE_COLORS[summary.tone];
+  const toneNote = TONE_NOTE[summary.tone];
   const accessibilityLabel =
-    'Week of ' + summary.label + ', ' + summary.loggedCount + ' of 7 days logged';
+    'Week of ' + summary.label + ', ' + summary.loggedCount + ' of 7 days logged' +
+    (toneNote ? '. ' + toneNote : '');
 
   return (
     <Pressable
@@ -74,6 +85,7 @@ export function WeekSceneCard({ summary, onPress, rotation = -2 }: WeekSceneCard
         {summary.label}
       </Text>
       <Text style={styles.countLabel}>{summary.loggedCount}/7 days</Text>
+      {toneNote ? <Text style={styles.toneNote}>{toneNote}</Text> : null}
     </Pressable>
   );
 }
@@ -115,6 +127,12 @@ const styles = StyleSheet.create({
     fontFamily: OB_FONTS.dataLabel,
     fontSize: 11,
     color: OB_COLORS.ink2,
+    marginTop: 2,
+  },
+  toneNote: {
+    fontFamily: OB_FONTS.btnLabel,
+    fontSize: 11,
+    color: OB_COLORS.ink,
     marginTop: 2,
   },
 });

@@ -3,11 +3,26 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { WeekLookBack } from '../dogs/WeekLookBack';
 import type { WeekSummary } from '../../lib/weekGrouping';
 
-function makeWeek(start: string, label: string): WeekSummary {
-  return { weekStartDate: start, weekEndDate: start, label, loggedCount: 5, tone: 'thriving' };
+function makeWeek(
+  start: string,
+  label: string,
+  tone: WeekSummary['tone'] = 'thriving'
+): WeekSummary {
+  return { weekStartDate: start, weekEndDate: start, label, loggedCount: 5, tone };
 }
 
 describe('WeekLookBack', () => {
+  it('marks a concern-tone week with caring-neutral text (not color-only)', () => {
+    const { getByText } = render(
+      <WeekLookBack
+        weeks={[makeWeek('2026-06-07', 'Jun 7 – Jun 13', 'concern')]}
+        dogName="Luna"
+        onSeeMore={jest.fn()}
+      />
+    );
+    expect(getByText('A tough week')).toBeTruthy();
+  });
+
   it('renders the dog-scoped header', () => {
     const { getByText } = render(
       <WeekLookBack weeks={[makeWeek('2026-06-07', 'Jun 7 – Jun 13')]} dogName="Luna" onSeeMore={jest.fn()} />

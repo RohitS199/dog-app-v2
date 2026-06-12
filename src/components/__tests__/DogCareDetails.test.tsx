@@ -34,4 +34,12 @@ describe('DogCareDetails', () => {
     fireEvent.press(getByText('Edit ›'));
     expect(onEdit).toHaveBeenCalled();
   });
+
+  it('guards a zero/falsy weight instead of rendering "0 lbs"', () => {
+    const { getByText, queryByText } = render(
+      <DogCareDetails dog={makeDog({ weight_lbs: 0 })} onEdit={jest.fn()} />
+    );
+    expect(queryByText('0 lbs')).toBeNull();
+    expect(getByText('Not added')).toBeTruthy();
+  });
 });
