@@ -4,13 +4,15 @@ import { Flower } from './Flower';
 import { SCENE_ASSETS } from '../../constants/flowerAssets';
 import { placeFlowers, hashSeed, type BedRect } from '../../lib/gardenPlacement';
 import type { GardenWeek } from '../../lib/gardenWeek';
-import type { GardenMood } from '../../constants/gardenMoods';
+import { GARDEN_MOOD_LABELS, type GardenMood } from '../../constants/gardenMoods';
 
 // One log -> a CLUSTER of blooms (spec §3.4/§7, LOCKED). Cluster size scales with
 // tier ("rewarded for specifics"); the expansion is render-time only (one DB row/day).
 const BLOOMS_BY_TIER: Record<1 | 2 | 3, number> = { 1: 5, 2: 7, 3: 10 }; // spec §7.1
 const BLOOM_BASE: Record<1 | 2 | 3, number> = { 1: 0.092, 2: 0.108, 3: 0.123 }; // frac of width, spec §7.2
 const TIER_HEIGHT_SCALE: Record<1 | 2 | 3, number> = { 1: 1.0, 2: 1.25, 3: 1.55 }; // matches Flower
+const TIER_BLOOM_WORD: Record<1 | 2 | 3, string> = { 1: 'simple bloom', 2: 'fuller bloom', 3: 'full bloom' };
+const WEEKDAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const MIN_SPACING = 0.045; // frac of width; tight so blooms overlap into a lush bed (spec §7.2)
 
 // --- Tunable scene geometry (fractions of the scene box; tune on device). ---
@@ -31,9 +33,19 @@ interface Bloom {
   seed: string;
   mood: GardenMood;
   tier: 1 | 2 | 3;
+  dayDate: string;
   size: number;
   x: number;
   y: number;
+}
+
+interface DayMarker {
+  date: string;
+  weekday: number;
+  mood: GardenMood;
+  tier: 1 | 2 | 3;
+  cx: number;
+  cy: number;
 }
 
 function toPx(bed: BedRect, w: number, h: number): BedRect {
@@ -41,24 +53,38 @@ function toPx(bed: BedRect, w: number, h: number): BedRect {
 }
 
 export function GardenScene({ week, width, height }: Props) {
-  const blooms = useMemo<Bloom[]>(() => {
-    const items: { seed: string; mood: GardenMood; tier: 1 | 2 | 3 }[] = [];
-    for (const day of week.days) {
-      if (day.state !== 'planted' || !day.moodKey || day.tier === 0) continue;
+  const { blooms, dayMarkers } = useMemo(() => {
+    const plantedDays = week.days.filter((d) => d.state === 'planted' && d.moodKey && d.tier > 0);
+
+    const items: Omit<Bloom, 'size' | 'x' | 'y'>[] = [];
+    for (const day of plantedDays) {
       const tier = day.tier as 1 | 2 | 3;
       for (let k = 0; k < BLOOMS_BY_TIER[tier]; k++) {
-        items.push({ seed: `${day.seed}-b${k}`, mood: day.moodKey, tier });
+        items.push({ seed: `${day.seed}-b${k}`, mood: day.moodKey as GardenMood, tier, dayDate: day.date });
       }
     }
+
     const bedPx = toPx(BED, width, height);
     const pts = placeFlowers(items.map((b) => b.seed), bedPx, MIN_SPACING * width);
-    return items
-      .map((b, i) => {
-        const jitter = 0.9 + (hashSeed(b.seed) % 200) / 1000; // 0.9..1.1, deterministic
-        return { ...b, size: BLOOM_BASE[b.tier] * width * jitter, x: pts[i].x, y: pts[i].y };
-      })
-      .sort((a, b) => a.y - b.y); // paint back-to-front so near blooms overlap far ones
+    const placed: Bloom[] = items.map((b, i) => {
+      const jitter = 0.9 + (hashSeed(b.seed) % 200) / 1000; // 0.9..1.1, deterministic
+      return { ...b, size: BLOOM_BASE[b.tier] * width * jitter, x: pts[i].x, y: pts[i].y };
+    });
+
+    // One accessibility marker per planted day at its cluster's centroid — so VoiceOver
+    // announces "Monday: playful, fuller bloom" ONCE, not once per bloom. Decoupled from
+    // the visual scatter (blooms still spread across the whole bed, no day-clumps).
+    const dayMarkers: DayMarker[] = plantedDays.map((day) => {
+      const own = placed.filter((b) => b.dayDate === day.date);
+      const cx = own.reduce((s, b) => s + b.x, 0) / own.length;
+      const cy = own.reduce((s, b) => s + b.y, 0) / own.length;
+      return { date: day.date, weekday: day.weekday, mood: day.moodKey as GardenMood, tier: day.tier as 1 | 2 | 3, cx, cy };
+    });
+
+    return { blooms: placed.sort((a, b) => a.y - b.y), dayMarkers };
   }, [week, width, height]);
+
+  const todayDay = week.days.find((d) => d.state === 'today');
 
   return (
     <View style={[styles.scene, { width, height, backgroundColor: LAWN }]}>
@@ -88,15 +114,48 @@ export function GardenScene({ week, width, height }: Props) {
           height: height * 0.3,
         }}
       />
-      {/* Flower clusters, bottom-anchored at their soil point. */}
+      {/* Visual blooms — bottom-anchored, hidden from VoiceOver (the day markers speak for them). */}
       {blooms.map((b) => {
         const h = b.size * TIER_HEIGHT_SCALE[b.tier];
         return (
-          <View key={b.seed} style={{ position: 'absolute', left: b.x - b.size / 2, top: b.y - h }}>
+          <View
+            key={b.seed}
+            testID={`bloom-${b.mood}`}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{ position: 'absolute', left: b.x - b.size / 2, top: b.y - h }}
+          >
             <Flower mood={b.mood} tier={b.tier} baseSize={b.size} />
           </View>
         );
       })}
+      {/* One accessible label per planted day (never "missed" for empty days — bare soil is neutral). */}
+      {dayMarkers.map((m) => (
+        <View
+          key={`a11y-${m.date}`}
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={`${WEEKDAY_NAMES[m.weekday]}: ${GARDEN_MOOD_LABELS[m.mood]}, ${TIER_BLOOM_WORD[m.tier]}`}
+          pointerEvents="none"
+          style={{ position: 'absolute', left: m.cx - 22, top: m.cy - 22, width: 44, height: 44 }}
+        />
+      ))}
+      {/* Today, if not yet logged — prompts to plant (the CTA below does the planting). */}
+      {todayDay && (
+        <View
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel="Today, not yet logged — plant today's flower with the button below"
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: (BED.x + BED.width / 2) * width - 22,
+            top: (BED.y + BED.height / 2) * height - 22,
+            width: 44,
+            height: 44,
+          }}
+        />
+      )}
     </View>
   );
 }

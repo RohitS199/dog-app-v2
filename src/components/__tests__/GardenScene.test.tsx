@@ -18,9 +18,10 @@ const week: GardenWeek = {
 
 describe('GardenScene', () => {
   it('plants a cluster per planted day, denser for a higher tier ("rewarded for specifics")', () => {
-    const { queryAllByLabelText } = render(<GardenScene week={week} width={390} height={300} />);
-    const joyful = queryAllByLabelText(/joyful/i).length; // tier 1 -> small cluster
-    const calm = queryAllByLabelText(/calm/i).length;     // tier 3 -> bigger cluster
+    const { queryAllByTestId } = render(<GardenScene week={week} width={390} height={300} />);
+    // Blooms are hidden from VoiceOver (the per-day markers speak for them) -> count by testID.
+    const joyful = queryAllByTestId('bloom-joyful', { includeHiddenElements: true }).length; // tier 1 -> small cluster
+    const calm = queryAllByTestId('bloom-calm', { includeHiddenElements: true }).length; // tier 3 -> bigger cluster
     expect(joyful).toBeGreaterThan(0);
     expect(calm).toBeGreaterThan(joyful);
   });
@@ -31,7 +32,7 @@ describe('GardenScene', () => {
       plantedCount: 0,
       days: week.days.map((d) => ({ ...d, state: 'empty' as const, moodKey: null, tier: 0 as const })),
     };
-    const { queryAllByLabelText } = render(<GardenScene week={empty} width={390} height={300} />);
-    expect(queryAllByLabelText(/bloom/i)).toHaveLength(0);
+    const { queryAllByTestId } = render(<GardenScene week={empty} width={390} height={300} />);
+    expect(queryAllByTestId(/^bloom-/, { includeHiddenElements: true })).toHaveLength(0);
   });
 });

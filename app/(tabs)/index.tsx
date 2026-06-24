@@ -10,6 +10,7 @@ import { GardenGreeting } from '../../src/components/garden/GardenGreeting';
 import { EmergencyChip } from '../../src/components/garden/EmergencyChip';
 import { LogSheet } from '../../src/components/garden/LogSheet';
 import { PlantCelebration } from '../../src/components/garden/PlantCelebration';
+import { DogSelector } from '../../src/components/ui/DogSelector';
 import type { GardenMood } from '../../src/constants/gardenMoods';
 import { OB_COLORS, OB_FONTS, OB_FONT_SIZES, OB_RADII } from '../../src/constants/onboardingTheme';
 
@@ -30,23 +31,36 @@ export default function JourneyScreen() {
   const dog = dogs.find((d) => d.id === selectedDogId) ?? dogs[0];
   const today = useMemo(() => todayStr(), []);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [showDogSelector, setShowDogSelector] = useState(false);
   const [celebration, setCelebration] = useState<{ mood: GardenMood; tier: 1 | 2 | 3 } | null>(null);
 
   useEffect(() => {
     if (dogs.length === 0) fetchDogs();
   }, [dogs.length, fetchDogs]);
 
-  // Re-fetch (and clear stale data) on dog switch.
+  // Re-fetch (and clear stale data) on dog switch — gardenStore.fetchWeek nulls the
+  // prior dog's week first, so no stale flowers flash.
   useEffect(() => {
     if (dog) fetchWeek(dog.id);
   }, [dog?.id, fetchWeek]);
 
+  const multiDog = dogs.length > 1;
+
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.dogChip} accessibilityRole="header">
-          {dog ? dog.name : 'PupLog'}
-        </Text>
+        <Pressable
+          onPress={() => multiDog && setShowDogSelector(true)}
+          disabled={!multiDog}
+          hitSlop={8}
+          accessibilityRole={multiDog ? 'button' : 'header'}
+          accessibilityLabel={multiDog ? `Switch dog, currently ${dog?.name}` : dog?.name}
+        >
+          <Text style={styles.dogChip}>
+            {dog ? dog.name : 'PupLog'}
+            {multiDog ? ' ▾' : ''}
+          </Text>
+        </Pressable>
         <EmergencyChip />
       </View>
 
@@ -72,6 +86,8 @@ export default function JourneyScreen() {
       >
         <Text style={styles.ctaLabel}>Plant {dog?.name ?? 'your pup'}&apos;s flower for today</Text>
       </Pressable>
+
+      <DogSelector visible={showDogSelector} onClose={() => setShowDogSelector(false)} />
 
       <Modal
         visible={sheetOpen}
