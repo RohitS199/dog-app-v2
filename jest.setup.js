@@ -186,6 +186,7 @@ jest.mock('react-native-reanimated', () => {
       if (callback) callback(true);
       return toValue;
     },
+    withSequence: (...values) => values[values.length - 1],
     withSpring: (toValue) => toValue,
     withDelay: (_delay, value) => value,
     runOnJS: (fn) => fn,
