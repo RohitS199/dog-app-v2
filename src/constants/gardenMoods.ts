@@ -33,3 +33,16 @@ export const GARDEN_MOOD_LABELS: Record<GardenMood, string> = {
 export function isGardenMood(value: unknown): value is GardenMood {
   return typeof value === 'string' && (GARDEN_MOODS as readonly string[]).includes(value);
 }
+
+// The garden's OWN simple health-chip vocabulary (the tier-2 driver). DISTINCT from the
+// clinical AdditionalSymptom enum in src/types/checkIn.ts — the garden never couples to
+// clinical symptom values, keeping the garden/clinical separation intact. "All normal" is
+// exclusive (selecting it clears the others). Placeholder set per spec §5.3; refine with
+// the clinical-flow redesign.
+export const GARDEN_HEALTH_CHIPS = [
+  'All normal', 'Eating less', 'Low energy', 'Tummy trouble', 'Stiff or limping', 'Itchy skin', 'Threw up',
+] as const;
+
+export type GardenHealthChip = (typeof GARDEN_HEALTH_CHIPS)[number];
+
+export const GARDEN_HEALTH_CHIP_ALL_NORMAL = 'All normal' as const;

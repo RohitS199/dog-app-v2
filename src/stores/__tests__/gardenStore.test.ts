@@ -1,4 +1,24 @@
 import { useGardenStore } from '../gardenStore';
+import { supabase } from '../../lib/supabase';
+
+// Stub the supabase chain plantFlower uses: from().upsert().select().single() for the
+// write, then from().select().eq().gte().lte() for the fetchWeek refresh. Returns the
+// upsert spy so tests can assert the payload.
+function mockPlantSupabase() {
+  const single = jest.fn().mockResolvedValue({ data: { id: 'g9' }, error: null });
+  const upsert = jest.fn(() => ({ select: () => ({ single }) }));
+  (supabase.from as jest.Mock) = jest.fn(() => ({
+    upsert,
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    gte: jest.fn().mockReturnThis(),
+    lte: jest.fn().mockResolvedValue({ data: [], error: null }),
+  }));
+  (supabase.auth as unknown as { getUser: jest.Mock }).getUser = jest
+    .fn()
+    .mockResolvedValue({ data: { user: { id: 'u1' } } });
+  return upsert;
+}
 
 describe('gardenStore', () => {
   beforeEach(() => {
@@ -46,5 +66,38 @@ describe('gardenStore', () => {
     useGardenStore.getState().clearGarden();
     expect(useGardenStore.getState().week).toBeNull();
     expect(useGardenStore.getState().dogId).toBeNull();
+  });
+
+  it('plantFlower upserts to garden_logs (emergency_flagged false when no note)', async () => {
+    const upsert = mockPlantSupabase();
+    const ok = await useGardenStore.getState().plantFlower('dog-1', {
+      log_date: '2026-06-23', garden_mood: 'playful', health_chips: [], note: null,
+    });
+    expect(ok).toBe(true);
+    expect(supabase.from).toHaveBeenCalledWith('garden_logs');
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ user_id: 'u1', dog_id: 'dog-1', garden_mood: 'playful', emergency_flagged: false }),
+      expect.objectContaining({ onConflict: 'dog_id,log_date' }),
+    );
+  });
+
+  it('plantFlower re-runs emergency detection on the note (Golden Rule)', async () => {
+    const upsert = mockPlantSupabase();
+    await useGardenStore.getState().plantFlower('dog-1', {
+      log_date: '2026-06-23', garden_mood: 'unwell', health_chips: [], note: 'ate rat poison',
+    });
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ emergency_flagged: true }),
+      expect.anything(),
+    );
+  });
+
+  it('plantFlower rejects an invalid garden_mood without touching supabase', async () => {
+    const upsert = mockPlantSupabase();
+    const ok = await useGardenStore.getState().plantFlower('dog-1', {
+      log_date: '2026-06-23', garden_mood: 'happy' as never, health_chips: [], note: null,
+    });
+    expect(ok).toBe(false);
+    expect(upsert).not.toHaveBeenCalled();
   });
 });

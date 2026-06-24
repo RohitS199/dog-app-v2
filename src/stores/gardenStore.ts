@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import { isGardenMood } from '../constants/gardenMoods';
+import { isGardenMood, GardenMood } from '../constants/gardenMoods';
 import { computeFlowerTier } from '../lib/flowerTier';
+import { detectEmergencyKeywords } from '../lib/emergencyKeywords';
 import {
   buildGardenWeek,
   getWeekStartMonday,
@@ -20,6 +21,14 @@ interface GardenRow {
   note: string | null;
 }
 
+// What the LogSheet hands the store to plant/edit a day's flower.
+export interface GardenDraft {
+  log_date: string;
+  garden_mood: GardenMood;
+  health_chips: string[];
+  note: string | null;
+}
+
 interface GardenState {
   week: GardenWeek | null;
   dogId: string | null;
@@ -27,6 +36,7 @@ interface GardenState {
   error: string | null;
   deriveWeek: (today: string, rows: GardenRow[]) => GardenWeek;
   fetchWeek: (dogId: string, today?: string) => Promise<void>;
+  plantFlower: (dogId: string, draft: GardenDraft) => Promise<boolean>;
   clearGarden: () => void;
 }
 
@@ -78,6 +88,46 @@ export const useGardenStore = create<GardenState>((set, get) => ({
     } catch (err) {
       if (get().dogId !== dogId) return;
       set({ error: err instanceof Error ? err.message : 'Failed to load garden.', isLoading: false });
+    }
+  },
+
+  plantFlower: async (dogId, draft) => {
+    // App-side validation stands in for the (intentionally absent) DB CHECK on garden_mood.
+    if (!isGardenMood(draft.garden_mood)) {
+      set({ error: 'Invalid mood.' });
+      return false;
+    }
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      const note = draft.note?.trim() || null;
+      const { error } = await supabase
+        .from('garden_logs')
+        .upsert(
+          {
+            user_id: user.id,
+            dog_id: dogId,
+            log_date: draft.log_date,
+            garden_mood: draft.garden_mood,
+            health_chips: draft.health_chips,
+            note,
+            // Golden Rule: re-run emergency detection on the note (note-less logs stay
+            // false; the always-on Emergency surface covers them).
+            emergency_flagged: note ? detectEmergencyKeywords(note).isEmergency : false,
+          },
+          { onConflict: 'dog_id,log_date' },
+        )
+        .select()
+        .single();
+      if (error) throw error;
+      // Refresh the week so the new/updated flower appears.
+      await get().fetchWeek(dogId, draft.log_date);
+      return true;
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Could not plant the flower.' });
+      return false;
     }
   },
 
