@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PupLog — Journey Hero · Option B · The Gardener's Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;700&family=Patrick+Hand&family=Kalam:wght@400;700&family=Work+Sans:wght@400;500;600&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f7f1e6;
+    --cream2: #efe6d2;
+    --peach: #f3d7b0;
+    --peach2: #e8c28a;
+    --peach-soft: #fbe6cc;
+    --wood: #8a5a38;
+    --wood-dk: #5a3a22;
+    --ink: #2a221c;
+    --ink2: #574a3f;
+    --muted: #a9998a;
+    --sketch: #1a140f;
+    --green: #6b7a3d;
+    --green-dk: #4b5a28;
+    --accent: #475E3D;
+    --blush: #f2c6bd;
+    --cta: #F4845F;
+    --selected-bg: #e3ead9;
+    --selected-border: #475E3D;
+    --red: #c75f4a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: #E8E0DC;
+    font-family: 'Patrick Hand', cursive;
+    color: var(--ink);
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  .paper-grain {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.15  0 0 0 0 0.08  0 0 0 0.045 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity: 0.55;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    z-index: 40;
+  }
+  .phone-frame {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    border-radius: 40px;
+    overflow: hidden;
+    background: var(--cream);
+    box-shadow: 0 0 0 2px #1a1a1a, 0 20px 60px rgba(0,0,0,0.3), 0 0 0 14px #2a2a2a;
+    display: flex;
+    flex-direction: column;
+  }
+  .status-bar {
+    height: 52px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 6px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    position: relative;
+    z-index: 20;
+  }
+  .header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 18px 6px;
+    position: relative;
+    z-index: 20;
+  }
+  .page-title { font-family: 'Caveat', cursive; font-size: 33px; color: var(--ink); }
+  .dog-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: #fffdf8;
+    border: 2px solid var(--sketch);
+    border-radius: 22px;
+    padding: 4px 12px 4px 5px;
+    box-shadow: 0 3px 0 var(--sketch);
+    cursor: pointer;
+    user-select: none;
+  }
+  .dog-chip:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--sketch); }
+  .dog-chip .avatar {
+    width: 27px; height: 27px;
+    border-radius: 50%;
+    background: var(--peach2);
+    border: 1.5px solid var(--sketch);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .dog-chip .name { font-family: 'Kalam', cursive; font-weight: 700; font-size: 14.5px; }
+  .dog-chip .caret { font-size: 10px; color: var(--ink2); }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2px 16px 120px;
+    position: relative;
+    z-index: 10;
+  }
+
+  /* ── Framed scene ── */
+  .scene-frame {
+    border: 7px solid var(--wood);
+    outline: 2px solid var(--sketch);
+    outline-offset: 0;
+    border-radius: 10px;
+    box-shadow: 0 4px 0 var(--sketch), inset 0 0 0 2px var(--sketch);
+    overflow: hidden;
+    position: relative;
+    background: linear-gradient(180deg, #DCE8ED 0%, #E8EEE4 42%, #b5cb9d 58%, #a9c194 100%);
+  }
+  .scene-inner { position: relative; height: 252px; }
+  .sun {
+    position: absolute; top: 12px; right: 18px;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(244,196,48,0.8), rgba(244,196,48,0) 70%);
+  }
+  .cloud { position: absolute; background: rgba(255,255,255,0.8); border-radius: 30px; }
+  .cloud.c1 { top: 24px; left: 26px; width: 58px; height: 16px; }
+  .cloud.c2 { top: 52px; left: 120px; width: 40px; height: 12px; opacity: 0.7; }
+  .doghouse { position: absolute; top: 28px; right: 30px; width: 128px; }
+  .biscuit {
+    position: absolute; bottom: 48px; left: 14px; width: 64px;
+    animation: bob 3.4s ease-in-out infinite;
+  }
+  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+  .plot {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translate(-50%, -100%);
+  }
+  .plot .flower-box { animation: sway 4.4s ease-in-out infinite; transform-origin: bottom center; }
+  @keyframes sway { 0%,100% { transform: rotate(-1.6deg); } 50% { transform: rotate(1.6deg); } }
+  .plot .day-tag { font-family: 'Kalam', cursive; font-size: 9px; color: var(--wood-dk); opacity: 0.8; margin-top: -1px; }
+  .plot-future {
+    position: absolute;
+    width: 26px; height: 26px;
+    border: 2px dashed rgba(90,58,34,0.4);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Kalam', cursive; font-size: 9.5px; color: rgba(90,58,34,0.6);
+  }
+  .today-spot {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .today-ring {
+    position: absolute;
+    bottom: -8px; left: 50%;
+    width: 52px; height: 52px;
+    transform: translateX(-50%);
+    border: 2.5px dashed var(--cta);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.85; } 50% { opacity: 0.35; } }
+  .today-label {
+    position: absolute;
+    bottom: -24px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Kalam', cursive;
+    font-weight: 700;
+    font-size: 10px;
+    color: var(--cta);
+    white-space: nowrap;
+  }
+
+  .frame-caption {
+    background: var(--cream2);
+    border-top: 2px solid var(--sketch);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+  }
+  .frame-caption .cap-title { font-family: 'Caveat', cursive; font-size: 19px; color: var(--ink); }
+  .frame-caption .cap-count { font-family: 'Kalam', cursive; font-size: 11.5px; color: var(--green-dk); }
+
+  /* ── Journal card ── */
+  .journal {
+    margin-top: 22px;
+    background: #fffdf8;
+    border: 2px solid var(--sketch);
+    border-radius: 14px;
+    box-shadow: 0 4px 0 var(--sketch);
+    padding: 20px 16px 16px;
+    position: relative;
+  }
+  .washi {
+    position: absolute;
+    top: -11px; left: 50%;
+    transform: translateX(-50%) rotate(-2deg);
+    width: 92px; height: 22px;
+    background: rgba(244,132,95,0.45);
+    border-left: 1.5px dashed rgba(26,20,15,0.25);
+    border-right: 1.5px dashed rgba(26,20,15,0.25);
+  }
+  .journal-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+  .journal-title { font-family: 'Caveat', cursive; font-size: 27px; }
+  .journal-date { font-family: 'Kalam', cursive; font-size: 11.5px; color: var(--muted); }
+
+  /* Bloom meter */
+  .bloom-meter {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 6px;
+    background: var(--cream2);
+    border: 2px solid var(--sketch);
+    border-radius: 12px;
+    box-shadow: 0 2.5px 0 var(--sketch);
+    padding: 8px 12px 7px;
+    margin: 10px 0 16px;
+  }
+  .meter-stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    opacity: 0.34;
+    transition: opacity 0.25s;
+    position: relative;
+  }
+  .meter-stage.reached { opacity: 1; }
+  .meter-stage.current::after {
+    content: '';
+    position: absolute;
+    inset: -5px -7px;
+    border: 2px dashed var(--cta);
+    border-radius: 12px;
+  }
+  .meter-stage .m-label { font-family: 'Kalam', cursive; font-size: 9.5px; font-weight: 700; color: var(--ink2); }
+  .meter-arrow { font-size: 14px; color: var(--muted); padding-bottom: 22px; }
+
+  /* Step rows */
+  .step { margin-bottom: 14px; transition: opacity 0.3s; }
+  .step.locked { opacity: 0.38; pointer-events: none; }
+  .step-head { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+  .checkbox {
+    width: 24px; height: 24px;
+    flex-shrink: 0;
+    border: 2px solid var(--sketch);
+    border-radius: 7px;
+    background: #fffdf8;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 700;
+    transform: rotate(-2deg);
+  }
+  .checkbox.done { background: var(--selected-bg); border-color: var(--selected-border); }
+  .step-title { font-family: 'Kalam', cursive; font-weight: 700; font-size: 14px; }
+  .step-reward { margin-left: auto; font-family: 'Work Sans', sans-serif; font-size: 10px; color: var(--cta); font-weight: 600; }
+
+  .chip-grid { display: flex; flex-wrap: wrap; gap: 7px; padding-left: 33px; }
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #fffdf8;
+    border: 2px solid var(--sketch);
+    border-radius: 11px;
+    box-shadow: 0 2px 0 var(--sketch);
+    padding: 6px 11px;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chip:active { transform: translateY(2px); box-shadow: 0 0 0 var(--sketch); }
+  .chip .dot { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid rgba(26,20,15,0.5); }
+  .chip.selected { background: var(--selected-bg); border-color: var(--selected-border); box-shadow: 0 2px 0 var(--selected-border); }
+
+  .spec-row { display: flex; gap: 9px; padding-left: 33px; }
+  .spec-box {
+    flex: 1;
+    border: 2.5px dashed var(--wood);
+    border-radius: 12px;
+    background: rgba(243,215,176,0.25);
+    min-height: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    text-align: center;
+    padding: 8px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .spec-box .big { font-size: 18px; }
+  .spec-box .lab { font-family: 'Kalam', cursive; font-weight: 700; font-size: 11px; color: var(--wood-dk); }
+  .spec-box.filled { border-style: solid; border-color: var(--selected-border); background: var(--selected-bg); }
+  .spec-box.filled .photo-thumb {
+    width: 100%; height: 40px;
+    border-radius: 7px;
+    border: 1.5px solid var(--sketch);
+    background:
+      radial-gradient(circle at 68% 38%, #e8c28a 0 18%, transparent 19%),
+      radial-gradient(circle at 30% 70%, #a9c194 0 30%, transparent 31%),
+      linear-gradient(160deg, #dce8ed 0%, #cfdfc6 60%, #b5cb9d 100%);
+  }
+  .note-preview { font-family: 'Caveat', cursive; font-size: 13.5px; color: var(--ink2); line-height: 1.15; }
+
+  .cta-btn {
+    display: block;
+    width: 100%;
+    background: var(--cta);
+    color: white;
+    border: 2px solid var(--sketch);
+    border-radius: 24px;
+    box-shadow: 0 4px 0 var(--sketch);
+    font-family: 'Work Sans', sans-serif;
+    font-size: 14.5px;
+    font-weight: 600;
+    padding: 14px;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: transform 0.1s, box-shadow 0.1s, opacity 0.2s;
+  }
+  .cta-btn:active { transform: translateY(4px); box-shadow: 0 0 0 var(--sketch); }
+  .cta-btn:disabled { opacity: 0.45; pointer-events: none; }
+
+  /* Planted state */
+  .planted-state {
+    display: none;
+    text-align: center;
+    padding: 18px 8px 10px;
+  }
+  .planted-state.show { display: block; }
+  .planted-state .big-script { font-family: 'Caveat', cursive; font-size: 30px; color: var(--green-dk); transform: rotate(-2deg); }
+  .planted-state .sub { font-size: 14px; color: var(--ink2); margin-top: 4px; }
+  .stamp {
+    display: inline-block;
+    margin-top: 12px;
+    border: 2.5px dashed var(--red);
+    color: var(--red);
+    border-radius: 10px;
+    padding: 5px 14px;
+    font-family: 'Kalam', cursive;
+    font-weight: 700;
+    font-size: 12px;
+    transform: rotate(3deg);
+    opacity: 0.85;
+  }
+
+  /* Biscuit cross-link card */
+  .biscuit-note {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    background: var(--peach-soft);
+    border: 2px solid var(--sketch);
+    border-radius: 14px;
+    box-shadow: 0 3px 0 var(--sketch);
+    padding: 10px 13px;
+    cursor: pointer;
+  }
+  .biscuit-note:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--sketch); }
+  .biscuit-note .face { width: 42px; flex-shrink: 0; }
+  .biscuit-note .txt { flex: 1; font-size: 13.5px; line-height: 1.35; color: var(--ink2); }
+  .biscuit-note .txt strong { color: var(--ink); font-weight: 400; }
+  .biscuit-note .arrow { font-family: 'Nunito', sans-serif; color: var(--wood-dk); font-size: 16px; }
+
+  .emergency-line {
+    text-align: center;
+    margin-top: 12px;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 11.5px;
+    color: var(--red);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+
+  /* ── Tab bar ── */
+  .tab-bar {
+    position: absolute;
+    left: 16px; right: 16px; bottom: 18px;
+    z-index: 45;
+    background: var(--cream);
+    border: 2px solid var(--sketch);
+    border-radius: 26px;
+    box-shadow: 0 4px 0 var(--sketch);
+    display: flex;
+    padding: 7px 8px;
+  }
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 5px 0 3px;
+    border-radius: 18px;
+    cursor: pointer;
+    border: 2px solid transparent;
+  }
+  .tab svg { width: 21px; height: 21px; }
+  .tab .t-label { font-family: 'Kalam', cursive; font-size: 10px; color: var(--ink2); opacity: 0.65; }
+  .tab.active { background: var(--selected-bg); border-color: var(--selected-border); }
+  .tab.active .t-label { color: var(--accent); opacity: 1; font-weight: 700; }
+
+  @keyframes plantPop {
+    0% { transform: scale(0) translateY(10px); }
+    65% { transform: scale(1.14) translateY(-3px); }
+    100% { transform: scale(1) translateY(0); }
+  }
+  .plant-pop { animation: plantPop 0.55s cubic-bezier(0.34, 1.4, 0.5, 1) both; transform-origin: bottom center; }
+
+  .caption { width: 390px; text-align: center; }
+  .caption h2 { font-family: 'Caveat', cursive; font-size: 26px; color: #3E2723; }
+  .caption p { font-family: 'Patrick Hand', cursive; font-size: 14.5px; color: #6D5D54; line-height: 1.45; }
+  .caption .hints { margin-top: 6px; font-family: 'Work Sans', sans-serif; font-size: 11.5px; color: #8D7E76; }
+  .reset-demo {
+    margin-top: 8px;
+    background: none;
+    border: 1.5px solid #8D7E76;
+    border-radius: 14px;
+    padding: 4px 14px;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 11px;
+    color: #6D5D54;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="paper-grain"></div>
+  <div class="status-bar"><span>9:41</span><span>&#9679;&#9679;&#9679;&#9679; &nbsp;5G &nbsp;&#9889;</span></div>
+
+  <div class="header">
+    <div class="page-title">Journey</div>
+    <div class="dog-chip" onclick="alert('Dog switcher — Luna / Bear')">
+      <div class="avatar">&#128054;</div>
+      <span class="name">Luna</span>
+      <span class="caret">&#9662;</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══ Framed garden scene ═══ -->
+    <div class="scene-frame">
+      <div class="scene-inner">
+        <div class="sun"></div>
+        <div class="cloud c1"></div>
+        <div class="cloud c2"></div>
+        <div class="doghouse" id="doghouse"></div>
+        <div class="biscuit" id="biscuit"></div>
+
+        <div class="plot" style="left: 96px; top: 212px;">
+          <div class="flower-box" id="fl-mon"></div>
+          <div class="day-tag">Mon</div>
+        </div>
+        <div class="plot" style="left: 146px; top: 226px;">
+          <div class="flower-box" id="fl-tue"></div>
+          <div class="day-tag">Tue</div>
+        </div>
+        <div class="plot" style="left: 196px; top: 214px;">
+          <div class="flower-box" id="fl-wed"></div>
+          <div class="day-tag">Wed</div>
+        </div>
+
+        <!-- Today grows live as the journal below is filled -->
+        <div class="today-spot" style="left: 250px; top: 228px;">
+          <div class="today-ring" id="todayRing"></div>
+          <div id="todayContent"></div>
+          <div class="today-label" id="todayLabel">today</div>
+        </div>
+
+        <div class="plot-future" style="left: 304px; top: 216px;">F</div>
+        <div class="plot-future" style="left: 340px; top: 200px; width: 22px; height: 22px;">S</div>
+        <div class="plot-future" style="left: 364px; top: 178px; width: 20px; height: 20px;">S</div>
+      </div>
+      <div class="frame-caption">
+        <span class="cap-title">Luna&rsquo;s garden</span>
+        <span class="cap-count" id="capCount">June 8&ndash;14 &middot; 3 flowers planted</span>
+      </div>
+    </div>
+
+    <!-- ═══ Today's journal page ═══ -->
+    <div class="journal" id="journal">
+      <div class="washi"></div>
+      <div id="journalForm">
+        <div class="journal-head">
+          <div class="journal-title">Today&rsquo;s page</div>
+          <div class="journal-date">Thursday, June 11</div>
+        </div>
+
+        <!-- Bloom meter -->
+        <div class="bloom-meter">
+          <div class="meter-stage" id="ms1">
+            <div id="msf1"></div>
+            <span class="m-label">quick log</span>
+          </div>
+          <span class="meter-arrow">&rarr;</span>
+          <div class="meter-stage" id="ms2">
+            <div id="msf2"></div>
+            <span class="m-label">detailed</span>
+          </div>
+          <span class="meter-arrow">&rarr;</span>
+          <div class="meter-stage" id="ms3">
+            <div id="msf3"></div>
+            <span class="m-label">full bloom</span>
+          </div>
+        </div>
+
+        <!-- Step 1 -->
+        <div class="step" id="step1">
+          <div class="step-head">
+            <div class="checkbox" id="cb1"></div>
+            <span class="step-title">How&rsquo;s Luna feeling?</span>
+          </div>
+          <div class="chip-grid" id="moodGrid"></div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step locked" id="step2">
+          <div class="step-head">
+            <div class="checkbox" id="cb2"></div>
+            <span class="step-title">Any health notes?</span>
+            <span class="step-reward">grows her flower</span>
+          </div>
+          <div class="chip-grid" id="symptomGrid"></div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step locked" id="step3">
+          <div class="step-head">
+            <div class="checkbox" id="cb3"></div>
+            <span class="step-title">Photo &amp; note</span>
+            <span class="step-reward">&#10024; full bloom</span>
+          </div>
+          <div class="spec-row">
+            <div class="spec-box" id="photoBox" onclick="togglePhoto()">
+              <span class="big">&#128247;</span>
+              <span class="lab">Add a photo</span>
+            </div>
+            <div class="spec-box" id="noteBox" onclick="toggleNote()">
+              <span class="big">&#9999;&#65039;</span>
+              <span class="lab">Add a note</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="cta-btn" id="plantBtn" disabled onclick="pressFlower()">Press it into the garden</button>
+      </div>
+
+      <!-- Planted state -->
+      <div class="planted-state" id="plantedState">
+        <div class="big-script">Pressed in! &#127807;</div>
+        <div class="sub" id="plantedSub">A calm bloom joins Luna&rsquo;s week.</div>
+        <div class="stamp">PLANTED &middot; JUN 11</div>
+      </div>
+    </div>
+
+    <!-- Biscuit cross-link -->
+    <div class="biscuit-note" onclick="alert('Routes to Discovery — Biscuit reads the garden and shares what he is noticing.')">
+      <div class="face" id="biscuitFace"></div>
+      <div class="txt"><strong>Biscuit&rsquo;s noticing:</strong> calm three days running, appetite dipped once.</div>
+      <span class="arrow">&rsaquo;</span>
+    </div>
+
+    <div class="emergency-line" onclick="alert('Routes to emergency resources — Golden Rule surface stays one tap away.')">Worried about something urgent? Emergency help &rsaquo;</div>
+  </div>
+
+  <!-- ═══ TAB BAR ═══ -->
+  <div class="tab-bar">
+    <div class="tab active">
+      <svg viewBox="0 0 24 24" fill="none">
+        <ellipse cx="12" cy="15.5" rx="4.2" ry="3.6" fill="#475E3D"/>
+        <circle cx="6.5" cy="10.5" r="2" fill="#475E3D"/>
+        <circle cx="10.2" cy="7.4" r="2" fill="#475E3D"/>
+        <circle cx="13.8" cy="7.4" r="2" fill="#475E3D"/>
+        <circle cx="17.5" cy="10.5" r="2" fill="#475E3D"/>
+      </svg>
+      <span class="t-label">Journey</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#574a3f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 9 L3.5 5.5 L7 6.5 Z" fill="#574a3f"/>
+        <path d="M19 9 L20.5 5.5 L17 6.5 Z" fill="#574a3f"/>
+        <circle cx="12" cy="11" r="6"/>
+        <circle cx="10" cy="10" r="0.9" fill="#574a3f" stroke="none"/>
+        <circle cx="14" cy="10" r="0.9" fill="#574a3f" stroke="none"/>
+        <path d="M12 12.5 L12 14 M10.8 14.6 Q12 15.6 13.2 14.6"/>
+      </svg>
+      <span class="t-label">My Dogs</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#574a3f" stroke-width="1.9" stroke-linecap="round">
+        <circle cx="10.5" cy="10.5" r="5.5"/>
+        <line x1="15" y1="15" x2="20" y2="20"/>
+      </svg>
+      <span class="t-label">Discovery</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#574a3f" stroke-width="1.9" stroke-linecap="round">
+        <circle cx="12" cy="8.5" r="3.6"/>
+        <path d="M5 19.5 C 6 14.8, 18 14.8, 19 19.5"/>
+      </svg>
+      <span class="t-label">Profile</span>
+    </div>
+  </div>
+</div>
+
+<div class="caption">
+  <h2>Option B &middot; &ldquo;The Gardener&rsquo;s Journal&rdquo;</h2>
+  <p>Scene for heart, journal for clarity. The garden hangs in a wood frame; below it, today&rsquo;s page is an explicit 3-step checklist with a bloom meter &mdash; and the flower grows <em>live in the frame above</em> as you write.</p>
+  <div class="hints">Try: pick a mood &rarr; watch the frame &rarr; complete steps 2 &amp; 3 &rarr; Press it into the garden.</div>
+  <button class="reset-demo" onclick="resetDemo()">&#8634; reset demo</button>
+</div>
+
+<script>
+  const SKETCH = '#1a140f';
+  function shade(hex, pct) {
+    const n = parseInt(hex.slice(1), 16);
+    let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    if (pct >= 0) { r += (255-r)*pct/100; g += (255-g)*pct/100; b += (255-b)*pct/100; }
+    else { r *= 1+pct/100; g *= 1+pct/100; b *= 1+pct/100; }
+    return '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
+  }
+  function petals(cx, cy, count, rx, ry, dist, fill, startDeg) {
+    let s = '';
+    for (let i = 0; i < count; i++) {
+      const a = (startDeg || 0) + i * 360 / count;
+      s += `<ellipse cx="${cx}" cy="${cy - dist}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="${shade(fill,-32)}" stroke-width="1.3" transform="rotate(${a} ${cx} ${cy})"/>`;
+    }
+    return s;
+  }
+  function flowerSVG(color, tier, px) {
+    const W = px || 64;
+    const leaf = (x, y, rot, sc) =>
+      `<ellipse cx="${x}" cy="${y}" rx="${11*(sc||1)}" ry="${4.6*(sc||1)}" fill="#8FB07F" stroke="#5d7050" stroke-width="1.3" transform="rotate(${rot} ${x} ${y})"/>`;
+    let inner = `<path d="M50 62 C 48 82, 52 100, 50 116" fill="none" stroke="#4b5a28" stroke-width="3.4" stroke-linecap="round"/>`;
+    if (tier === 0) {
+      inner = `<path d="M50 92 C 49 100, 51 110, 50 116" fill="none" stroke="#4b5a28" stroke-width="3.2" stroke-linecap="round"/>`
+        + leaf(41, 92, -38, 0.85) + leaf(59, 90, 38, 0.85);
+    } else if (tier === 1) {
+      inner += leaf(40, 88, -35, 1);
+      inner += petals(50, 44, 5, 9.5, 14.5, 11.5, color, 0);
+      inner += `<circle cx="50" cy="44" r="7" fill="${shade(color,-28)}" stroke="${shade(color,-45)}" stroke-width="1.2"/>`;
+    } else if (tier === 2) {
+      inner += leaf(40, 88, -35, 1) + leaf(61, 96, 35, 0.9);
+      inner += petals(50, 44, 8, 9.5, 15.5, 13, color, 0);
+      inner += petals(50, 44, 5, 7, 10.5, 7.5, shade(color, 22), 36);
+      inner += `<circle cx="50" cy="44" r="7.2" fill="${shade(color,-26)}" stroke="${shade(color,-45)}" stroke-width="1.2"/>`;
+      inner += `<circle cx="50" cy="44" r="2.6" fill="${shade(color, 38)}"/>`;
+    } else if (tier === 3) {
+      inner += leaf(39, 84, -35, 1.05) + leaf(62, 94, 35, 0.95) + leaf(42, 102, -28, 0.8);
+      inner += petals(50, 42, 12, 8.6, 16.5, 15, shade(color, -6), 0);
+      inner += petals(50, 42, 8, 8, 12.5, 9.5, shade(color, 14), 22.5);
+      inner += petals(50, 42, 5, 5.6, 8.5, 5, shade(color, 30), 36);
+      inner += `<circle cx="50" cy="42" r="6" fill="${shade(color,-26)}" stroke="${shade(color,-45)}" stroke-width="1.2"/>`;
+      for (let i = 0; i < 6; i++) {
+        const a = i * 60 * Math.PI / 180;
+        inner += `<circle cx="${50 + Math.cos(a)*3.4}" cy="${42 + Math.sin(a)*3.4}" r="1" fill="${shade(color, 45)}"/>`;
+      }
+      inner += `<path d="M24 28 l2.5 2.5 M27 25 l-2 3" stroke="${shade(color,10)}" stroke-width="1.4" stroke-linecap="round"/>`;
+      inner += `<path d="M76 30 l-2.5 2.5 M73 27 l2 3" stroke="${shade(color,10)}" stroke-width="1.4" stroke-linecap="round"/>`;
+    }
+    return `<svg width="${W}" height="${W*1.4}" viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+  }
+  function moundSVG(px) {
+    const W = px || 64;
+    return `<svg width="${W}" height="${W*0.5}" viewBox="0 0 100 50">
+      <ellipse cx="50" cy="34" rx="36" ry="14" fill="#C9A57E" stroke="#5a3a22" stroke-width="2"/>
+      <ellipse cx="50" cy="30" rx="30" ry="11" fill="#B68F66"/>
+      <circle cx="38" cy="29" r="1.6" fill="#5a3a22" opacity="0.5"/>
+      <circle cx="54" cy="33" r="1.4" fill="#5a3a22" opacity="0.5"/>
+      <circle cx="62" cy="28" r="1.5" fill="#5a3a22" opacity="0.5"/>
+    </svg>`;
+  }
+  function doghouseSVG(name) {
+    return `<svg viewBox="0 0 180 158" xmlns="http://www.w3.org/2000/svg">
+      <rect x="36" y="58" width="108" height="94" rx="4" fill="#8a5a38" stroke="${SKETCH}" stroke-width="3"/>
+      <line x1="38" y1="84" x2="142" y2="84" stroke="#5a3a22" stroke-width="1.6" opacity="0.35"/>
+      <line x1="38" y1="108" x2="142" y2="108" stroke="#5a3a22" stroke-width="1.6" opacity="0.35"/>
+      <line x1="38" y1="132" x2="142" y2="132" stroke="#5a3a22" stroke-width="1.6" opacity="0.35"/>
+      <path d="M20 64 L90 10 L160 64 Z" fill="#5a3a22" stroke="${SKETCH}" stroke-width="3" stroke-linejoin="round"/>
+      <g transform="translate(90 40)">
+        <rect x="-7" y="-3" width="14" height="6" rx="3" fill="#f7f1e6" stroke="${SKETCH}" stroke-width="1.4"/>
+        <circle cx="-7" cy="-2" r="2.6" fill="#f7f1e6" stroke="${SKETCH}" stroke-width="1.4"/>
+        <circle cx="-7" cy="2" r="2.6" fill="#f7f1e6" stroke="${SKETCH}" stroke-width="1.4"/>
+        <circle cx="7" cy="-2" r="2.6" fill="#f7f1e6" stroke="${SKETCH}" stroke-width="1.4"/>
+        <circle cx="7" cy="2" r="2.6" fill="#f7f1e6" stroke="${SKETCH}" stroke-width="1.4"/>
+      </g>
+      <path d="M67 152 L67 104 Q67 86 90 86 Q113 86 113 104 L113 152 Z" fill="#2e2117" stroke="${SKETCH}" stroke-width="3"/>
+      <rect x="58" y="62" width="64" height="19" rx="5" fill="#fbe6cc" stroke="${SKETCH}" stroke-width="2"/>
+      <text x="90" y="76" text-anchor="middle" font-family="Kalam, cursive" font-weight="700" font-size="12.5" letter-spacing="2.5" fill="#5a3a22">${name}</text>
+    </svg>`;
+  }
+  function biscuitSVG() {
+    return `<svg viewBox="0 0 120 112" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="60" cy="104" rx="34" ry="5" fill="#1a140f" opacity="0.1"/>
+      <path d="M22 78 C 12 70, 10 58, 18 52 C 24 48, 28 56, 26 64 Z" fill="#e8c28a" stroke="${SKETCH}" stroke-width="2.4" stroke-linejoin="round"/>
+      <rect x="26" y="50" width="70" height="54" rx="24" fill="#e8c28a" stroke="${SKETCH}" stroke-width="2.6"/>
+      <ellipse cx="52" cy="96" rx="17" ry="9" fill="#f7f1e6" opacity="0.9"/>
+      <rect x="42" y="84" width="10" height="21" rx="5" fill="#e8c28a" stroke="${SKETCH}" stroke-width="2.2"/>
+      <rect x="62" y="84" width="10" height="21" rx="5" fill="#e8c28a" stroke="${SKETCH}" stroke-width="2.2"/>
+      <rect x="46" y="2" width="15" height="20" rx="6" fill="#e8c28a" stroke="${SKETCH}" stroke-width="2.4" transform="rotate(-16 53 12)"/>
+      <rect x="82" y="0" width="15" height="20" rx="6" fill="#e8c28a" stroke="${SKETCH}" stroke-width="2.4" transform="rotate(14 89 10)"/>
+      <circle cx="71" cy="34" r="26" fill="#e8c28a" stroke="${SKETCH}" stroke-width="2.6"/>
+      <ellipse cx="78" cy="43" rx="13" ry="9.5" fill="#f7f1e6"/>
+      <circle cx="63" cy="32" r="2.8" fill="${SKETCH}"/>
+      <circle cx="83" cy="31" r="2.8" fill="${SKETCH}"/>
+      <path d="M74 39 Q 78 37.5 81 40 Q 78 44 74 41.5 Z" fill="${SKETCH}"/>
+      <path d="M77 44 Q 79 48 84 47" fill="none" stroke="${SKETCH}" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M48 53 Q 71 62 95 50" fill="none" stroke="#F4845F" stroke-width="5.5" stroke-linecap="round"/>
+      <circle cx="72" cy="59" r="3.4" fill="#F4C430" stroke="${SKETCH}" stroke-width="1.3"/>
+    </svg>`;
+  }
+  function biscuitFaceSVG() {
+    return `<svg viewBox="40 0 70 68" xmlns="http://www.w3.org/2000/svg">
+      <rect x="46" y="2" width="15" height="20" rx="6" fill="#e8c28a" stroke="${SKETCH}" stroke-width="2.4" transform="rotate(-16 53 12)"/>
+      <rect x="82" y="0" width="15" height="20" rx="6" fill="#e8c28a" stroke="${SKETCH}" stroke-width="2.4" transform="rotate(14 89 10)"/>
+      <circle cx="71" cy="34" r="26" fill="#e8c28a" stroke="${SKETCH}" stroke-width="2.6"/>
+      <ellipse cx="78" cy="43" rx="13" ry="9.5" fill="#f7f1e6"/>
+      <circle cx="63" cy="32" r="2.8" fill="${SKETCH}"/>
+      <circle cx="83" cy="31" r="2.8" fill="${SKETCH}"/>
+      <path d="M74 39 Q 78 37.5 81 40 Q 78 44 74 41.5 Z" fill="${SKETCH}"/>
+      <path d="M77 44 Q 79 48 84 47" fill="none" stroke="${SKETCH}" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>`;
+  }
+
+  /* ── Scene init ── */
+  document.getElementById('doghouse').innerHTML = doghouseSVG('LUNA');
+  document.getElementById('biscuit').innerHTML = biscuitSVG();
+  document.getElementById('biscuitFace').innerHTML = biscuitFaceSVG();
+  document.getElementById('fl-mon').innerHTML = flowerSVG('#A8C9A0', 2, 40);
+  document.getElementById('fl-tue').innerHTML = flowerSVG('#F4C430', 3, 46);
+  document.getElementById('fl-wed').innerHTML = flowerSVG('#A8C9A0', 1, 36);
+  document.getElementById('todayContent').innerHTML = moundSVG(46);
+
+  /* ── Logging state ── */
+  const MOODS = [
+    { key: 'joyful',       label: 'Joyful',       color: '#F4C430' },
+    { key: 'playful',      label: 'Playful',      color: '#FF8C61' },
+    { key: 'affectionate', label: 'Affectionate', color: '#F4A6B8' },
+    { key: 'calm',         label: 'Calm',         color: '#A8C9A0' },
+    { key: 'curious',      label: 'Curious',      color: '#9BB5DD' },
+    { key: 'tired',        label: 'Tired',        color: '#C8B4D8' },
+    { key: 'anxious',      label: 'Anxious',      color: '#A89AA8' },
+    { key: 'unwell',       label: 'Unwell',       color: '#C5CDD2' },
+  ];
+  const SYMPTOMS = ['All normal', 'Eating less', 'Low energy', 'Tummy trouble', 'Stiff or limping', 'Itchy skin', 'Threw up'];
+
+  let mood = null, symptoms = new Set(), hasPhoto = false, hasNote = false;
+
+  const moodGrid = document.getElementById('moodGrid');
+  MOODS.forEach(m => {
+    const el = document.createElement('div');
+    el.className = 'chip';
+    el.innerHTML = `<span class="dot" style="background:${m.color}"></span>${m.label}`;
+    el.onclick = () => { mood = m; [...moodGrid.children].forEach(c => c.classList.remove('selected')); el.classList.add('selected'); update(); };
+    moodGrid.appendChild(el);
+  });
+  const symptomGrid = document.getElementById('symptomGrid');
+  SYMPTOMS.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'chip';
+    el.textContent = s;
+    el.onclick = () => {
+      if (s === 'All normal') { symptoms.clear(); symptoms.add(s); [...symptomGrid.children].forEach(c => c.classList.remove('selected')); el.classList.add('selected'); }
+      else {
+        const normalEl = [...symptomGrid.children].find(c => c.textContent === 'All normal');
+        symptoms.delete('All normal'); normalEl.classList.remove('selected');
+        if (symptoms.has(s)) { symptoms.delete(s); el.classList.remove('selected'); }
+        else { symptoms.add(s); el.classList.add('selected'); }
+      }
+      update();
+    };
+    symptomGrid.appendChild(el);
+  });
+
+  function togglePhoto() {
+    hasPhoto = !hasPhoto;
+    const box = document.getElementById('photoBox');
+    box.classList.toggle('filled', hasPhoto);
+    box.innerHTML = hasPhoto
+      ? '<div class="photo-thumb"></div><span class="lab">&#10003; backyard_nap.jpg</span>'
+      : '<span class="big">&#128247;</span><span class="lab">Add a photo</span>';
+    update();
+  }
+  function toggleNote() {
+    hasNote = !hasNote;
+    const box = document.getElementById('noteBox');
+    box.classList.toggle('filled', hasNote);
+    box.innerHTML = hasNote
+      ? '<span class="note-preview">&ldquo;Skipped half her breakfast&hellip;&rdquo;</span><span class="lab">&#10003; noted</span>'
+      : '<span class="big">&#9999;&#65039;</span><span class="lab">Add a note</span>';
+    update();
+  }
+
+  function tier() {
+    if (!mood) return 0;
+    if (hasPhoto || hasNote) return 3;
+    if (symptoms.size > 0) return 2;
+    return 1;
+  }
+
+  function update() {
+    const t = tier();
+    const c = mood ? mood.color : '#A8C9A0';
+    // Live garden growth in the frame
+    document.getElementById('todayContent').innerHTML = t === 0 ? moundSVG(46) : flowerSVG(c, t, 30 + t * 6);
+    // Meter
+    for (let i = 1; i <= 3; i++) {
+      const ms = document.getElementById('ms' + i);
+      ms.classList.toggle('reached', t >= i);
+      ms.classList.toggle('current', t === i);
+      document.getElementById('msf' + i).innerHTML = flowerSVG(c, i, 26);
+    }
+    // Checkboxes + locks
+    document.getElementById('cb1').textContent = mood ? '✓' : '';
+    document.getElementById('cb1').classList.toggle('done', !!mood);
+    document.getElementById('cb2').textContent = symptoms.size > 0 ? '✓' : '';
+    document.getElementById('cb2').classList.toggle('done', symptoms.size > 0);
+    document.getElementById('cb3').textContent = (hasPhoto || hasNote) ? '✓' : '';
+    document.getElementById('cb3').classList.toggle('done', hasPhoto || hasNote);
+    document.getElementById('step2').classList.toggle('locked', !mood);
+    document.getElementById('step3').classList.toggle('locked', !mood || symptoms.size === 0);
+    document.getElementById('plantBtn').disabled = !mood;
+  }
+
+  function pressFlower() {
+    const t = tier();
+    document.getElementById('todayRing').style.display = 'none';
+    document.getElementById('todayLabel').style.display = 'none';
+    document.getElementById('todayContent').innerHTML = `<div class="plant-pop">${flowerSVG(mood.color, t, 30 + t * 6)}</div>`;
+    document.getElementById('journalForm').style.display = 'none';
+    document.getElementById('plantedState').classList.add('show');
+    document.getElementById('plantedSub').textContent = `A ${mood.label.toLowerCase()} ${t === 3 ? 'full bloom' : 'flower'} joins Luna’s week — see you tomorrow.`;
+    document.getElementById('capCount').textContent = 'June 8–14 · 4 flowers planted';
+  }
+
+  function resetDemo() {
+    mood = null; symptoms.clear(); hasPhoto = false; hasNote = false;
+    [...moodGrid.children].forEach(c => c.classList.remove('selected'));
+    [...symptomGrid.children].forEach(c => c.classList.remove('selected'));
+    const pb = document.getElementById('photoBox'); pb.classList.remove('filled');
+    pb.innerHTML = '<span class="big">&#128247;</span><span class="lab">Add a photo</span>';
+    const nb = document.getElementById('noteBox'); nb.classList.remove('filled');
+    nb.innerHTML = '<span class="big">&#9999;&#65039;</span><span class="lab">Add a note</span>';
+    document.getElementById('journalForm').style.display = '';
+    document.getElementById('plantedState').classList.remove('show');
+    document.getElementById('todayRing').style.display = '';
+    document.getElementById('todayLabel').style.display = '';
+    document.getElementById('capCount').textContent = 'June 8–14 · 3 flowers planted';
+    update();
+  }
+
+  update();
+</script>
+</body>
+</html>
