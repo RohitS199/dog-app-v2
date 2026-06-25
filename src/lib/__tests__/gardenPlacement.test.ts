@@ -25,7 +25,10 @@ describe('gardenPlacement', () => {
     expect(p.y).toBeLessThanOrEqual(BED.y + BED.height);
   });
 
-  it('placeFlowers keeps every pair at least minDist apart', () => {
+  it('placeFlowers spaces low-density seeds at least minDist apart (best-effort; dense beds overlap by design)', () => {
+    // NOTE: this guarantee only holds while seeds fit comfortably. Past saturation the
+    // reject-and-re-jitter falls back to the last candidate, so blooms intentionally
+    // overlap for a packed bed (spec §7.2). This case stays under that threshold.
     const seeds = ['a', 'b', 'c', 'd', 'e'];
     const pts = placeFlowers(seeds, BED, 20);
     for (let i = 0; i < pts.length; i++) {

@@ -15,4 +15,9 @@ describe('Flower', () => {
     const h3 = t3.props.style.height ?? t3.props.style[0]?.height;
     expect(h3).toBeGreaterThan(h1);
   });
+
+  it('suppresses its own VoiceOver label when decorative', () => {
+    const { queryByLabelText } = render(<Flower mood="joyful" tier={1} baseSize={40} decorative />);
+    expect(queryByLabelText(/joyful/i)).toBeNull();
+  });
 });

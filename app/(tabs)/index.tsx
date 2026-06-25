@@ -1,8 +1,9 @@
 // Journey hero — the app's home tab. A per-dog, full-bleed garden that fills as the
 // week's logs plant flowers. CTA opens the LogSheet; a successful plant pops a celebration.
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, Modal, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { useDogStore } from '../../src/stores/dogStore';
 import { useGardenStore } from '../../src/stores/gardenStore';
 import { GardenScene } from '../../src/components/garden/GardenScene';
@@ -29,7 +30,7 @@ export default function JourneyScreen() {
   const fetchWeek = useGardenStore((s) => s.fetchWeek);
 
   const dog = dogs.find((d) => d.id === selectedDogId) ?? dogs[0];
-  const today = useMemo(() => todayStr(), []);
+  const [today, setToday] = useState(todayStr);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [showDogSelector, setShowDogSelector] = useState(false);
   const [celebration, setCelebration] = useState<{ mood: GardenMood; tier: 1 | 2 | 3 } | null>(null);
@@ -38,11 +39,21 @@ export default function JourneyScreen() {
     if (dogs.length === 0) fetchDogs();
   }, [dogs.length, fetchDogs]);
 
-  // Re-fetch (and clear stale data) on dog switch — gardenStore.fetchWeek nulls the
-  // prior dog's week first, so no stale flowers flash.
+  // Re-fetch (and clear stale data) when the selected dog changes mid-screen —
+  // gardenStore.fetchWeek nulls the prior dog's week first, so no stale flowers flash.
   useEffect(() => {
     if (dog) fetchWeek(dog.id);
   }, [dog?.id, fetchWeek]);
+
+  // On tab focus: recompute "today" (so the week window + plant date don't rot past
+  // midnight) and refetch (covers a log written elsewhere). This is also the hook where
+  // future scene-idle animations should pause when unfocused (spec §10).
+  useFocusEffect(
+    useCallback(() => {
+      setToday(todayStr());
+      if (dog) fetchWeek(dog.id);
+    }, [dog?.id, fetchWeek]),
+  );
 
   const multiDog = dogs.length > 1;
 
@@ -53,7 +64,7 @@ export default function JourneyScreen() {
           onPress={() => multiDog && setShowDogSelector(true)}
           disabled={!multiDog}
           hitSlop={8}
-          accessibilityRole={multiDog ? 'button' : 'header'}
+          accessibilityRole={multiDog ? 'button' : 'text'}
           accessibilityLabel={multiDog ? `Switch dog, currently ${dog?.name}` : dog?.name}
         >
           <Text style={styles.dogChip}>
@@ -64,7 +75,8 @@ export default function JourneyScreen() {
         <EmergencyChip />
       </View>
 
-      <GardenGreeting dogName={dog?.name ?? 'Your pup'} plantedCount={week?.plantedCount ?? 0} />
+      {/* Gate on `week` so the greeting doesn't flash "ready to grow" before data loads. */}
+      {week && <GardenGreeting dogName={dog?.name ?? 'Your pup'} plantedCount={week.plantedCount} />}
 
       <View style={styles.sceneWrap}>
         {isLoading || !week ? (

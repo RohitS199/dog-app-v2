@@ -5,9 +5,10 @@ import { PlantCelebration } from '../garden/PlantCelebration';
 // its completion callback synchronously, so the settle -> onDone path runs.
 
 describe('PlantCelebration', () => {
-  it('renders the newly planted flower', () => {
-    const { getByLabelText } = render(<PlantCelebration mood="joyful" tier={2} onDone={() => {}} />);
-    expect(getByLabelText(/joyful/i)).toBeTruthy();
+  it('renders the planted flower as decorative (no competing VoiceOver label)', () => {
+    const { getByTestId, queryByLabelText } = render(<PlantCelebration mood="joyful" tier={2} onDone={() => {}} />);
+    expect(getByTestId('plant-celebration')).toBeTruthy();
+    expect(queryByLabelText(/joyful/i)).toBeNull();
   });
 
   it('calls onDone after the pop settles', () => {

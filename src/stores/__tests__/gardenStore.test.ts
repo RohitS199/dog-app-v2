@@ -100,4 +100,13 @@ describe('gardenStore', () => {
     expect(ok).toBe(false);
     expect(upsert).not.toHaveBeenCalled();
   });
+
+  it('plantFlower rejects an over-long note without touching supabase', async () => {
+    const upsert = mockPlantSupabase();
+    const ok = await useGardenStore.getState().plantFlower('dog-1', {
+      log_date: '2026-06-23', garden_mood: 'calm', health_chips: [], note: 'x'.repeat(501),
+    });
+    expect(ok).toBe(false);
+    expect(upsert).not.toHaveBeenCalled();
+  });
 });

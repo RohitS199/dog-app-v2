@@ -97,12 +97,18 @@ export const useGardenStore = create<GardenState>((set, get) => ({
       set({ error: 'Invalid mood.' });
       return false;
     }
+    const note = draft.note?.trim() || null;
+    // Mirror the DB CHECK (garden_logs_note_len_check) so an over-long note fails
+    // gracefully here instead of surfacing a raw Postgres error.
+    if (note && note.length > 500) {
+      set({ error: 'Note is too long (max 500 characters).' });
+      return false;
+    }
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-      const note = draft.note?.trim() || null;
       const { error } = await supabase
         .from('garden_logs')
         .upsert(

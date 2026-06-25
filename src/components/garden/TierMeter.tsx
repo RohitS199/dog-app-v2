@@ -17,7 +17,7 @@ export function TierMeter({ tier, mood }: { tier: FlowerTier; mood: GardenMood |
   return (
     <View style={styles.row} accessibilityLiveRegion="polite">
       <View style={styles.pot}>
-        {tier >= 1 && mood ? <Flower mood={mood} tier={tier as 1 | 2 | 3} baseSize={40} /> : <Text>🌱</Text>}
+        {tier >= 1 && mood ? <Flower mood={mood} tier={tier as 1 | 2 | 3} baseSize={40} decorative /> : <Text>🌱</Text>}
       </View>
       <View style={styles.dots}>
         {[1, 2, 3].map((n) => (

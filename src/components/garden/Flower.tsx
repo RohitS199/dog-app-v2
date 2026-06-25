@@ -11,16 +11,22 @@ interface FlowerProps {
   mood: GardenMood;
   tier: Exclude<FlowerTier, 0>; // a rendered flower always has a mood
   baseSize: number;             // width in px; height derived from tier
+  // Suppress the flower's own VoiceOver label/role — for decorative contexts where
+  // something else already describes it (the TierMeter copy, the PlantCelebration
+  // overlay, or GardenScene's per-day cluster markers).
+  decorative?: boolean;
 }
 
-export function Flower({ mood, tier, baseSize }: FlowerProps) {
+export function Flower({ mood, tier, baseSize, decorative = false }: FlowerProps) {
   const height = baseSize * TIER_HEIGHT_SCALE[tier];
   return (
     <Image
       source={FLOWER_ASSETS[mood][tier]}
       resizeMode="contain"
-      accessibilityRole="image"
-      accessibilityLabel={`${GARDEN_MOOD_LABELS[mood]} ${TIER_BLOOM_WORD[tier]}`}
+      accessibilityRole={decorative ? undefined : 'image'}
+      accessibilityLabel={decorative ? undefined : `${GARDEN_MOOD_LABELS[mood]} ${TIER_BLOOM_WORD[tier]}`}
+      accessibilityElementsHidden={decorative}
+      importantForAccessibility={decorative ? 'no-hide-descendants' : 'auto'}
       // Flat style object (not an array) so width/height are directly inspectable.
       style={{ width: baseSize, height }}
     />

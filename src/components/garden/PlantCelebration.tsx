@@ -44,8 +44,9 @@ export function PlantCelebration({
 
   return (
     <View style={styles.center} pointerEvents="none">
-      <Animated.View style={animStyle}>
-        <Flower mood={mood} tier={tier} baseSize={72} />
+      <Animated.View style={animStyle} testID="plant-celebration">
+        {/* decorative — a transient overlay shouldn't grab VoiceOver focus mid-animation */}
+        <Flower mood={mood} tier={tier} baseSize={72} decorative />
       </Animated.View>
     </View>
   );

@@ -31,6 +31,7 @@ export function LogSheet({ dogId, dogName, date, onPlanted }: Props) {
   const [chips, setChips] = useState<string[]>([]);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const tier = useMemo(
     () =>
@@ -56,6 +57,7 @@ export function LogSheet({ dogId, dogName, date, onPlanted }: Props) {
 
   const plant = async () => {
     if (!mood) return;
+    setErrorMsg(null);
     setSaving(true);
     const ok = await plantFlower(dogId, {
       log_date: date,
@@ -64,7 +66,12 @@ export function LogSheet({ dogId, dogName, date, onPlanted }: Props) {
       note: note.trim() || null,
     });
     setSaving(false);
-    if (ok) onPlanted(mood, (tier === 0 ? 1 : tier) as 1 | 2 | 3);
+    if (ok) {
+      onPlanted(mood, (tier === 0 ? 1 : tier) as 1 | 2 | 3);
+    } else {
+      // Don't strand the user on a silent failure — surface the store error.
+      setErrorMsg(useGardenStore.getState().error ?? 'Could not plant the flower. Please try again.');
+    }
   };
 
   return (
@@ -126,6 +133,12 @@ export function LogSheet({ dogId, dogName, date, onPlanted }: Props) {
 
       <TierMeter tier={tier} mood={mood} />
 
+      {errorMsg && (
+        <Text accessibilityRole="alert" style={styles.error}>
+          {errorMsg}
+        </Text>
+      )}
+
       <Pressable
         onPress={plant}
         disabled={!mood || saving}
@@ -148,8 +161,9 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: OB_COLORS.cream, padding: 20 },
   section: { fontFamily: OB_FONTS.h3, fontSize: OB_FONT_SIZES.h3, color: OB_COLORS.ink, marginTop: 16, marginBottom: 8 },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  moodChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 2, borderRadius: OB_RADII.chip, paddingHorizontal: 10, paddingVertical: 8, minHeight: 40 },
-  healthChip: { borderWidth: 2, borderColor: OB_COLORS.muted, borderRadius: OB_RADII.chip, paddingHorizontal: 12, paddingVertical: 8, minHeight: 40, justifyContent: 'center' },
+  moodChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 2, borderRadius: OB_RADII.chip, paddingHorizontal: 10, paddingVertical: 8, minHeight: 44 },
+  healthChip: { borderWidth: 2, borderColor: OB_COLORS.muted, borderRadius: OB_RADII.chip, paddingHorizontal: 12, paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
+  error: { color: OB_COLORS.red, fontFamily: OB_FONTS.body, fontSize: OB_FONT_SIZES.body, marginTop: 12, textAlign: 'center' },
   healthChipOn: { backgroundColor: OB_COLORS.selectedBg, borderColor: OB_COLORS.selectedBorder },
   dot: { width: 12, height: 12, borderRadius: 6 },
   chipText: { fontFamily: OB_FONTS.body, fontSize: OB_FONT_SIZES.body, color: OB_COLORS.ink },

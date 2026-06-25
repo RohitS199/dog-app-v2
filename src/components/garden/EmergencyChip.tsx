@@ -20,6 +20,6 @@ export function EmergencyChip() {
 }
 
 const styles = StyleSheet.create({
-  chip: { paddingHorizontal: 10, paddingVertical: 6, minHeight: 32, justifyContent: 'center' },
+  chip: { paddingHorizontal: 12, paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
   text: { color: OB_COLORS.red, fontFamily: OB_FONTS.label, fontSize: OB_FONT_SIZES.label + 2 },
 });
