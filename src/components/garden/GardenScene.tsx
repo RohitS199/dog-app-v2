@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { View, Image, StyleSheet, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useIsFocused } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { Flower } from './Flower';
 import { Clouds } from './Clouds';
 import { BiscuitBob } from './BiscuitBob';
@@ -103,7 +103,15 @@ export function GardenScene({ week, width, height, dogName }: Props) {
 
   const todayDay = week.days.find((d) => d.state === 'today');
   // Pause idle ambient loops when the Journey tab isn't focused (battery / jank guard).
-  const isFocused = useIsFocused();
+  // Uses expo-router's useFocusEffect (the codebase convention — see useTabFocusAnimation)
+  // rather than @react-navigation/native, which is only a transitive dependency.
+  const [isFocused, setIsFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true);
+      return () => setIsFocused(false);
+    }, [])
+  );
 
   // Doghouse PNG is square + resizeMode="contain", so it letterboxes inside the layout box.
   // Compute the actual rendered art rect to anchor the contact shadow and name pill precisely.

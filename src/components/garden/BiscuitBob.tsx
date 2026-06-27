@@ -36,6 +36,8 @@ export function BiscuitBob({ width, height, paused }: { width: number; height: n
 
   return (
     <Animated.View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       pointerEvents="none"
       style={[{ position: 'absolute', top: height * 0.3, left: width * 0.62 }, style]}
     >

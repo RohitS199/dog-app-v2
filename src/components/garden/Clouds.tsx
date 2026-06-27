@@ -34,17 +34,21 @@ function Cloud({
   const reduced = useReducedMotion();
   const active = !paused && !reduced;
   const cloudW = cfg.w * width;
-  const travel = width + cloudW; // off-left to off-right
-  const x = useSharedValue(-cloudW + cfg.phase * travel);
+  const travel = width + cloudW; // off-left (-cloudW) to off-right (width)
+  const p = useSharedValue(0); // 0..1 loop progress
 
   useEffect(() => {
     if (!active) return;
-    x.value = -cloudW + cfg.phase * travel;
-    x.value = withRepeat(withTiming(width, { duration: cfg.secs * 1000, easing: Easing.linear }), -1, false);
-    return () => cancelAnimation(x);
+    p.value = 0;
+    p.value = withRepeat(withTiming(1, { duration: cfg.secs * 1000, easing: Easing.linear }), -1, false);
+    return () => cancelAnimation(p);
   }, [active, width]);
 
-  const style = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
+  // Continuous wrap: every cloud drifts the FULL span each cycle; `phase` only offsets where it
+  // sits at t=0. The wrap (p+phase crossing 1) lands off-screen, so there's no visible pop.
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateX: ((p.value + cfg.phase) % 1) * travel - cloudW }],
+  }));
   return (
     <Animated.View
       pointerEvents="none"
