@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useIsFocused } from '@react-navigation/native';
 import { Flower } from './Flower';
 import { Clouds } from './Clouds';
+import { BiscuitBob } from './BiscuitBob';
 import { SCENE_ASSETS } from '../../constants/flowerAssets';
 import { placeFlowers, hashSeed, type BedRect } from '../../lib/gardenPlacement';
 import type { GardenWeek } from '../../lib/gardenWeek';
@@ -202,6 +203,8 @@ export function GardenScene({ week, width, height, dogName }: Props) {
           </Text>
         </View>
       ) : null}
+      {/* Biscuit sits in front of the doghouse with a gentle bob (paused off-focus). */}
+      <BiscuitBob width={width} height={height} paused={!isFocused} />
       {/* Visual blooms — bottom-anchored, hidden from VoiceOver (the day markers speak for them). */}
       {blooms.map((b) => {
         const h = b.size * TIER_HEIGHT_SCALE[b.tier];
