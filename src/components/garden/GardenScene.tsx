@@ -5,6 +5,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { Flower } from './Flower';
 import { Clouds } from './Clouds';
 import { BiscuitBob } from './BiscuitBob';
+import { Butterfly } from './Butterfly';
 import { SCENE_ASSETS } from '../../constants/flowerAssets';
 import { placeFlowers, hashSeed, type BedRect } from '../../lib/gardenPlacement';
 import type { GardenWeek } from '../../lib/gardenWeek';
@@ -247,6 +248,8 @@ export function GardenScene({ week, width, height, dogName }: Props) {
           }}
         />
       )}
+      {/* Front-most ambient: a fluttering butterfly (paused off-focus). */}
+      <Butterfly width={width} height={height} paused={!isFocused} />
     </View>
   );
 }
