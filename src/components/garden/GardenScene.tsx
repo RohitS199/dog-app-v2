@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { View, Image, StyleSheet, Text } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Flower } from './Flower';
 import { SCENE_ASSETS } from '../../constants/flowerAssets';
 import { placeFlowers, hashSeed, type BedRect } from '../../lib/gardenPlacement';
@@ -19,9 +20,9 @@ const MIN_SPACING = 0.045; // frac of width; tight so blooms overlap into a lush
 // --- Tunable scene geometry (fractions of the scene box; tune on device). ---
 const BED: BedRect = { x: 0.1, y: 0.46, width: 0.8, height: 0.42 }; // the soil where blooms scatter
 const DOGHOUSE_W = 0.4;
-// Physical-scene watercolor placeholders (NOT theme tokens). Replace the whole ground
-// with the single baked watercolor PNG when generated (spec §5 — no live feTurbulence in RN).
-const LAWN = '#bcd2a3';
+// Physical-scene watercolor placeholder (NOT a theme token). The sky→meadow gradient owns the
+// background now; SOIL still tints the bed ellipse. Both fold into the baked ground PNG in Phase 2
+// (spec §5 — no live feTurbulence in RN).
 const SOIL = '#9d7b54';
 // Doghouse art geometry, measured from puplog-doghouse.png alpha bbox (1024² canvas, PIL):
 // content occupies y[0.074..0.914], symmetric in x. Used to place the name pill + contact shadow
@@ -108,7 +109,14 @@ export function GardenScene({ week, width, height, dogName }: Props) {
   const dhContentBottom = dhArtTop + (DH_CONTENT_TOP + DH_CONTENT_H) * dhArtSize;
 
   return (
-    <View style={[styles.scene, { width, height, backgroundColor: LAWN }]}>
+    <View style={[styles.scene, { width, height }]}>
+      {/* Interim sky→meadow gradient (mockup line 62) — replaced by the baked ground PNG in Phase 2. */}
+      <LinearGradient
+        colors={['#b3d9ed', '#bcdfef', '#b7d49d', '#aec59a']}
+        locations={[0, 0.33, 0.42, 1]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
       {/* Soil bed (placeholder; folds into the baked ground PNG later). */}
       <View
         style={{
