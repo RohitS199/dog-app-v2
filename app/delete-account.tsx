@@ -18,6 +18,7 @@ import { useTriageStore } from '../src/stores/triageStore';
 import { useCheckInStore } from '../src/stores/checkInStore';
 import { useHealthStore } from '../src/stores/healthStore';
 import { useLearnStore } from '../src/stores/learnStore';
+import { useGardenStore } from '../src/stores/gardenStore';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
 import { useProfileStore } from '../src/stores/profileStore';
 import { useUserAchievementsStore } from '../src/stores/userAchievementsStore';
@@ -39,6 +40,7 @@ export default function DeleteAccount() {
   const clearCheckIn = useCheckInStore((s) => s.clearAll);
   const clearHealth = useHealthStore((s) => s.clearHealth);
   const clearLearn = useLearnStore((s) => s.clearLearn);
+  const clearGarden = useGardenStore((s) => s.clearGarden);
   const clearSubscription = useSubscriptionStore((s) => s.clearSubscription);
   const clearProfile = useProfileStore((s) => s.clearProfile);
   const clearAchievements = useUserAchievementsStore((s) => s.clearAchievements);
@@ -76,6 +78,7 @@ export default function DeleteAccount() {
       clearCheckIn();
       clearHealth();
       clearLearn();
+      clearGarden();
       clearSubscription();
       clearProfile();
       clearAchievements();

@@ -9,6 +9,7 @@ import { useDogStore } from '../../../src/stores/dogStore';
 import { useCheckInStore } from '../../../src/stores/checkInStore';
 import { useHealthStore } from '../../../src/stores/healthStore';
 import { useLearnStore } from '../../../src/stores/learnStore';
+import { useGardenStore } from '../../../src/stores/gardenStore';
 import { useArticleTransitionStore } from '../../../src/stores/articleTransitionStore';
 import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
 import { useOnboardingStore } from '../../../src/stores/onboardingStore';
@@ -220,6 +221,7 @@ export default function ProfileScreen() {
     useCheckInStore.getState().clearAll();
     useHealthStore.getState().clearHealth();
     useLearnStore.getState().clearLearn();
+    useGardenStore.getState().clearGarden();
     useOnboardingStore.getState().clearOnboarding();
     useArticleTransitionStore.getState().reset();
 
