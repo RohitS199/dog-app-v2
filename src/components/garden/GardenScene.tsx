@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
-import { View, Image, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet, Text } from 'react-native';
 import { Flower } from './Flower';
 import { SCENE_ASSETS } from '../../constants/flowerAssets';
 import { placeFlowers, hashSeed, type BedRect } from '../../lib/gardenPlacement';
 import type { GardenWeek } from '../../lib/gardenWeek';
 import { GARDEN_MOOD_LABELS, type GardenMood } from '../../constants/gardenMoods';
+import { OB_FONTS } from '../../constants/onboardingTheme';
 
 // One log -> a CLUSTER of blooms (spec §3.4/§7, LOCKED). Cluster size scales with
 // tier ("rewarded for specifics"); the expansion is render-time only (one DB row/day).
@@ -22,11 +23,22 @@ const DOGHOUSE_W = 0.4;
 // with the single baked watercolor PNG when generated (spec §5 — no live feTurbulence in RN).
 const LAWN = '#bcd2a3';
 const SOIL = '#9d7b54';
+// Doghouse art geometry, measured from puplog-doghouse.png alpha bbox (1024² canvas, PIL):
+// content occupies y[0.074..0.914], symmetric in x. Used to place the name pill + contact shadow
+// relative to the actual (contain-letterboxed) art, not the wider layout box.
+const DH_CONTENT_TOP = 0.074;
+const DH_CONTENT_H = 0.84;
+const NAME_WALL_FRAC = 0.4; // pill center on the front wall above the door (wall measured 0.30–0.48, door starts ~0.50)
+// Name pill colors from the mockup (preview-journey-hero-final-week.html .house-name):
+const PILL_BG = '#fbe6cc'; // --peach-soft
+const PILL_BORDER = '#1a140f'; // --sketch
+const PILL_TEXT = '#5a3a22'; // --wood-dk
 
 interface Props {
   week: GardenWeek;
   width: number;
   height: number;
+  dogName?: string;
 }
 
 interface Bloom {
@@ -52,7 +64,7 @@ function toPx(bed: BedRect, w: number, h: number): BedRect {
   return { x: bed.x * w, y: bed.y * h, width: bed.width * w, height: bed.height * h };
 }
 
-export function GardenScene({ week, width, height }: Props) {
+export function GardenScene({ week, width, height, dogName }: Props) {
   const { blooms, dayMarkers } = useMemo(() => {
     const plantedDays = week.days.filter((d) => d.state === 'planted' && d.moodKey && d.tier > 0);
 
@@ -86,6 +98,15 @@ export function GardenScene({ week, width, height }: Props) {
 
   const todayDay = week.days.find((d) => d.state === 'today');
 
+  // Doghouse PNG is square + resizeMode="contain", so it letterboxes inside the layout box.
+  // Compute the actual rendered art rect to anchor the contact shadow and name pill precisely.
+  const dhBoxLeft = (0.5 - DOGHOUSE_W / 2) * width;
+  const dhBoxTop = height * 0.06;
+  const dhArtSize = Math.min(DOGHOUSE_W * width, height * 0.3);
+  const dhArtLeft = dhBoxLeft + (DOGHOUSE_W * width - dhArtSize) / 2;
+  const dhArtTop = dhBoxTop + (height * 0.3 - dhArtSize) / 2;
+  const dhContentBottom = dhArtTop + (DH_CONTENT_TOP + DH_CONTENT_H) * dhArtSize;
+
   return (
     <View style={[styles.scene, { width, height, backgroundColor: LAWN }]}>
       {/* Soil bed (placeholder; folds into the baked ground PNG later). */}
@@ -98,6 +119,21 @@ export function GardenScene({ week, width, height }: Props) {
           height: BED.height * height,
           backgroundColor: SOIL,
           borderRadius: (BED.height * height) / 2,
+        }}
+      />
+      {/* Tight contact shadow tucked under the doghouse base (NOT a big soft far oval). */}
+      <View
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{
+          position: 'absolute',
+          top: dhContentBottom - dhArtSize * 0.03, // tucked just under the base
+          left: dhArtLeft + dhArtSize * 0.1,
+          width: dhArtSize * 0.8,
+          height: dhArtSize * 0.06,
+          backgroundColor: 'rgba(46,32,18,0.32)', // 2026-06-23 §9.1 / mockup line 883
+          borderRadius: dhArtSize * 0.03,
         }}
       />
       {/* Doghouse at the head of the scene (transparent scene PNG). */}
@@ -114,6 +150,44 @@ export function GardenScene({ week, width, height }: Props) {
           height: height * 0.3,
         }}
       />
+      {/* Dog-name pill on the doghouse front wall (mockup .house-name). The watercolor art has a
+          decorative bone, not a writable band, so the name is a drop-on badge overlaid on the wall. */}
+      {dogName ? (
+        <View
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            position: 'absolute',
+            top: dhArtTop + (DH_CONTENT_TOP + NAME_WALL_FRAC * DH_CONTENT_H) * dhArtSize,
+            left: dhArtLeft,
+            width: dhArtSize,
+            alignItems: 'center',
+          }}
+        >
+          <Text
+            numberOfLines={1}
+            style={{
+              transform: [{ rotate: '-1deg' }],
+              backgroundColor: PILL_BG,
+              borderWidth: 2,
+              borderColor: PILL_BORDER,
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 2,
+              overflow: 'hidden',
+              fontFamily: OB_FONTS.handwritten,
+              fontWeight: '700',
+              fontSize: Math.max(11, dhArtSize * 0.11),
+              letterSpacing: 2.5,
+              textTransform: 'uppercase',
+              color: PILL_TEXT,
+            }}
+          >
+            {dogName}
+          </Text>
+        </View>
+      ) : null}
       {/* Visual blooms — bottom-anchored, hidden from VoiceOver (the day markers speak for them). */}
       {blooms.map((b) => {
         const h = b.size * TIER_HEIGHT_SCALE[b.tier];

@@ -82,7 +82,7 @@ export default function JourneyScreen() {
         {isLoading || !week ? (
           <ActivityIndicator color={OB_COLORS.accent} style={{ marginTop: 80 }} />
         ) : (
-          <GardenScene week={week} width={width} height={width * 0.92} />
+          <GardenScene week={week} width={width} height={width * 0.92} dogName={dog?.name ?? ''} />
         )}
         {celebration && (
           <PlantCelebration mood={celebration.mood} tier={celebration.tier} onDone={() => setCelebration(null)} />
