@@ -50,6 +50,11 @@ export const FLOWER_ASSETS: Record<GardenMood, Record<1 | 2 | 3, ImageSourceProp
 // assets/garden/puplog-sprout.png / puplog-mound.png land.
 export const SCENE_ASSETS = {
   doghouse: require('../../assets/garden/puplog-doghouse.png'),
+  clouds: [
+    require('../../assets/garden/puplog-cloud-1.png'),
+    require('../../assets/garden/puplog-cloud-2.png'),
+    require('../../assets/garden/puplog-cloud-3.png'),
+  ],
   // TODO(scene-kit): wire when generated
   // sprout: require('../../assets/garden/puplog-sprout.png'),
   // mound: require('../../assets/garden/puplog-mound.png'),

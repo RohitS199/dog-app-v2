@@ -187,6 +187,8 @@ jest.mock('react-native-reanimated', () => {
       return toValue;
     },
     withSequence: (...values) => values[values.length - 1],
+    withRepeat: (animation) => animation,
+    cancelAnimation: () => {},
     withSpring: (toValue) => toValue,
     withDelay: (_delay, value) => value,
     runOnJS: (fn) => fn,
@@ -215,6 +217,12 @@ jest.mock('react-native-reanimated', () => {
     useReducedMotion: () => false,
   };
 });
+
+// Mock @react-navigation/native — only useIsFocused is used (by GardenScene to pause
+// idle animations off-focus). No test imports other exports, so a minimal mock is safe.
+jest.mock('@react-navigation/native', () => ({
+  useIsFocused: () => true,
+}));
 
 // Mock lottie-react-native
 jest.mock('lottie-react-native', () => {

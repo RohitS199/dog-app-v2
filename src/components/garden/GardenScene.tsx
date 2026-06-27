@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { View, Image, StyleSheet, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useIsFocused } from '@react-navigation/native';
 import { Flower } from './Flower';
+import { Clouds } from './Clouds';
 import { SCENE_ASSETS } from '../../constants/flowerAssets';
 import { placeFlowers, hashSeed, type BedRect } from '../../lib/gardenPlacement';
 import type { GardenWeek } from '../../lib/gardenWeek';
@@ -98,6 +100,8 @@ export function GardenScene({ week, width, height, dogName }: Props) {
   }, [week, width, height]);
 
   const todayDay = week.days.find((d) => d.state === 'today');
+  // Pause idle ambient loops when the Journey tab isn't focused (battery / jank guard).
+  const isFocused = useIsFocused();
 
   // Doghouse PNG is square + resizeMode="contain", so it letterboxes inside the layout box.
   // Compute the actual rendered art rect to anchor the contact shadow and name pill precisely.
@@ -117,6 +121,8 @@ export function GardenScene({ week, width, height, dogName }: Props) {
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
+      {/* Drifting clouds — ambient, behind the diegetic scene; paused off-focus. */}
+      <Clouds width={width} height={height} paused={!isFocused} />
       {/* Soil bed (placeholder; folds into the baked ground PNG later). */}
       <View
         style={{
