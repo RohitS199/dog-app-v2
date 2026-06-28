@@ -313,8 +313,13 @@ jest.mock('react-native-svg', () => {
     G: createMockComponent('G'),
     Rect: createMockComponent('Rect'),
     Line: createMockComponent('Line'),
+    Ellipse: createMockComponent('Ellipse'),
     Text: createMockComponent('SvgText'),
     SvgXml: createMockComponent('SvgXml'),
+    Defs: createMockComponent('Defs'),
+    RadialGradient: createMockComponent('RadialGradient'),
+    LinearGradient: createMockComponent('SvgLinearGradient'),
+    Stop: createMockComponent('Stop'),
   };
 });
 

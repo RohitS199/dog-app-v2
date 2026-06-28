@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import { Flower } from './Flower';
 import { Clouds } from './Clouds';
+import { Ground } from './Ground';
 import { BiscuitBob } from './BiscuitBob';
 import { Butterfly } from './Butterfly';
 import { SCENE_ASSETS } from '../../constants/flowerAssets';
@@ -24,10 +25,6 @@ const MIN_SPACING = 0.045; // frac of width; tight so blooms overlap into a lush
 // --- Tunable scene geometry (fractions of the scene box; tune on device). ---
 const BED: BedRect = { x: 0.1, y: 0.46, width: 0.8, height: 0.42 }; // the soil where blooms scatter
 const DOGHOUSE_W = 0.4;
-// Physical-scene watercolor placeholder (NOT a theme token). The sky→meadow gradient owns the
-// background now; SOIL still tints the bed ellipse. Both fold into the baked ground PNG in Phase 2
-// (spec §5 — no live feTurbulence in RN).
-const SOIL = '#9d7b54';
 // Doghouse art geometry, measured from puplog-doghouse.png alpha bbox (1024² canvas, PIL):
 // content occupies y[0.074..0.914], symmetric in x. Used to place the name pill + contact shadow
 // relative to the actual (contain-letterboxed) art, not the wider layout box.
@@ -133,18 +130,9 @@ export function GardenScene({ week, width, height, dogName }: Props) {
       />
       {/* Drifting clouds — ambient, behind the diegetic scene; paused off-focus. */}
       <Clouds width={width} height={height} paused={!isFocused} />
-      {/* Soil bed (placeholder; folds into the baked ground PNG later). */}
-      <View
-        style={{
-          position: 'absolute',
-          left: BED.x * width,
-          top: BED.y * height,
-          width: BED.width * width,
-          height: BED.height * height,
-          backgroundColor: SOIL,
-          borderRadius: (BED.height * height) / 2,
-        }}
-      />
+      {/* Painted ground — layered meadow + radial-gradient soil bed (turbulence-free port of the
+          mockup's .scene-svg; folds into the baked ground PNG in Phase 2). The bed mirrors BED. */}
+      <Ground width={width} height={height} />
       {/* Tight contact shadow tucked under the doghouse base (NOT a big soft far oval). */}
       <View
         pointerEvents="none"
