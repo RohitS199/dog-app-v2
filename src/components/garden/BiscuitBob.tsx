@@ -12,9 +12,22 @@ import Animated, {
 import { BiscuitMascot } from '../onboarding/BiscuitMascot';
 
 // Biscuit sits near the doghouse and gently bobs (mockup .biscuit-slot "bob 3.6s ease-in-out").
-// The mascot's own wag is disabled — only this wrapper animates the vertical bob. Position is a
-// starting point; tune top/left on device (the compact hero box ≠ the full-phone mockup space).
-export function BiscuitBob({ width, height, paused }: { width: number; height: number; paused: boolean }) {
+// The mascot's own wag is disabled — only this wrapper animates the vertical bob. Position is
+// given as fractions of the scene box (topFrac/leftFrac) so the full-bleed scene can place
+// Biscuit on the meadow; tune on device.
+export function BiscuitBob({
+  width,
+  height,
+  paused,
+  topFrac = 0.3,
+  leftFrac = 0.62,
+}: {
+  width: number;
+  height: number;
+  paused: boolean;
+  topFrac?: number;
+  leftFrac?: number;
+}) {
   const reduced = useReducedMotion();
   const active = !paused && !reduced;
   const y = useSharedValue(0);
@@ -39,7 +52,7 @@ export function BiscuitBob({ width, height, paused }: { width: number; height: n
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       pointerEvents="none"
-      style={[{ position: 'absolute', top: height * 0.3, left: width * 0.62 }, style]}
+      style={[{ position: 'absolute', top: height * topFrac, left: width * leftFrac }, style]}
     >
       <BiscuitMascot size="lg" wag={false} />
     </Animated.View>

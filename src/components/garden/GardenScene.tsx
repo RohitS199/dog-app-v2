@@ -22,9 +22,12 @@ const TIER_BLOOM_WORD: Record<1 | 2 | 3, string> = { 1: 'simple bloom', 2: 'full
 const WEEKDAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const MIN_SPACING = 0.045; // frac of width; tight so blooms overlap into a lush bed (spec §7.2)
 
-// --- Tunable scene geometry (fractions of the scene box; tune on device). ---
-const BED: BedRect = { x: 0.1, y: 0.46, width: 0.8, height: 0.42 }; // the soil where blooms scatter
-const DOGHOUSE_W = 0.4;
+// --- Tunable scene geometry (fractions of the FULL-SCREEN scene box; tune on device). ---
+// The scene is now full-bleed (fills the whole screen), so the diegetic content is anchored in
+// the lower ~60% and the sky gradient fills the top. Mirrors the mockup's full-phone composition.
+const BED: BedRect = { x: 0.08, y: 0.55, width: 0.84, height: 0.3 }; // the soil where blooms scatter
+const DOGHOUSE_W = 0.46; // doghouse art side as a fraction of width (square PNG)
+const DOGHOUSE_TOP = 0.3; // doghouse art top — sits on the meadow, base ~0.49 (just above the bed)
 // Doghouse art geometry, measured from puplog-doghouse.png alpha bbox (1024² canvas, PIL):
 // content occupies y[0.074..0.914], symmetric in x. Used to place the name pill + contact shadow
 // relative to the actual (contain-letterboxed) art, not the wider layout box.
@@ -110,13 +113,12 @@ export function GardenScene({ week, width, height, dogName }: Props) {
     }, [])
   );
 
-  // Doghouse PNG is square + resizeMode="contain", so it letterboxes inside the layout box.
-  // Compute the actual rendered art rect to anchor the contact shadow and name pill precisely.
-  const dhBoxLeft = (0.5 - DOGHOUSE_W / 2) * width;
-  const dhBoxTop = height * 0.06;
-  const dhArtSize = Math.min(DOGHOUSE_W * width, height * 0.3);
-  const dhArtLeft = dhBoxLeft + (DOGHOUSE_W * width - dhArtSize) / 2;
-  const dhArtTop = dhBoxTop + (height * 0.3 - dhArtSize) / 2;
+  // Doghouse: a square art box (the PNG is square) anchored low on the meadow via DOGHOUSE_TOP,
+  // so the full-bleed scene reads as a scene (not a house boxed near the top). dhArt* values
+  // drive the contact shadow + name pill, computed from the doghouse's content bbox.
+  const dhArtSize = DOGHOUSE_W * width;
+  const dhArtLeft = 0.5 * width - dhArtSize / 2;
+  const dhArtTop = DOGHOUSE_TOP * height;
   const dhContentBottom = dhArtTop + (DH_CONTENT_TOP + DH_CONTENT_H) * dhArtSize;
 
   return (
@@ -132,7 +134,7 @@ export function GardenScene({ week, width, height, dogName }: Props) {
       <Clouds width={width} height={height} paused={!isFocused} />
       {/* Painted ground — layered meadow + radial-gradient soil bed (turbulence-free port of the
           mockup's .scene-svg; folds into the baked ground PNG in Phase 2). The bed mirrors BED. */}
-      <Ground width={width} height={height} />
+      <Ground width={width} height={height} bed={BED} />
       {/* Tight contact shadow tucked under the doghouse base (NOT a big soft far oval). */}
       <View
         pointerEvents="none"
@@ -156,10 +158,10 @@ export function GardenScene({ week, width, height, dogName }: Props) {
         importantForAccessibility="no-hide-descendants"
         style={{
           position: 'absolute',
-          top: height * 0.06,
-          left: (0.5 - DOGHOUSE_W / 2) * width,
-          width: DOGHOUSE_W * width,
-          height: height * 0.3,
+          top: dhArtTop,
+          left: dhArtLeft,
+          width: dhArtSize,
+          height: dhArtSize,
         }}
       />
       {/* Dog-name pill on the doghouse front wall (mockup .house-name). The watercolor art has a
@@ -200,8 +202,8 @@ export function GardenScene({ week, width, height, dogName }: Props) {
           </Text>
         </View>
       ) : null}
-      {/* Biscuit sits in front of the doghouse with a gentle bob (paused off-focus). */}
-      <BiscuitBob width={width} height={height} paused={!isFocused} />
+      {/* Biscuit sits on the meadow beside the doghouse with a gentle bob (paused off-focus). */}
+      <BiscuitBob width={width} height={height} paused={!isFocused} topFrac={0.45} leftFrac={0.58} />
       {/* Visual blooms — bottom-anchored, hidden from VoiceOver (the day markers speak for them). */}
       {blooms.map((b) => {
         const h = b.size * TIER_HEIGHT_SCALE[b.tier];
