@@ -1,6 +1,7 @@
 import { memo } from 'react';
-import Svg, { Defs, RadialGradient, Stop, Ellipse, Circle, G } from 'react-native-svg';
+import Svg, { Defs, RadialGradient, Stop, Ellipse, Circle, G, Path } from 'react-native-svg';
 import type { BedRect } from '../../lib/gardenPlacement';
+import { organicBlobPath } from '../../lib/organicBlob';
 
 // Turbulence-free port of the mockup's painted ground (preview-journey-hero-final-week.html
 // .scene-svg). The mockup builds its ground from feTurbulence "wobble" washes, which are too
@@ -76,9 +77,15 @@ export const Ground = memo(function Ground({
         <Ellipse cx={0.76 * W} cy={0.86 * H} rx={0.18 * W} ry={0.04 * H} fill="#dcebca" />
       </G>
 
-      {/* Garden bed — radial soil with a darker inner pool (mockup bedGrad + #856641). */}
-      <Ellipse cx={bedCx} cy={bedCy} rx={bedRx} ry={bedRy} fill="url(#bedGrad)" opacity={0.95} />
-      <Ellipse cx={bedCx} cy={bedCy + bedRy * 0.12} rx={bedRx * 0.8} ry={bedRy * 0.72} fill="#856641" opacity={0.4} />
+      {/* Garden bed — an organic, imperfect blob (NOT a clean ellipse) so the soil edge looks
+          hand-painted like the mockup. Radial soil fill + a darker inner pool with a different
+          wobble phase so the two edges don't trace the same line. */}
+      <Path d={organicBlobPath(bedCx, bedCy, bedRx, bedRy, 0)} fill="url(#bedGrad)" opacity={0.95} />
+      <Path
+        d={organicBlobPath(bedCx, bedCy + bedRy * 0.12, bedRx * 0.8, bedRy * 0.72, 1.7)}
+        fill="#856641"
+        opacity={0.4}
+      />
 
       {/* Dirt speckles scattered across the bed. */}
       <G fill="#5f4628" opacity={0.5}>
