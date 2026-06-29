@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { View, Text, Pressable, TextInput, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, TextInput, ScrollView, StyleSheet, Image } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import {
   GARDEN_MOODS,
@@ -30,6 +31,10 @@ export function LogSheet({ dogId, dogName, date, onPlanted }: Props) {
   const [mood, setMood] = useState<GardenMood | null>(null);
   const [chips, setChips] = useState<string[]>([]);
   const [note, setNote] = useState('');
+  // Picked media boosts the flower to a full bloom (computeFlowerTier). NOTE: persistence is a
+  // deferred follow-up — garden_logs has no media columns + no storage bucket yet, so the URI is
+  // local-only and is NOT uploaded on plant. The picker + preview + bloom work today.
+  const [media, setMedia] = useState<{ uri: string; kind: 'photo' | 'video' } | null>(null);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -38,12 +43,28 @@ export function LogSheet({ dogId, dogName, date, onPlanted }: Props) {
       computeFlowerTier({
         mood,
         hasHealthChip: chips.length > 0,
-        hasPhoto: false,
-        hasVideo: false,
+        hasPhoto: media?.kind === 'photo',
+        hasVideo: media?.kind === 'video',
         hasNote: note.trim().length > 0,
       }),
-    [mood, chips, note],
+    [mood, chips, note, media],
   );
+
+  const pickMedia = async () => {
+    setErrorMsg(null);
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      setErrorMsg('Photo access is off. Enable it in Settings to add a photo or video.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images', 'videos'],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    const asset = result.assets[0];
+    setMedia({ uri: asset.uri, kind: asset.type === 'video' ? 'video' : 'photo' });
+  };
 
   const toggleChip = (c: string) => {
     if (c === GARDEN_HEALTH_CHIP_ALL_NORMAL) {
@@ -131,6 +152,45 @@ export function LogSheet({ dogId, dogName, date, onPlanted }: Props) {
         </>
       )}
 
+      {/* 4 · Photo or video — strongest "evidence", makes the bloom full (computeFlowerTier). */}
+      {mood && (
+        <>
+          <Text style={styles.section}>4 · Add a photo or video (optional)</Text>
+          {media ? (
+            <View style={styles.mediaPreview}>
+              {media.kind === 'photo' ? (
+                <Image source={{ uri: media.uri }} style={styles.mediaThumb} accessibilityLabel="Selected photo" />
+              ) : (
+                <View style={[styles.mediaThumb, styles.videoThumb]}>
+                  <Text style={styles.videoGlyph}>▶</Text>
+                </View>
+              )}
+              <View style={styles.mediaMeta}>
+                <Text style={styles.mediaLabel}>{media.kind === 'photo' ? 'Photo added' : 'Video added'}</Text>
+                <Text style={styles.mediaHint}>Makes today&apos;s flower a full bloom</Text>
+              </View>
+              <Pressable
+                onPress={() => setMedia(null)}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel="Remove media"
+              >
+                <Text style={styles.mediaRemove}>Remove</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              onPress={pickMedia}
+              accessibilityRole="button"
+              accessibilityLabel="Add a photo or video"
+              style={styles.mediaAdd}
+            >
+              <Text style={styles.mediaAddLabel}>＋  Add photo / video</Text>
+            </Pressable>
+          )}
+        </>
+      )}
+
       <TierMeter tier={tier} mood={mood} />
 
       {errorMsg && (
@@ -168,6 +228,16 @@ const styles = StyleSheet.create({
   dot: { width: 12, height: 12, borderRadius: 6 },
   chipText: { fontFamily: OB_FONTS.body, fontSize: OB_FONT_SIZES.body, color: OB_COLORS.ink },
   note: { minHeight: 80, borderWidth: 2, borderColor: OB_COLORS.muted, borderRadius: OB_RADII.card, padding: 12, fontFamily: OB_FONTS.body, fontSize: OB_FONT_SIZES.body, color: OB_COLORS.ink, textAlignVertical: 'top' },
+  mediaAdd: { borderWidth: 2, borderStyle: 'dashed', borderColor: OB_COLORS.muted, borderRadius: OB_RADII.card, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', minHeight: 56 },
+  mediaAddLabel: { fontFamily: OB_FONTS.cta, fontSize: OB_FONT_SIZES.body, color: OB_COLORS.ink },
+  mediaPreview: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 2, borderColor: OB_COLORS.selectedBorder, backgroundColor: OB_COLORS.selectedBg, borderRadius: OB_RADII.card, padding: 10 },
+  mediaThumb: { width: 56, height: 56, borderRadius: 10, backgroundColor: OB_COLORS.muted, overflow: 'hidden' },
+  videoThumb: { alignItems: 'center', justifyContent: 'center', backgroundColor: OB_COLORS.ink },
+  videoGlyph: { color: OB_COLORS.cream, fontSize: 20 },
+  mediaMeta: { flex: 1 },
+  mediaLabel: { fontFamily: OB_FONTS.h3, fontSize: OB_FONT_SIZES.body, color: OB_COLORS.ink },
+  mediaHint: { fontFamily: OB_FONTS.body, fontSize: OB_FONT_SIZES.label, color: OB_COLORS.ink2, marginTop: 2 },
+  mediaRemove: { fontFamily: OB_FONTS.label, fontSize: OB_FONT_SIZES.body, color: OB_COLORS.red },
   cta: { backgroundColor: OB_COLORS.cta, borderRadius: OB_RADII.button, paddingVertical: 16, alignItems: 'center', marginTop: 20 },
   ctaOff: { opacity: 0.5 },
   ctaLabel: { color: OB_COLORS.ink, fontFamily: OB_FONTS.cta, fontSize: OB_FONT_SIZES.h3 }, // ink-on-coral
