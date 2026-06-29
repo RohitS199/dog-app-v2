@@ -62,7 +62,7 @@ export default function JourneyScreen() {
       {/* Full-bleed garden — fills the entire screen; the UI floats on top of it. */}
       {week && !isLoading ? (
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <GardenScene week={week} width={width} height={height} dogName={dog?.name ?? ''} />
+          <GardenScene week={week} width={width} height={height} />
         </View>
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.loading]}>

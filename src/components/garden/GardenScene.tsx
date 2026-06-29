@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { View, Image, StyleSheet, Text } from 'react-native';
+import { View, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import { Flower } from './Flower';
@@ -11,7 +11,6 @@ import { SCENE_ASSETS } from '../../constants/flowerAssets';
 import { placeFlowers, hashSeed, type BedRect } from '../../lib/gardenPlacement';
 import type { GardenWeek } from '../../lib/gardenWeek';
 import { GARDEN_MOOD_LABELS, type GardenMood } from '../../constants/gardenMoods';
-import { OB_FONTS } from '../../constants/onboardingTheme';
 
 // One log -> a CLUSTER of blooms (spec §3.4/§7, LOCKED). Cluster size scales with
 // tier ("rewarded for specifics"); the expansion is render-time only (one DB row/day).
@@ -29,21 +28,15 @@ const BED: BedRect = { x: 0.08, y: 0.55, width: 0.84, height: 0.3 }; // the soil
 const DOGHOUSE_W = 0.46; // doghouse art side as a fraction of width (square PNG)
 const DOGHOUSE_TOP = 0.3; // doghouse art top — sits on the meadow, base ~0.49 (just above the bed)
 // Doghouse art geometry, measured from puplog-doghouse.png alpha bbox (1024² canvas, PIL):
-// content occupies y[0.074..0.914], symmetric in x. Used to place the name pill + contact shadow
-// relative to the actual (contain-letterboxed) art, not the wider layout box.
+// content occupies y[0.074..0.914], symmetric in x. Used to place the contact shadow relative
+// to the actual (contain-letterboxed) art, not the wider layout box.
 const DH_CONTENT_TOP = 0.074;
 const DH_CONTENT_H = 0.84;
-const NAME_WALL_FRAC = 0.4; // pill center on the front wall above the door (wall measured 0.30–0.48, door starts ~0.50)
-// Name pill colors from the mockup (preview-journey-hero-final-week.html .house-name):
-const PILL_BG = '#fbe6cc'; // --peach-soft
-const PILL_BORDER = '#1a140f'; // --sketch
-const PILL_TEXT = '#5a3a22'; // --wood-dk
 
 interface Props {
   week: GardenWeek;
   width: number;
   height: number;
-  dogName?: string;
 }
 
 interface Bloom {
@@ -69,7 +62,7 @@ function toPx(bed: BedRect, w: number, h: number): BedRect {
   return { x: bed.x * w, y: bed.y * h, width: bed.width * w, height: bed.height * h };
 }
 
-export function GardenScene({ week, width, height, dogName }: Props) {
+export function GardenScene({ week, width, height }: Props) {
   const { blooms, dayMarkers } = useMemo(() => {
     const plantedDays = week.days.filter((d) => d.state === 'planted' && d.moodKey && d.tier > 0);
 
@@ -164,44 +157,6 @@ export function GardenScene({ week, width, height, dogName }: Props) {
           height: dhArtSize,
         }}
       />
-      {/* Dog-name pill on the doghouse front wall (mockup .house-name). The watercolor art has a
-          decorative bone, not a writable band, so the name is a drop-on badge overlaid on the wall. */}
-      {dogName ? (
-        <View
-          pointerEvents="none"
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{
-            position: 'absolute',
-            top: dhArtTop + (DH_CONTENT_TOP + NAME_WALL_FRAC * DH_CONTENT_H) * dhArtSize,
-            left: dhArtLeft,
-            width: dhArtSize,
-            alignItems: 'center',
-          }}
-        >
-          <Text
-            numberOfLines={1}
-            style={{
-              transform: [{ rotate: '-1deg' }],
-              backgroundColor: PILL_BG,
-              borderWidth: 2,
-              borderColor: PILL_BORDER,
-              borderRadius: 8,
-              paddingHorizontal: 12,
-              paddingVertical: 2,
-              overflow: 'hidden',
-              fontFamily: OB_FONTS.handwritten,
-              fontWeight: '700',
-              fontSize: Math.max(11, dhArtSize * 0.11),
-              letterSpacing: 2.5,
-              textTransform: 'uppercase',
-              color: PILL_TEXT,
-            }}
-          >
-            {dogName}
-          </Text>
-        </View>
-      ) : null}
       {/* Biscuit sits on the meadow beside the doghouse with a gentle bob (paused off-focus). */}
       <BiscuitBob width={width} height={height} paused={!isFocused} topFrac={0.45} leftFrac={0.58} />
       {/* Visual blooms — bottom-anchored, hidden from VoiceOver (the day markers speak for them). */}
