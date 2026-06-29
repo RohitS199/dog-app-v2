@@ -10,7 +10,7 @@ import { BiscuitBob } from './BiscuitBob';
 import { Butterfly } from './Butterfly';
 import { SwayingFlower } from './SwayingFlower';
 import { SCENE_ASSETS } from '../../constants/flowerAssets';
-import { placeFlowers, hashSeed, type BedRect } from '../../lib/gardenPlacement';
+import { placeFlowers, hashSeed } from '../../lib/gardenPlacement';
 import type { GardenWeek } from '../../lib/gardenWeek';
 import { GARDEN_MOOD_LABELS, type GardenMood } from '../../constants/gardenMoods';
 
@@ -31,10 +31,17 @@ const SWAY_PERIOD_MS = 3500;
 const SWAY_RAMP_MS = 3_600_000;
 const SWAY_RAMP_RAD = (2 * Math.PI * SWAY_RAMP_MS) / SWAY_PERIOD_MS;
 
-// --- Scene geometry as fractions of the FULL-SCREEN box, lifted verbatim from the mockup
-// (preview-journey-hero-final-week.html, authored at 390×844) so the proportions match 1:1. ---
-// Bed = the soil ellipse `cx192 cy610 rx172 ry98` → wide + shallow + low (NOT a tall round patch).
-const BED: BedRect = { x: 0.051, y: 0.607, width: 0.882, height: 0.232 }; // (192±172)/390, (610±98)/844
+// --- Scene geometry as fractions of the FULL-SCREEN box. Bed center/width follow the mockup
+// (soil ellipse cx192/cy610, width 344/390 @390×844); the bed HEIGHT follows the garden-base
+// image's own aspect so the painted oval is never squished. ---
+const BED_ASPECT = 1400 / 871; // puplog-garden-bed.png (downscaled) w/h ≈ 1.607
+const BED_CX = 0.5; // mockup cx ~0.492 → centered
+const BED_CY = 0.723; // mockup cy 610/844
+const BED_W = 0.882; // mockup rx*2 = 344/390 (fraction of screen width)
+// Flowers scatter on the INNER soil only — inset from the painted rock ring so blooms don't sit
+// on the stones. (Y inset is larger: the front/back of the oval ring reads thicker in perspective.)
+const SOIL_INSET_X = 0.16;
+const SOIL_INSET_Y = 0.24;
 const DOGHOUSE_W = 0.482; // .doghouse-slot width 188/390 (square PNG → no distortion)
 const DOGHOUSE_TOP = 0.235; // .doghouse-slot top 198/844 — sits on the hill, straddling the sky/meadow seam
 // Doghouse art geometry, measured from puplog-doghouse.png alpha bbox (1024² canvas, PIL):
@@ -71,8 +78,12 @@ interface DayMarker {
   cy: number;
 }
 
-function toPx(bed: BedRect, w: number, h: number): BedRect {
-  return { x: bed.x * w, y: bed.y * h, width: bed.width * w, height: bed.height * h };
+// The garden-base image's on-screen rect (px): centered at (BED_CX, BED_CY), BED_W wide, with
+// height from the image aspect so it never squishes.
+function bedFootprint(width: number, height: number) {
+  const w = BED_W * width;
+  const h = w / BED_ASPECT;
+  return { left: BED_CX * width - w / 2, top: BED_CY * height - h / 2, w, h };
 }
 
 export function GardenScene({ week, width, height }: Props) {
@@ -87,8 +98,14 @@ export function GardenScene({ week, width, height }: Props) {
       }
     }
 
-    const bedPx = toPx(BED, width, height);
-    const pts = placeFlowers(items.map((b) => b.seed), bedPx, MIN_SPACING * width);
+    const bf = bedFootprint(width, height);
+    const scatterPx = {
+      x: bf.left + bf.w * SOIL_INSET_X,
+      y: bf.top + bf.h * SOIL_INSET_Y,
+      width: bf.w * (1 - 2 * SOIL_INSET_X),
+      height: bf.h * (1 - 2 * SOIL_INSET_Y),
+    };
+    const pts = placeFlowers(items.map((b) => b.seed), scatterPx, MIN_SPACING * width);
     const placed: Bloom[] = items.map((b, i) => {
       const jitter = 0.9 + (hashSeed(b.seed) % 200) / 1000; // 0.9..1.1, deterministic
       return {
@@ -158,6 +175,8 @@ export function GardenScene({ week, width, height }: Props) {
   const dhArtTop = DOGHOUSE_TOP * height;
   const dhContentBottom = dhArtTop + (DH_CONTENT_TOP + DH_CONTENT_H) * dhArtSize;
 
+  const bed = bedFootprint(width, height);
+
   return (
     <View style={[styles.scene, { width, height }]}>
       {/* Interim sky→meadow gradient (mockup line 62) — replaced by the baked ground PNG in Phase 2. */}
@@ -169,9 +188,17 @@ export function GardenScene({ week, width, height }: Props) {
       />
       {/* Drifting clouds — ambient, behind the diegetic scene; paused off-focus. */}
       <Clouds width={width} height={height} paused={!isFocused} />
-      {/* Painted ground — layered meadow + radial-gradient soil bed (turbulence-free port of the
-          mockup's .scene-svg; folds into the baked ground PNG in Phase 2). The bed mirrors BED. */}
-      <Ground width={width} height={height} bed={BED} />
+      {/* Meadow depth (far hill, mottles, sunlight) behind the bed. */}
+      <Ground width={width} height={height} />
+      {/* Garden base — painted soil + rock ring (Gemini art); sized to the image's own aspect so
+          it isn't squished. Flowers scatter on the inner soil (SOIL_INSET) above this. */}
+      <Image
+        source={SCENE_ASSETS.gardenBed}
+        resizeMode="contain"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{ position: 'absolute', left: bed.left, top: bed.top, width: bed.w, height: bed.h }}
+      />
       {/* Tight contact shadow tucked under the doghouse base (NOT a big soft far oval). */}
       <View
         pointerEvents="none"
@@ -242,8 +269,8 @@ export function GardenScene({ week, width, height }: Props) {
           pointerEvents="none"
           style={{
             position: 'absolute',
-            left: (BED.x + BED.width / 2) * width - 22,
-            top: (BED.y + BED.height / 2) * height - 22,
+            left: BED_CX * width - 22,
+            top: BED_CY * height - 22,
             width: 44,
             height: 44,
           }}

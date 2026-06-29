@@ -50,6 +50,9 @@ export const FLOWER_ASSETS: Record<GardenMood, Record<1 | 2 | 3, ImageSourceProp
 // assets/garden/puplog-sprout.png / puplog-mound.png land.
 export const SCENE_ASSETS = {
   doghouse: require('../../assets/garden/puplog-doghouse.png'),
+  // Painted soil + rock-ring garden base (Gemini drop-in, downscaled to 1400px; aspect ~1.608).
+  // Replaces the code-drawn blob bed; flowers scatter on the inner soil over the top.
+  gardenBed: require('../../assets/garden/puplog-garden-bed.png'),
   clouds: [
     require('../../assets/garden/puplog-cloud-1.png'),
     require('../../assets/garden/puplog-cloud-2.png'),
