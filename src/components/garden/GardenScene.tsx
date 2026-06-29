@@ -21,12 +21,12 @@ const TIER_BLOOM_WORD: Record<1 | 2 | 3, string> = { 1: 'simple bloom', 2: 'full
 const WEEKDAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const MIN_SPACING = 0.045; // frac of width; tight so blooms overlap into a lush bed (spec §7.2)
 
-// --- Tunable scene geometry (fractions of the FULL-SCREEN scene box; tune on device). ---
-// The scene is now full-bleed (fills the whole screen), so the diegetic content is anchored in
-// the lower ~60% and the sky gradient fills the top. Mirrors the mockup's full-phone composition.
-const BED: BedRect = { x: 0.08, y: 0.55, width: 0.84, height: 0.3 }; // the soil where blooms scatter
-const DOGHOUSE_W = 0.46; // doghouse art side as a fraction of width (square PNG)
-const DOGHOUSE_TOP = 0.3; // doghouse art top — sits on the meadow, base ~0.49 (just above the bed)
+// --- Scene geometry as fractions of the FULL-SCREEN box, lifted verbatim from the mockup
+// (preview-journey-hero-final-week.html, authored at 390×844) so the proportions match 1:1. ---
+// Bed = the soil ellipse `cx192 cy610 rx172 ry98` → wide + shallow + low (NOT a tall round patch).
+const BED: BedRect = { x: 0.051, y: 0.607, width: 0.882, height: 0.232 }; // (192±172)/390, (610±98)/844
+const DOGHOUSE_W = 0.482; // .doghouse-slot width 188/390 (square PNG → no distortion)
+const DOGHOUSE_TOP = 0.235; // .doghouse-slot top 198/844 — sits on the hill, straddling the sky/meadow seam
 // Doghouse art geometry, measured from puplog-doghouse.png alpha bbox (1024² canvas, PIL):
 // content occupies y[0.074..0.914], symmetric in x. Used to place the contact shadow relative
 // to the actual (contain-letterboxed) art, not the wider layout box.
@@ -158,7 +158,7 @@ export function GardenScene({ week, width, height }: Props) {
         }}
       />
       {/* Biscuit sits on the meadow beside the doghouse with a gentle bob (paused off-focus). */}
-      <BiscuitBob width={width} height={height} paused={!isFocused} topFrac={0.45} leftFrac={0.58} />
+      <BiscuitBob width={width} height={height} paused={!isFocused} topFrac={0.5} leftFrac={0.58} />
       {/* Visual blooms — bottom-anchored, hidden from VoiceOver (the day markers speak for them). */}
       {blooms.map((b) => {
         const h = b.size * TIER_HEIGHT_SCALE[b.tier];
