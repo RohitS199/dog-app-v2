@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Image, StyleSheet } from 'react-native';
+import { useSharedValue, withRepeat, withTiming, useReducedMotion, cancelAnimation, Easing } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import { Flower } from './Flower';
@@ -7,6 +8,7 @@ import { Clouds } from './Clouds';
 import { Ground } from './Ground';
 import { BiscuitBob } from './BiscuitBob';
 import { Butterfly } from './Butterfly';
+import { SwayingFlower } from './SwayingFlower';
 import { SCENE_ASSETS } from '../../constants/flowerAssets';
 import { placeFlowers, hashSeed, type BedRect } from '../../lib/gardenPlacement';
 import type { GardenWeek } from '../../lib/gardenWeek';
@@ -20,6 +22,14 @@ const TIER_HEIGHT_SCALE: Record<1 | 2 | 3, number> = { 1: 1.0, 2: 1.25, 3: 1.55 
 const TIER_BLOOM_WORD: Record<1 | 2 | 3, string> = { 1: 'simple bloom', 2: 'fuller bloom', 3: 'full bloom' };
 const WEEKDAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const MIN_SPACING = 0.045; // frac of width; tight so blooms overlap into a lush bed (spec §7.2)
+
+// Wind sway: all blooms share ONE long linear "clock" (in radians) — cheap — while each bloom
+// reads it with its own phase + frequency, so the bed sways ASYNCHRONOUSLY (not in unison). The
+// pivot is the stem base (SwayingFlower's transformOrigin). ~3.5s base period; the 1-hour ramp
+// means the sin seam at the clock reset is hit ~once/hour — imperceptible.
+const SWAY_PERIOD_MS = 3500;
+const SWAY_RAMP_MS = 3_600_000;
+const SWAY_RAMP_RAD = (2 * Math.PI * SWAY_RAMP_MS) / SWAY_PERIOD_MS;
 
 // --- Scene geometry as fractions of the FULL-SCREEN box, lifted verbatim from the mockup
 // (preview-journey-hero-final-week.html, authored at 390×844) so the proportions match 1:1. ---
@@ -47,6 +57,9 @@ interface Bloom {
   size: number;
   x: number;
   y: number;
+  swayPhase: number; // radians — per-bloom stagger
+  swayFreq: number; // angular multiplier — per-bloom speed
+  swayAmp: number; // degrees of rock
 }
 
 interface DayMarker {
@@ -66,7 +79,7 @@ export function GardenScene({ week, width, height }: Props) {
   const { blooms, dayMarkers } = useMemo(() => {
     const plantedDays = week.days.filter((d) => d.state === 'planted' && d.moodKey && d.tier > 0);
 
-    const items: Omit<Bloom, 'size' | 'x' | 'y'>[] = [];
+    const items: Omit<Bloom, 'size' | 'x' | 'y' | 'swayPhase' | 'swayFreq' | 'swayAmp'>[] = [];
     for (const day of plantedDays) {
       const tier = day.tier as 1 | 2 | 3;
       for (let k = 0; k < BLOOMS_BY_TIER[tier]; k++) {
@@ -78,7 +91,16 @@ export function GardenScene({ week, width, height }: Props) {
     const pts = placeFlowers(items.map((b) => b.seed), bedPx, MIN_SPACING * width);
     const placed: Bloom[] = items.map((b, i) => {
       const jitter = 0.9 + (hashSeed(b.seed) % 200) / 1000; // 0.9..1.1, deterministic
-      return { ...b, size: BLOOM_BASE[b.tier] * width * jitter, x: pts[i].x, y: pts[i].y };
+      return {
+        ...b,
+        size: BLOOM_BASE[b.tier] * width * jitter,
+        x: pts[i].x,
+        y: pts[i].y,
+        // Deterministic per-bloom sway params (seeded) so the field moves out of sync.
+        swayPhase: (hashSeed(b.seed) % 628) / 100, // 0..6.28 rad
+        swayFreq: 0.8 + (hashSeed(b.seed + 'f') % 41) / 100, // 0.80..1.20
+        swayAmp: 2.5 + (hashSeed(b.seed + 'a') % 25) / 10, // 2.5..4.9 deg
+      };
     });
 
     // One accessibility marker per planted day at its cluster's centroid — so VoiceOver
@@ -105,6 +127,28 @@ export function GardenScene({ week, width, height }: Props) {
       return () => setIsFocused(false);
     }, [])
   );
+
+  // Wind-sway driver: a single ramping clock + an `active` multiplier shared by every bloom
+  // (each SwayingFlower reads them with its own phase/freq). Paused off-focus and under Reduce
+  // Motion, where `active` eases to 0 so flowers settle upright.
+  const reduced = useReducedMotion();
+  const swayClock = useSharedValue(0);
+  const swayActive = useSharedValue(0);
+  useEffect(() => {
+    const on = isFocused && !reduced;
+    swayActive.value = withTiming(on ? 1 : 0, { duration: 500 });
+    if (on) {
+      swayClock.value = 0;
+      swayClock.value = withRepeat(
+        withTiming(SWAY_RAMP_RAD, { duration: SWAY_RAMP_MS, easing: Easing.linear }),
+        -1,
+        false,
+      );
+    } else {
+      cancelAnimation(swayClock);
+    }
+    return () => cancelAnimation(swayClock);
+  }, [isFocused, reduced]);
 
   // Doghouse: a square art box (the PNG is square) anchored low on the meadow via DOGHOUSE_TOP,
   // so the full-bleed scene reads as a scene (not a house boxed near the top). dhArt* values
@@ -163,15 +207,19 @@ export function GardenScene({ week, width, height }: Props) {
       {blooms.map((b) => {
         const h = b.size * TIER_HEIGHT_SCALE[b.tier];
         return (
-          <View
+          <SwayingFlower
             key={b.seed}
             testID={`bloom-${b.mood}`}
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={{ position: 'absolute', left: b.x - b.size / 2, top: b.y - h }}
+            clock={swayClock}
+            active={swayActive}
+            phase={b.swayPhase}
+            freq={b.swayFreq}
+            amp={b.swayAmp}
+            left={b.x - b.size / 2}
+            top={b.y - h}
           >
             <Flower mood={b.mood} tier={b.tier} baseSize={b.size} />
-          </View>
+          </SwayingFlower>
         );
       })}
       {/* One accessible label per planted day (never "missed" for empty days — bare soil is neutral). */}
