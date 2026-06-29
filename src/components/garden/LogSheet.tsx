@@ -85,6 +85,7 @@ export function LogSheet({ dogId, dogName, date, onPlanted }: Props) {
       garden_mood: mood,
       health_chips: chips,
       note: note.trim() || null,
+      media, // uploaded by the store before the upsert; null => no media
     });
     setSaving(false);
     if (ok) {
@@ -206,7 +207,15 @@ export function LogSheet({ dogId, dogName, date, onPlanted }: Props) {
         accessibilityLabel={`Plant ${dogName}'s flower`}
         style={[styles.cta, (!mood || saving) && styles.ctaOff]}
       >
-        <Text style={styles.ctaLabel}>{tier === 3 ? `Plant ${dogName}'s full bloom` : `Plant ${dogName}'s flower`}</Text>
+        <Text style={styles.ctaLabel}>
+          {saving
+            ? media
+              ? 'Saving your photo…'
+              : 'Planting…'
+            : tier === 3
+              ? `Plant ${dogName}'s full bloom`
+              : `Plant ${dogName}'s flower`}
+        </Text>
       </Pressable>
 
       {/* Golden Rule: Emergency reachable mid-log */}

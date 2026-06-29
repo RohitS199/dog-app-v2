@@ -1,6 +1,7 @@
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LogSheet } from '../LogSheet';
+import { useGardenStore } from '../../../stores/gardenStore';
 import { GARDEN_MOODS, GARDEN_MOOD_LABELS } from '../../../constants/gardenMoods';
 
 const FIRST_MOOD = `mood ${GARDEN_MOOD_LABELS[GARDEN_MOODS[0]]}`; // "mood Joyful"
@@ -55,6 +56,27 @@ describe('LogSheet photo/video picker', () => {
       fireEvent.press(getByLabelText('Add a photo or video'));
     });
     await waitFor(() => expect(getByText('Video added')).toBeTruthy());
+  });
+
+  it('forwards the picked media to plantFlower on plant', async () => {
+    const plantSpy = jest.fn().mockResolvedValue(true);
+    useGardenStore.setState({ plantFlower: plantSpy });
+    (ImagePicker.launchImageLibraryAsync as jest.Mock).mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: 'file:///pic.jpg', type: 'image' }],
+    });
+    const { getByLabelText } = renderSheet();
+    fireEvent.press(getByLabelText(FIRST_MOOD));
+    await act(async () => {
+      fireEvent.press(getByLabelText('Add a photo or video'));
+    });
+    await act(async () => {
+      fireEvent.press(getByLabelText("Plant Buddy's flower"));
+    });
+    expect(plantSpy).toHaveBeenCalledWith(
+      'd1',
+      expect.objectContaining({ media: { uri: 'file:///pic.jpg', kind: 'photo' } }),
+    );
   });
 
   it('Remove clears the selected media', async () => {
