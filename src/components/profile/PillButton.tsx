@@ -72,5 +72,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
   },
   primaryText: { color: OB_COLORS.ctaText },
-  ghostText: { color: OB_COLORS.cta },
+  // Ink, not coral-on-cream (~2.5:1, fails AA) — the coral border carries the
+  // variant identity; matches ScrapbookButton's ghost label.
+  ghostText: { color: OB_COLORS.ink },
 });
