@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { View, Text, Pressable, TextInput, ScrollView, StyleSheet, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
 import {
   GARDEN_MOODS,
   GARDEN_MOOD_COLORS,
@@ -26,7 +25,6 @@ interface Props {
 }
 
 export function LogSheet({ dogId, dogName, date, onPlanted }: Props) {
-  const router = useRouter();
   const plantFlower = useGardenStore((s) => s.plantFlower);
   const [mood, setMood] = useState<GardenMood | null>(null);
   const [chips, setChips] = useState<string[]>([]);
@@ -217,11 +215,6 @@ export function LogSheet({ dogId, dogName, date, onPlanted }: Props) {
               : `Plant ${dogName}'s flower`}
         </Text>
       </Pressable>
-
-      {/* Golden Rule: Emergency reachable mid-log */}
-      <Pressable onPress={() => router.push('/emergency')} hitSlop={12} accessibilityRole="link" accessibilityLabel="Emergency help">
-        <Text style={styles.emergency}>Emergency help ›</Text>
-      </Pressable>
     </ScrollView>
   );
 }
@@ -250,5 +243,4 @@ const styles = StyleSheet.create({
   cta: { backgroundColor: OB_COLORS.cta, borderRadius: OB_RADII.button, paddingVertical: 16, alignItems: 'center', marginTop: 20 },
   ctaOff: { opacity: 0.5 },
   ctaLabel: { color: OB_COLORS.ink, fontFamily: OB_FONTS.cta, fontSize: OB_FONT_SIZES.h3 }, // ink-on-coral
-  emergency: { color: OB_COLORS.red, fontFamily: OB_FONTS.label, fontSize: OB_FONT_SIZES.body, textAlign: 'center', marginTop: 16, marginBottom: 24 },
 });

@@ -8,7 +8,6 @@ import { useDogStore } from '../../src/stores/dogStore';
 import { useGardenStore } from '../../src/stores/gardenStore';
 import { GardenScene } from '../../src/components/garden/GardenScene';
 import { GardenGreeting } from '../../src/components/garden/GardenGreeting';
-import { EmergencyChip } from '../../src/components/garden/EmergencyChip';
 import { LogSheet } from '../../src/components/garden/LogSheet';
 import { PlantCelebration } from '../../src/components/garden/PlantCelebration';
 import { DogSelector } from '../../src/components/ui/DogSelector';
@@ -85,7 +84,6 @@ export default function JourneyScreen() {
               {multiDog ? ' ▾' : ''}
             </Text>
           </Pressable>
-          <EmergencyChip />
         </View>
 
         {/* Gate on `week` so the greeting doesn't flash "ready to grow" before data loads. */}
