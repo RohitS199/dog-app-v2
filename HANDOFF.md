@@ -1,8 +1,10 @@
 # PupLog — Project & Session Handoff
 
-**Last updated:** 2026-06-03
-**Written by:** Claude (Opus) — "avatar follow-ups + cleanup" session
-**For:** The next Claude instance — most likely a **different cloud machine**. Read this top-to-bottom, then read `CLAUDE.md`, `DOCUMENTATION.md`, and the codebase.
+**Last updated:** 2026-06-29
+**Written by:** Claude (Opus 4.8) — "Journey garden hero" session (full-bleed scene, painted bed image, wind sway, meadow-mushrooms spec)
+**For:** The next Claude instance. Read this top-to-bottom, then `CLAUDE.md`, `DOCUMENTATION.md`, and the codebase. **A NEXT TASK is teed up** (meadow mushrooms — spec + plan written): see **§0.5**.
+
+> **⚠️ ALWAYS USE SKILLS — the user's hard, standing rule (every session, emphatically).** For every task: **use** the skills we have, **create** one if a workflow recurs (`superpowers:writing-skills`), or **find** a reputable/well‑reviewed one online (`npx skills find "<q>"`, browse https://skills.sh/trending, install `npx skills add <owner/repo@skill> -g -y`). If there's a 1% chance a skill applies, invoke it. Details in §11.
 
 ---
 
@@ -19,17 +21,52 @@
 
 ## 0. TL;DR — where things stand and what's next
 
-- **The profile-avatar workstream is 100% complete and merged.** No in-flight task. **Zero open PRs.**
-- `origin/main = aaa6897`. **522 tests / 56 suites green.** TypeScript baseline = 30 known errors (all pre-existing, see §9).
-- **Bundle D** (a proposed "use one of your dogs' photos as your avatar" add-on) was **brainstormed and deliberately DROPPED** this session — see §5.4 for the reasoning so nobody re-proposes it.
-- **What to do next is the user's call.** The backlog is in §7. The most likely next threads: the **onboarding redesign** integration, **subscription/paywall** wiring, or the broader **playful UI redesign** (flowers + stickers). **Triage is intentionally "on ice."**
-- **Process the user expects:** for any new feature, **brainstorm → plan → TDD** (Superpowers skills). They like low ceremony and 2–3 sharp questions, not 10. They QA visual/native changes on a physical iPhone, then tell you to merge.
+- **Active workstream: the Journey "garden hero."** The Home/Journey tab is now a **full-bleed storybook garden scene** — sky gradient, drifting clouds, a **painted soil+rock bed image**, the doghouse, Biscuit, **wind-swaying flowers**, and a butterfly. All on branch **`feature/journey-scene-build`**, **open PR [#30](https://github.com/RohitS199/dog-app-v2/pull/30)** (NOT merged). Full subsystem map in **§0.5**.
+- **Tests green at ~601 / 76 suites** at that branch's tip. TS baseline = 30 known pre-existing errors; use the filtered check in §9 (expect **0 new**).
+- **NEXT TASK (teed up, not started): meadow mushrooms.** The user generated 3 watercolor mushroom PNGs — **already cropped+downscaled into `assets/garden/`** (`puplog-mushroom-{1,2,3}.png`). A **detailed design spec + TDD plan are written**:
+  - Spec → [`docs/superpowers/specs/2026-06-29-journey-meadow-mushrooms-design.md`](docs/superpowers/specs/2026-06-29-journey-meadow-mushrooms-design.md)
+  - Plan → [`docs/superpowers/plans/2026-06-29-journey-meadow-mushrooms.md`](docs/superpowers/plans/2026-06-29-journey-meadow-mushrooms.md)
+  - **Prereq:** stacks on PR #30 — branch off `feature/journey-scene-build` (or off `main` after #30 merges); the scene + assets it needs live there.
+- **Process the user expects:** **brainstorm → plan → TDD → verify** (Superpowers). Low ceremony, 2–3 sharp questions. They QA visual/native changes on a **physical iPhone**, then say "merge." **ALWAYS use skills** (§11).
+- The **profile-avatar arc** (old §1, §5) is **historical/merged** — kept below as reference only.
 
 ---
 
-## 1. What this session accomplished (2026-06-02 → 06-03)
+## 0.5 Journey Garden Hero — the ACTIVE workstream (PR #30) + the mushroom next-step
 
-This session finished the **profile-avatar arc** and cleaned up after it. All work is merged to `origin/main`.
+The Home/Journey tab (`app/(tabs)/index.tsx`) is a **full-bleed, per-dog storybook garden** that fills as the week's logs plant flowers. Everything below is on **`feature/journey-scene-build`** (PR [#30](https://github.com/RohitS199/dog-app-v2/pull/30), **open**). On the user's laptop the live worktree is **`.worktrees/journey-scene/`** (`cp .env` into any new worktree — hazard H2).
+
+### Scene files (all in `src/components/garden/`)
+| File | Role |
+| --- | --- |
+| `GardenScene.tsx` | The layer cake (absolute-positioned). Owns geometry constants `BED_CX=0.5 / BED_CY=0.723 / BED_W=0.882 / BED_ASPECT=1.607`, the `bedFootprint()` helper, `SOIL_INSET_X/Y`, `DOGHOUSE_W/TOP`, the **wind-sway driver** (one shared `swayClock` + `swayActive` multiplier), `isFocused` (off-focus pause), and the bloom/marker maps. **This is where you mount new scene layers.** |
+| `Ground.tsx` | `react-native-svg` **meadow depth** only (far hill, sunlight pool, mottles, highlights). It used to draw the soil bed; the bed is now an image. `memo`’d on `{width,height}`. |
+| `Clouds.tsx` | 3 drifting decorative cloud PNGs — **the canonical template for scattering a decorative drop-in asset** (config array + per-sprite subcomponent + a11y-hidden wrapper). Mushrooms copy this. |
+| `SwayingFlower.tsx` | Wraps each bloom; pivots at the **base** (`transformOrigin:'bottom'`) and rocks via `rotateZ`. One shared clock, per-bloom phase/freq → **asynchronous** sway. `active` multiplier eases to 0 off-focus / Reduce Motion. |
+| `Flower.tsx`, `BiscuitBob.tsx`, `Butterfly.tsx` | bloom image, Biscuit placeholder w/ bob, SVG butterfly. |
+| `LogSheet.tsx` | the "Plant" flow (mood/chips/note + **photo/video picker**). |
+
+### What landed this session (commit-by-commit on `feature/journey-scene-build`)
+- **Richer ground → painted bed image.** The code-drawn soil bed (an SVG `organicBlob` "imperfect circle") was **replaced by a Gemini watercolor soil+rock-ring image**: `SCENE_ASSETS.gardenBed = assets/garden/puplog-garden-bed.png` (downscaled **22 MB → 1.6 MB**, transparent). Rendered as an `<Image>` sized to its own aspect; flowers scatter on an **inner soil inset** so blooms sit on dirt, not rocks. (Commit `7550a5a`.) **This is the precedent for adding a painted drop-in to the scene.**
+- **Full-bleed layout.** `app/(tabs)/index.tsx` renders the scene as an `absoluteFill` background at full window height; header/greeting/CTA float on top.
+- **Mockup proportions.** Bed + doghouse fractions lifted from the mockup `preview-journey-hero-final-week.html` (@390×844).
+- **Doghouse name plate removed** (per user); name lives in the header chip + greeting.
+- **Wind sway** on the flowers (stem anchored, asynchronous) — `SwayingFlower.tsx` + the driver in `GardenScene.tsx`. (Commit `19e90bf`.)
+- **Photo/video persistence** for the Plant flow: migration added `garden_logs.photo_url/video_url` + a **public `garden-media` Storage bucket** (own-folder RLS); `src/lib/uploadGardenMedia.ts` uploads on plant; `gardenStore` reads the URLs so a logged photo blooms the flower full on reload. Migration file: `supabase/migrations/20260628120000_garden_logs_add_media.sql` (applied live). **expo-image-picker** is installed.
+
+### Asset-prep pipeline (reuse for the mushrooms)
+Gemini PNGs arrive huge + oddly cropped in the **main repo** `assets/garden/`. The pipeline (run this session with PIL): **crop to alpha bbox (+~2% pad) → downscale (≤800–1400 px) → save into the worktree `assets/garden/` with a `puplog-*` name (no spaces) → register a static `require()` in `SCENE_ASSETS`** (memory: `feedback_rn_metro_static_require.md`). The 3 mushroom PNGs are **already prepped + committed** (`puplog-mushroom-1/2/3.png`, aspects 0.905/0.924/0.591).
+
+### NEXT: meadow mushrooms (spec + plan ready — START HERE)
+Scatter the 3 mushroom drop-ins across the grass **around** the bed, mirroring `Clouds.tsx` (decorative, deterministic, a11y-hidden, memoized; **static** for v1). Everything — geometry, placement config, sizing-by-aspect, tests, verification, and the **skills mandate** — is in the spec/plan linked in §0. Don't re-derive; follow them.
+
+---
+
+## 1. (HISTORICAL — merged) What the 2026-06-03 session accomplished
+
+> This section documents the **profile-avatar arc**, which is **complete and merged** (PRs #16–#21). Kept as reference for that subsystem (also see §5). The current workstream is the Journey garden hero (§0.5).
+
+All work below is merged.
 
 | PR | Branch | What | Status |
 | --- | --- | --- | --- |
@@ -208,7 +245,8 @@ The cloud instance won't have the user's `~/.claude` notes, so the load-bearing 
 - **Any new feature:** `superpowers:brainstorming` → `superpowers:writing-plans` → `superpowers:test-driven-development` → `superpowers:finishing-a-development-branch`. **Brainstorm BEFORE designing/coding.**
 - **Worktrees:** `superpowers:using-git-worktrees` (on the user's laptop; less needed on a clean clone).
 - **Verification:** `superpowers:verification-before-completion` — run tests + typecheck and show output before claiming done.
-- **Domain skills:** `supabase-postgres-best-practices` (SQL/RLS/migrations), `supabase-edge-functions`, `react-native-architecture`, `accessibility-compliance`, `anthropic-sdk`.
+- **Domain skills:** `react-native-architecture`, `react-native-best-practices` (FPS/static-require/memo), `accessibility-compliance`, `supabase-postgres-best-practices` (SQL/RLS/migrations), `supabase-edge-functions`, `anthropic-sdk`.
+- **If no existing skill fits — the user is emphatic about this — you have two more options, in order:** (1) **create a new skill** when a workflow recurs (`superpowers:writing-skills`); (2) **find a reputable, well-reviewed one online** — `npx skills find "<query>"`, browse **https://skills.sh/trending**, install a high-quality one (1K+ installs) with `npx skills add <owner/repo@skill> -g -y` (the `find-skills` skill helps). **If there's a 1% chance a skill applies, invoke it.**
 - The user explicitly wants skills used proactively. Low ceremony otherwise: 2–3 sharp questions, focused PRs, they QA on a physical iPhone then say "merge."
 
 ---
