@@ -55,12 +55,21 @@ export function Butterfly({ width, height, paused }: { width: number; height: nu
       pointerEvents="none"
       style={[{ position: 'absolute', top: 0, left: 0, width: 18, height: 14 }, containerStyle]}
     >
-      <Animated.View style={[{ position: 'absolute', left: 0 }, leftWing]}>
+      {/* Each wing pivots at its INNER edge (the body centerline where the two wings meet) so the
+          scaleX flap folds the outer wing while the inner tips stay glued — the middle stays intact.
+          Left wing's attach point is at 90% of its box; the right wing's at 10%. */}
+      <Animated.View
+        testID="butterfly-wing-left"
+        style={[{ position: 'absolute', left: 0, width: 10, height: 14, transformOrigin: '90% 50%' }, leftWing]}
+      >
         <Svg width={10} height={14}>
           <Path d="M9 7 C2 0 0 4 1 7 C0 10 2 14 9 7 Z" fill={WING} fillOpacity={0.7} stroke={SKETCH} strokeWidth={1} />
         </Svg>
       </Animated.View>
-      <Animated.View style={[{ position: 'absolute', left: 8 }, rightWing]}>
+      <Animated.View
+        testID="butterfly-wing-right"
+        style={[{ position: 'absolute', left: 8, width: 10, height: 14, transformOrigin: '10% 50%' }, rightWing]}
+      >
         <Svg width={10} height={14}>
           <Path d="M1 7 C8 0 10 4 9 7 C10 10 8 14 1 7 Z" fill={WING} fillOpacity={0.7} stroke={SKETCH} strokeWidth={1} />
         </Svg>

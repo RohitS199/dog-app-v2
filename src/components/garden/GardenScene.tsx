@@ -9,6 +9,8 @@ import { Ground } from './Ground';
 import { BiscuitBob } from './BiscuitBob';
 import { Butterfly } from './Butterfly';
 import { SwayingFlower } from './SwayingFlower';
+import { Mushrooms } from './Mushrooms';
+import { ContactShadow } from './ContactShadow';
 import { SCENE_ASSETS } from '../../constants/flowerAssets';
 import { placeFlowers, hashSeed } from '../../lib/gardenPlacement';
 import type { GardenWeek } from '../../lib/gardenWeek';
@@ -37,13 +39,14 @@ const SWAY_RAMP_RAD = (2 * Math.PI * SWAY_RAMP_MS) / SWAY_PERIOD_MS;
 const BED_ASPECT = 1400 / 871; // puplog-garden-bed.png (downscaled) w/h ≈ 1.607
 const BED_CX = 0.5; // mockup cx ~0.492 → centered
 const BED_CY = 0.723; // mockup cy 610/844
-const BED_W = 0.882; // mockup rx*2 = 344/390 (fraction of screen width)
+const BED_W = 0.94; // slightly larger than the mockup's 0.882 (user: "slightly bigger"); grows from the fixed center
 // Flowers scatter on the INNER soil only — inset from the painted rock ring so blooms don't sit
 // on the stones. (Y inset is larger: the front/back of the oval ring reads thicker in perspective.)
 const SOIL_INSET_X = 0.16;
 const SOIL_INSET_Y = 0.24;
-const DOGHOUSE_W = 0.482; // .doghouse-slot width 188/390 (square PNG → no distortion)
-const DOGHOUSE_TOP = 0.235; // .doghouse-slot top 198/844 — sits on the hill, straddling the sky/meadow seam
+const DOGHOUSE_W = 0.42; // smaller than the bed, tucked to the right (was 0.482); square PNG → no distortion
+const DOGHOUSE_CX = 0.7; // center x — right of screen-center, per mockup .doghouse-slot (left 178 + 94 on 390 ≈ 0.70)
+const DOGHOUSE_TOP = 0.26; // base stays grounded on the hill after the shrink (was 0.235 @ W 0.482)
 // Doghouse art geometry, measured from puplog-doghouse.png alpha bbox (1024² canvas, PIL):
 // content occupies y[0.074..0.914], symmetric in x. Used to place the contact shadow relative
 // to the actual (contain-letterboxed) art, not the wider layout box.
@@ -171,7 +174,7 @@ export function GardenScene({ week, width, height }: Props) {
   // so the full-bleed scene reads as a scene (not a house boxed near the top). dhArt* values
   // drive the contact shadow + name pill, computed from the doghouse's content bbox.
   const dhArtSize = DOGHOUSE_W * width;
-  const dhArtLeft = 0.5 * width - dhArtSize / 2;
+  const dhArtLeft = DOGHOUSE_CX * width - dhArtSize / 2;
   const dhArtTop = DOGHOUSE_TOP * height;
   const dhContentBottom = dhArtTop + (DH_CONTENT_TOP + DH_CONTENT_H) * dhArtSize;
 
@@ -199,20 +202,16 @@ export function GardenScene({ week, width, height }: Props) {
         importantForAccessibility="no-hide-descendants"
         style={{ position: 'absolute', left: bed.left, top: bed.top, width: bed.w, height: bed.h }}
       />
-      {/* Tight contact shadow tucked under the doghouse base (NOT a big soft far oval). */}
-      <View
-        pointerEvents="none"
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={{
-          position: 'absolute',
-          top: dhContentBottom - dhArtSize * 0.03, // tucked just under the base
-          left: dhArtLeft + dhArtSize * 0.1,
-          width: dhArtSize * 0.8,
-          height: dhArtSize * 0.06,
-          backgroundColor: 'rgba(46,32,18,0.32)', // 2026-06-23 §9.1 / mockup line 883
-          borderRadius: dhArtSize * 0.03,
-        }}
+      {/* Decorative mushrooms scattered on the meadow around the bed (static; a11y-hidden). */}
+      <Mushrooms width={width} height={height} />
+      {/* Soft contact shadow grounding the doghouse — a radial-gradient ellipse (dark center
+          fading to transparent at the rim), NOT a flat solid bar. Centered on the doghouse art,
+          sitting at its base. */}
+      <ContactShadow
+        cx={dhArtLeft + dhArtSize * 0.5}
+        cy={dhContentBottom}
+        rx={dhArtSize * 0.45}
+        ry={dhArtSize * 0.06}
       />
       {/* Doghouse at the head of the scene (transparent scene PNG). */}
       <Image
@@ -229,7 +228,7 @@ export function GardenScene({ week, width, height }: Props) {
         }}
       />
       {/* Biscuit sits on the meadow beside the doghouse with a gentle bob (paused off-focus). */}
-      <BiscuitBob width={width} height={height} paused={!isFocused} topFrac={0.5} leftFrac={0.58} />
+      <BiscuitBob width={width} height={height} paused={!isFocused} topFrac={0.5} leftFrac={0.08} />
       {/* Visual blooms — bottom-anchored, hidden from VoiceOver (the day markers speak for them). */}
       {blooms.map((b) => {
         const h = b.size * TIER_HEIGHT_SCALE[b.tier];

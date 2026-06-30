@@ -58,6 +58,13 @@ export const SCENE_ASSETS = {
     require('../../assets/garden/puplog-cloud-2.png'),
     require('../../assets/garden/puplog-cloud-3.png'),
   ],
+  // Painted meadow mushrooms (Gemini drop-ins, downscaled). Static requires only — Metro can't
+  // resolve dynamic paths (memory: rn-metro-static-require). Aspects: 0.905 / 0.924 / 0.591.
+  mushrooms: [
+    require('../../assets/garden/puplog-mushroom-1.png'), // aspect 0.905 (red)
+    require('../../assets/garden/puplog-mushroom-2.png'), // aspect 0.924 (amber)
+    require('../../assets/garden/puplog-mushroom-3.png'), // aspect 0.591 (tall pink)
+  ],
   // TODO(scene-kit): wire when generated
   // sprout: require('../../assets/garden/puplog-sprout.png'),
   // mound: require('../../assets/garden/puplog-mound.png'),
