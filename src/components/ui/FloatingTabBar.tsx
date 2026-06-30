@@ -12,14 +12,14 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 const TAB_ICONS: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
   index: 'home',
-  health: 'calendar-heart',
+  dogs: 'paw',
   learn: 'book-open-variant',
   profile: 'account-outline',
 };
 
 const TAB_LABELS: Record<string, string> = {
   index: 'Journey',
-  health: 'My Dogs',
+  dogs: 'My Dogs',
   learn: 'Discovery',
   profile: 'Profile',
 };
@@ -96,8 +96,10 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
     handleFAB();
   }, [handleFAB]);
 
-  // Filter to only the tabs we want to show (exclude triage)
-  const visibleRoutes = state.routes.filter((route) => route.name !== 'triage');
+  // Hide triage (legacy) and health (reached via My Dogs > Ask Biscuit until Discovery ships).
+  const visibleRoutes = state.routes.filter(
+    (route) => route.name !== 'triage' && route.name !== 'health'
+  );
 
   // Insert FAB placeholder at center position (after 2nd tab)
   const leftTabs = visibleRoutes.slice(0, 2);

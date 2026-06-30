@@ -1,5 +1,7 @@
-// Design tokens for PupLog onboarding — scrapbook aesthetic
-// These are ONLY used during onboarding. The main app uses theme.ts (Earthy Dog Park).
+// Design tokens for PupLog's scrapbook aesthetic.
+// Originally onboarding-only; now also the system for the redesigned main-app
+// surfaces (Profile — May 2026, My Dogs — June 2026). Legacy screens still use
+// theme.ts (Earthy Dog Park) until they are migrated.
 
 export const OB_COLORS = {
   cream: '#f7f1e6',
@@ -33,6 +35,21 @@ export const OB_COLORS = {
   // Picks up enough hue to distinguish from the cream trophy backdrop without
   // competing with the solid featured state.
   featuredBlueWash: 'rgba(63, 110, 143, 0.10)',
+  // My Dogs hub additions (June 2026) — see
+  // docs/superpowers/specs/2026-06-11-my-dogs-visual-addendum.md
+  cardWhite: '#FFFDF8',   // warm-white content-card face on cream
+  hairline: '#EDE3D2',    // warm row divider on cardWhite
+  washNeutral: '#F3ECDE', // empty/ghost/pressed fills on cream
+  // Week-tone family (fills/washes ONLY, never text). Hues deliberately distinct
+  // from the urgency palette so alert colors stay rare and meaningful.
+  toneThriving: '#7FAE5C',
+  toneThrivingWash: '#E6EDDA',
+  toneOkay: '#E0B65C',
+  toneOkayWash: '#F7EBCB',
+  toneAttention: '#C97B4A',
+  toneAttentionWash: '#F5E3D7',
+  toneConcern: '#A14D5D',
+  toneConcernWash: '#F1DEDF',
 } as const;
 
 export const OB_FONTS = {

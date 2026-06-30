@@ -9,6 +9,12 @@ interface DayDetailSheetProps {
   checkIn: DailyCheckIn | null;
   previousCheckIn?: DailyCheckIn | null;
   dateString: string;
+  /** Sheet container background. Defaults to COLORS.surface (Health tab). */
+  backgroundColor?: string;
+  /** Close-button fill. Defaults to COLORS.primary (Health tab). */
+  closeButtonColor?: string;
+  /** Close-button label color. Defaults to white (Health tab). */
+  closeTextColor?: string;
 }
 
 function getLabel(questionIndex: number, value: string): string {
@@ -47,6 +53,9 @@ export function DayDetailSheet({
   checkIn,
   previousCheckIn,
   dateString,
+  backgroundColor = COLORS.surface,
+  closeButtonColor,
+  closeTextColor,
 }: DayDetailSheetProps) {
   return (
     <Modal
@@ -56,7 +65,7 @@ export function DayDetailSheet({
       onRequestClose={onClose}
     >
       <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel="Close day details">
-        <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+        <View style={[styles.sheet, { backgroundColor }]} onStartShouldSetResponder={() => true}>
           <View style={styles.handle} />
           <Text style={styles.title}>{dateString}</Text>
 
@@ -96,12 +105,14 @@ export function DayDetailSheet({
           )}
 
           <Pressable
-            style={styles.closeButton}
+            style={[styles.closeButton, closeButtonColor ? { backgroundColor: closeButtonColor } : null]}
             onPress={onClose}
             accessibilityRole="button"
             accessibilityLabel="Close"
           >
-            <Text style={styles.closeText}>Close</Text>
+            <Text style={[styles.closeText, closeTextColor ? { color: closeTextColor } : null]}>
+              Close
+            </Text>
           </Pressable>
         </View>
       </Pressable>

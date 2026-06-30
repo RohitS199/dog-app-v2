@@ -23,6 +23,7 @@ export default function TabsLayout() {
         }}
       >
         <Tabs.Screen name="index" />
+        <Tabs.Screen name="dogs" />
         <Tabs.Screen name="health" />
         <Tabs.Screen name="learn" />
         <Tabs.Screen

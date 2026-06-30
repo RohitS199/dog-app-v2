@@ -127,13 +127,15 @@ Horizontal dot indicator showing current step in the check-in flow.
 
 ### CalendarGrid.tsx
 Monthly calendar grid with 6 status states (shape+color for WCAG AA).
-- **Props**: `year: number`, `month: number`, `dayStatuses: Record<string, CalendarDayStatus>`, `onDayPress: (date) => void`, `todayString: string`
+- **Props**: `year: number`, `month: number`, `dayStatuses: Record<string, CalendarDayStatus>`, `onDayPress: (date) => void`, `todayString: string`, `accentColor?: string`, `todayTextColor?: string`, `flat?: boolean`
+- Seam props added for My Dogs tab: `accentColor` overrides the today-circle tint, `todayTextColor` overrides the today date text color, `flat` removes the card shadow. Defaults preserve the Health tab appearance exactly.
 - Green circle (score 4-5), amber triangle (2-3), red diamond (1), blue outlined circle (days 1-4), gray dash (missed), nothing (future)
 - 48x48 cells for MIN_TOUCH_TARGET
 
 ### DayDetailSheet.tsx
 Bottom sheet modal showing full check-in data with previous day comparison.
-- **Props**: `visible: boolean`, `onClose: () => void`, `checkIn: DailyCheckIn | null`, `previousCheckIn: DailyCheckIn | null`, `dateString: string`
+- **Props**: `visible: boolean`, `onClose: () => void`, `checkIn: DailyCheckIn | null`, `previousCheckIn: DailyCheckIn | null`, `dateString: string`, `backgroundColor?: string`
+- Seam prop added for My Dogs tab: `backgroundColor` overrides the sheet surface color; defaults to `COLORS.surface` (Health tab unchanged).
 
 ### StreakCounter.tsx
 Streak display with gamification messaging.
@@ -207,7 +209,37 @@ Toast notification for article favorite/unfavorite actions.
 
 ---
 
-## __tests__/ — Component Tests (9 suites, 69 tests)
+## dogs/ — My Dogs Hub Components
+
+Seven components that make up the per-dog "Living Scrapbook" tab. All built on scrapbook tokens from `src/constants/onboardingTheme.ts`. Design rules: `docs/superpowers/specs/2026-06-11-my-dogs-visual-addendum.md` (AA fix: CTAs use ink-on-coral, never white-on-orange/coral).
+
+### DogSwitcher.tsx
+Horizontal row of avatar pills (one per dog) + an Add button.
+- Tapping a pill calls `useDogStore().selectDog()`; active pill uses scrapbook accent color
+
+### DogIdentityHero.tsx
+Full-width portrait card for the selected dog: avatar/photo, name, breed, age chips, `describeDog` personality line, and a today chip that doubles as a check-in CTA when no entry exists for the current day.
+
+### WeekSceneCard.tsx
+Single week polaroid card showing week tone, date range, and a scene illustration tinted by `WEEK_TONE_COLORS`.
+- Exports `WEEK_TONE_COLORS` map (keyed by `WeekTone`) for use by `WeekLookBack` and `dog-weeks.tsx`
+
+### WeekLookBack.tsx
+Horizontal strip of the last 3 `WeekSceneCard`s with a "See more" link that navigates to `/dog-weeks`.
+- Reads grouped weeks from `weekGrouping.groupCheckInsByWeek()`
+
+### DogStickerShelf.tsx
+Sticker shelf for per-dog achievement stickers. Phase 1 renders an honest empty-state placeholder — the per-dog sticker data layer (`dog_id` on `user_achievements`) does not yet exist.
+
+### AskBiscuitCard.tsx
+Single bridge card to health analysis. In Phase 1 routes to `/health`; intended to route to a real Discovery screen once that ships.
+
+### DogCareDetails.tsx
+Read-only care detail card showing weight, health conditions, and vet phone number. "Edit" button navigates to `/edit-dog`.
+
+---
+
+## __tests__/ — Component Tests (16 suites, 90 tests)
 
 All tests use Jest + React Native Testing Library. See `jest.setup.js` at project root for mock configuration.
 
@@ -237,3 +269,24 @@ Tests correct cell count for month, status indicators (shape+color), date press 
 
 ### AIInsightCard.test.tsx (8 tests)
 Tests title rendering, message rendering, correct severity badge, "Good sign" badge for positive insights, no "Good sign" for negative, article recommendation links, onArticlePress callback with correct slug, hidden "Recommended Reading" when no articles.
+
+### DogSwitcher.test.tsx (3 tests)
+Tests rendering of dog avatar pills, active-dog highlight, and selectDog call on tap.
+
+### DogIdentityHero.test.tsx (3 tests)
+Tests dog name/breed/age display, personality line from `describeDog`, and check-in CTA visibility when no today entry exists.
+
+### WeekLookBack.test.tsx (4 tests)
+Tests rendering of week cards, correct week-tone color application, "See more" link visibility, and navigation to `/dog-weeks`.
+
+### DogStickerShelf.test.tsx (2 tests)
+Tests Phase-1 empty-state render and absence of sticker items when no per-dog sticker data exists.
+
+### AskBiscuitCard.test.tsx (2 tests)
+Tests card renders and navigation to `/health` on press.
+
+### DogCareDetails.test.tsx (3 tests)
+Tests weight/conditions/vet phone display, "Edit" button navigates to `/edit-dog`.
+
+### MyDogsScreen.test.tsx (4 tests)
+Integration-level tests for the My Dogs tab: correct dog identity displayed for selected dog, calendar section renders, week look-back section renders, Ask Biscuit card present.
