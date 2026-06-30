@@ -12,9 +12,9 @@ describe('LogSheet', () => {
     expect(getByLabelText(/add a note/i)).toBeTruthy(); // unlocked WITHOUT a symptom chip
   });
 
-  it('shows an always-reachable Emergency help link', () => {
-    const { getByLabelText } = render(<LogSheet {...props} />);
-    expect(getByLabelText(/emergency help/i)).toBeTruthy();
+  it('does not show an Emergency help link in the log sheet (removed per product decision)', () => {
+    const { queryByLabelText } = render(<LogSheet {...props} />);
+    expect(queryByLabelText(/emergency help/i)).toBeNull();
   });
 
   it('surfaces an error instead of stranding the user when planting fails', async () => {

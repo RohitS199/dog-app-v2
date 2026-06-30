@@ -8,7 +8,6 @@ import { useDogStore } from '../../src/stores/dogStore';
 import { useGardenStore } from '../../src/stores/gardenStore';
 import { GardenScene } from '../../src/components/garden/GardenScene';
 import { GardenGreeting } from '../../src/components/garden/GardenGreeting';
-import { EmergencyChip } from '../../src/components/garden/EmergencyChip';
 import { LogSheet } from '../../src/components/garden/LogSheet';
 import { PlantCelebration } from '../../src/components/garden/PlantCelebration';
 import { DogSelector } from '../../src/components/ui/DogSelector';
@@ -21,7 +20,7 @@ function todayStr(): string {
 }
 
 export default function JourneyScreen() {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const dogs = useDogStore((s) => s.dogs);
   const selectedDogId = useDogStore((s) => s.selectedDogId);
   const fetchDogs = useDogStore((s) => s.fetchDogs);
@@ -58,46 +57,54 @@ export default function JourneyScreen() {
   const multiDog = dogs.length > 1;
 
   return (
-    <SafeAreaView style={styles.root} edges={['top']}>
-      <View style={styles.header}>
+    <View style={styles.root}>
+      {/* Full-bleed garden — fills the entire screen; the UI floats on top of it. */}
+      {week && !isLoading ? (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <GardenScene week={week} width={width} height={height} />
+        </View>
+      ) : (
+        <View style={[StyleSheet.absoluteFill, styles.loading]}>
+          <ActivityIndicator color={OB_COLORS.accent} />
+        </View>
+      )}
+
+      {/* Floating UI layer — transparent; touches fall through except on the chips + CTA. */}
+      <SafeAreaView style={styles.overlay} edges={['top']} pointerEvents="box-none">
+        <View style={styles.header} pointerEvents="box-none">
+          <Pressable
+            onPress={() => multiDog && setShowDogSelector(true)}
+            disabled={!multiDog}
+            hitSlop={8}
+            accessibilityRole={multiDog ? 'button' : 'text'}
+            accessibilityLabel={multiDog ? `Switch dog, currently ${dog?.name}` : dog?.name}
+          >
+            <Text style={styles.dogChip}>
+              {dog ? dog.name : 'PupLog'}
+              {multiDog ? ' ▾' : ''}
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Gate on `week` so the greeting doesn't flash "ready to grow" before data loads. */}
+        {week && <GardenGreeting dogName={dog?.name ?? 'Your pup'} plantedCount={week.plantedCount} />}
+
+        <View style={styles.spacer} pointerEvents="box-none" />
+
         <Pressable
-          onPress={() => multiDog && setShowDogSelector(true)}
-          disabled={!multiDog}
-          hitSlop={8}
-          accessibilityRole={multiDog ? 'button' : 'text'}
-          accessibilityLabel={multiDog ? `Switch dog, currently ${dog?.name}` : dog?.name}
+          style={[styles.cta, !dog && styles.ctaOff]}
+          disabled={!dog}
+          accessibilityRole="button"
+          accessibilityLabel={`Plant ${dog?.name ?? 'your pup'}'s flower for today`}
+          onPress={() => setSheetOpen(true)}
         >
-          <Text style={styles.dogChip}>
-            {dog ? dog.name : 'PupLog'}
-            {multiDog ? ' ▾' : ''}
-          </Text>
+          <Text style={styles.ctaLabel}>Plant {dog?.name ?? 'your pup'}&apos;s flower for today</Text>
         </Pressable>
-        <EmergencyChip />
-      </View>
+      </SafeAreaView>
 
-      {/* Gate on `week` so the greeting doesn't flash "ready to grow" before data loads. */}
-      {week && <GardenGreeting dogName={dog?.name ?? 'Your pup'} plantedCount={week.plantedCount} />}
-
-      <View style={styles.sceneWrap}>
-        {isLoading || !week ? (
-          <ActivityIndicator color={OB_COLORS.accent} style={{ marginTop: 80 }} />
-        ) : (
-          <GardenScene week={week} width={width} height={width * 0.92} />
-        )}
-        {celebration && (
-          <PlantCelebration mood={celebration.mood} tier={celebration.tier} onDone={() => setCelebration(null)} />
-        )}
-      </View>
-
-      <Pressable
-        style={[styles.cta, !dog && styles.ctaOff]}
-        disabled={!dog}
-        accessibilityRole="button"
-        accessibilityLabel={`Plant ${dog?.name ?? 'your pup'}'s flower for today`}
-        onPress={() => setSheetOpen(true)}
-      >
-        <Text style={styles.ctaLabel}>Plant {dog?.name ?? 'your pup'}&apos;s flower for today</Text>
-      </Pressable>
+      {celebration && (
+        <PlantCelebration mood={celebration.mood} tier={celebration.tier} onDone={() => setCelebration(null)} />
+      )}
 
       <DogSelector visible={showDogSelector} onClose={() => setShowDogSelector(false)} />
 
@@ -127,12 +134,16 @@ export default function JourneyScreen() {
           )}
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: OB_COLORS.cream },
+  // Sky-blue (matches the scene's top gradient stop) so there's no cream flash before the
+  // full-bleed garden renders.
+  root: { flex: 1, backgroundColor: '#b3d9ed' },
+  overlay: { flex: 1 },
+  loading: { justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -141,7 +152,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   dogChip: { fontFamily: OB_FONTS.h2, fontSize: OB_FONT_SIZES.h2, color: OB_COLORS.ink },
-  sceneWrap: { flex: 1, justifyContent: 'center' },
+  spacer: { flex: 1 },
   cta: {
     backgroundColor: OB_COLORS.cta,
     borderRadius: OB_RADII.button,

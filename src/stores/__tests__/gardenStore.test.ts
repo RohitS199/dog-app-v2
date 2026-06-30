@@ -1,5 +1,8 @@
 import { useGardenStore } from '../gardenStore';
 import { supabase } from '../../lib/supabase';
+import { uploadGardenMedia } from '../../lib/uploadGardenMedia';
+
+jest.mock('../../lib/uploadGardenMedia', () => ({ uploadGardenMedia: jest.fn() }));
 
 // Stub the supabase chain plantFlower uses: from().upsert().select().single() for the
 // write, then from().select().eq().gte().lte() for the fetchWeek refresh. Returns the
@@ -23,6 +26,7 @@ function mockPlantSupabase() {
 describe('gardenStore', () => {
   beforeEach(() => {
     useGardenStore.setState({ week: null, isLoading: false, error: null, dogId: null });
+    (uploadGardenMedia as jest.Mock).mockReset();
   });
 
   it('starts empty', () => {
@@ -41,6 +45,22 @@ describe('gardenStore', () => {
     expect(week.days[0]).toMatchObject({ state: 'planted', moodKey: 'joyful', tier: 1 }); // mood only -> T1
     expect(week.days[2]).toMatchObject({ state: 'planted', moodKey: 'calm', tier: 3 });   // note -> T3
     expect(week.plantedCount).toBe(2);
+  });
+
+  it('derives tier 3 from a stored photo_url alone (no note/chip)', () => {
+    const rows = [
+      { id: 'c1', log_date: '2026-06-15', garden_mood: 'joyful', health_chips: [], note: null, photo_url: 'https://cdn/x.jpg', video_url: null },
+    ];
+    const week = useGardenStore.getState().deriveWeek('2026-06-20', rows as any);
+    expect(week.days[0]).toMatchObject({ state: 'planted', moodKey: 'joyful', tier: 3 });
+  });
+
+  it('derives tier 3 from a stored video_url alone', () => {
+    const rows = [
+      { id: 'c1', log_date: '2026-06-15', garden_mood: 'playful', health_chips: [], note: null, photo_url: null, video_url: 'https://cdn/v.mp4' },
+    ];
+    const week = useGardenStore.getState().deriveWeek('2026-06-20', rows as any);
+    expect(week.days[0]).toMatchObject({ state: 'planted', moodKey: 'playful', tier: 3 });
   });
 
   it('derives tier 2 from a health chip alone (no note)', () => {
@@ -90,6 +110,46 @@ describe('gardenStore', () => {
       expect.objectContaining({ emergency_flagged: true }),
       expect.anything(),
     );
+  });
+
+  it('plantFlower uploads media and writes its URL onto the row', async () => {
+    const upsert = mockPlantSupabase();
+    (uploadGardenMedia as jest.Mock).mockResolvedValue({ kind: 'photo', url: 'https://cdn/u1/p.jpg', path: 'u1/dog-1/x' });
+    const ok = await useGardenStore.getState().plantFlower('dog-1', {
+      log_date: '2026-06-23', garden_mood: 'joyful', health_chips: [], note: null,
+      media: { uri: 'file:///p.jpg', kind: 'photo' },
+    });
+    expect(ok).toBe(true);
+    expect(uploadGardenMedia).toHaveBeenCalledWith(
+      { uri: 'file:///p.jpg', kind: 'photo' },
+      expect.objectContaining({ userId: 'u1', dogId: 'dog-1', logDate: '2026-06-23' }),
+    );
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ photo_url: 'https://cdn/u1/p.jpg' }),
+      expect.anything(),
+    );
+  });
+
+  it('plantFlower without media does not upload or set media columns', async () => {
+    const upsert = mockPlantSupabase();
+    await useGardenStore.getState().plantFlower('dog-1', {
+      log_date: '2026-06-23', garden_mood: 'calm', health_chips: [], note: null,
+    });
+    expect(uploadGardenMedia).not.toHaveBeenCalled();
+    const payload = (upsert.mock.calls[0] as unknown[])[0] as Record<string, unknown>;
+    expect(payload).not.toHaveProperty('photo_url');
+    expect(payload).not.toHaveProperty('video_url');
+  });
+
+  it('plantFlower fails (no upsert) when media upload throws', async () => {
+    const upsert = mockPlantSupabase();
+    (uploadGardenMedia as jest.Mock).mockRejectedValue(new Error('upload boom'));
+    const ok = await useGardenStore.getState().plantFlower('dog-1', {
+      log_date: '2026-06-23', garden_mood: 'joyful', health_chips: [], note: null,
+      media: { uri: 'file:///p.jpg', kind: 'photo' },
+    });
+    expect(ok).toBe(false);
+    expect(upsert).not.toHaveBeenCalled();
   });
 
   it('plantFlower rejects an invalid garden_mood without touching supabase', async () => {

@@ -21,6 +21,10 @@ jest.mock('expo-router', () => ({
   }),
   useSegments: () => [],
   useLocalSearchParams: () => ({}),
+  useFocusEffect: (cb) => {
+    const React = require('react');
+    React.useEffect(cb, []);
+  },
   Link: 'Link',
   Slot: 'Slot',
   Stack: { Screen: 'Screen' },
@@ -187,6 +191,8 @@ jest.mock('react-native-reanimated', () => {
       return toValue;
     },
     withSequence: (...values) => values[values.length - 1],
+    withRepeat: (animation) => animation,
+    cancelAnimation: () => {},
     withSpring: (toValue) => toValue,
     withDelay: (_delay, value) => value,
     runOnJS: (fn) => fn,
@@ -307,8 +313,13 @@ jest.mock('react-native-svg', () => {
     G: createMockComponent('G'),
     Rect: createMockComponent('Rect'),
     Line: createMockComponent('Line'),
+    Ellipse: createMockComponent('Ellipse'),
     Text: createMockComponent('SvgText'),
     SvgXml: createMockComponent('SvgXml'),
+    Defs: createMockComponent('Defs'),
+    RadialGradient: createMockComponent('RadialGradient'),
+    LinearGradient: createMockComponent('SvgLinearGradient'),
+    Stop: createMockComponent('Stop'),
   };
 });
 

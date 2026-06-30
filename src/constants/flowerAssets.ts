@@ -50,6 +50,21 @@ export const FLOWER_ASSETS: Record<GardenMood, Record<1 | 2 | 3, ImageSourceProp
 // assets/garden/puplog-sprout.png / puplog-mound.png land.
 export const SCENE_ASSETS = {
   doghouse: require('../../assets/garden/puplog-doghouse.png'),
+  // Painted soil + rock-ring garden base (Gemini drop-in, downscaled to 1400px; aspect ~1.608).
+  // Replaces the code-drawn blob bed; flowers scatter on the inner soil over the top.
+  gardenBed: require('../../assets/garden/puplog-garden-bed.png'),
+  clouds: [
+    require('../../assets/garden/puplog-cloud-1.png'),
+    require('../../assets/garden/puplog-cloud-2.png'),
+    require('../../assets/garden/puplog-cloud-3.png'),
+  ],
+  // Painted meadow mushrooms (Gemini drop-ins, downscaled). Static requires only — Metro can't
+  // resolve dynamic paths (memory: rn-metro-static-require). Aspects: 0.905 / 0.924 / 0.591.
+  mushrooms: [
+    require('../../assets/garden/puplog-mushroom-1.png'), // aspect 0.905 (red)
+    require('../../assets/garden/puplog-mushroom-2.png'), // aspect 0.924 (amber)
+    require('../../assets/garden/puplog-mushroom-3.png'), // aspect 0.591 (tall pink)
+  ],
   // TODO(scene-kit): wire when generated
   // sprout: require('../../assets/garden/puplog-sprout.png'),
   // mound: require('../../assets/garden/puplog-mound.png'),

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { isGardenMood, GardenMood } from '../constants/gardenMoods';
 import { computeFlowerTier } from '../lib/flowerTier';
 import { detectEmergencyKeywords } from '../lib/emergencyKeywords';
+import { uploadGardenMedia, type GardenMediaInput } from '../lib/uploadGardenMedia';
 import {
   buildGardenWeek,
   getWeekStartMonday,
@@ -19,14 +20,18 @@ interface GardenRow {
   garden_mood: string | null;
   health_chips: unknown[] | null;
   note: string | null;
+  photo_url: string | null;
+  video_url: string | null;
 }
 
-// What the LogSheet hands the store to plant/edit a day's flower.
+// What the LogSheet hands the store to plant/edit a day's flower. `media` is the
+// locally-picked photo/video (if any); plantFlower uploads it before the upsert.
 export interface GardenDraft {
   log_date: string;
   garden_mood: GardenMood;
   health_chips: string[];
   note: string | null;
+  media?: GardenMediaInput | null;
 }
 
 interface GardenState {
@@ -60,8 +65,8 @@ export const useGardenStore = create<GardenState>((set, get) => ({
       const tier = computeFlowerTier({
         mood: row.garden_mood,
         hasHealthChip: (row.health_chips?.length ?? 0) > 0,
-        hasPhoto: false, // media deferred (no storage columns yet)
-        hasVideo: false,
+        hasPhoto: !!row.photo_url,
+        hasVideo: !!row.video_url,
         hasNote: !!row.note,
       });
       flowers.push({ id: row.id, date: row.log_date, mood: row.garden_mood, tier });
@@ -77,7 +82,7 @@ export const useGardenStore = create<GardenState>((set, get) => ({
     try {
       const { data, error } = await supabase
         .from('garden_logs')
-        .select('id, log_date, garden_mood, health_chips, note')
+        .select('id, log_date, garden_mood, health_chips, note, photo_url, video_url')
         .eq('dog_id', dogId)
         .gte('log_date', weekStart)
         .lte('log_date', weekEnd);
@@ -109,6 +114,21 @@ export const useGardenStore = create<GardenState>((set, get) => ({
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+
+      // Upload the picked photo/video first so the row carries its URL. A failed
+      // upload fails the whole plant (clearer than planting a flower that claims a
+      // photo it doesn't have). Only the matching column is set, and only when
+      // media is present — so a note-only edit never clears existing media.
+      let mediaCols: { photo_url?: string; video_url?: string } = {};
+      if (draft.media) {
+        const uploaded = await uploadGardenMedia(draft.media, {
+          userId: user.id,
+          dogId,
+          logDate: draft.log_date,
+        });
+        mediaCols = uploaded.kind === 'photo' ? { photo_url: uploaded.url } : { video_url: uploaded.url };
+      }
+
       const { error } = await supabase
         .from('garden_logs')
         .upsert(
@@ -122,6 +142,7 @@ export const useGardenStore = create<GardenState>((set, get) => ({
             // Golden Rule: re-run emergency detection on the note (note-less logs stay
             // false; the always-on Emergency surface covers them).
             emergency_flagged: note ? detectEmergencyKeywords(note).isEmergency : false,
+            ...mediaCols,
           },
           { onConflict: 'dog_id,log_date' },
         )
